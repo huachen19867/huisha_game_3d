@@ -7,7 +7,7 @@
             this.ray = new THREE.Raycaster(); this.direction = new THREE.Vector3(); this.current = null;
             this.onKey = event => {
                 if (event.code === 'KeyE' && !event.repeat && !event.isComposing && !event.defaultPrevented
-                    && !/INPUT|BUTTON|TEXTAREA|SELECT/.test(event.target?.tagName) && !this.isPaused()) this.activate();
+                    && !/INPUT|TEXTAREA|SELECT/.test(event.target?.tagName) && !this.isPaused()) this.activate();
             };
             global.addEventListener('keydown', this.onKey);
         }
