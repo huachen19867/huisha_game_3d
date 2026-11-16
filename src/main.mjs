@@ -2,7 +2,7 @@ import * as THREE from '../vendor/three.module.mjs';
 import { GLTFLoader } from '../vendor/GLTFLoader.mjs';
 window.THREE = THREE;
 window.Huisha3D = { GLTFLoader };
-for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeStory', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeHouseScene', 'ThreeAudio']) {
+for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeStory', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreeMemoryJournal', 'ThreeHouseScene', 'ThreeAudio']) {
     await import(`./3d/${name}.js`);
 }
 const $ = id => document.getElementById(id);
@@ -10,14 +10,18 @@ const game = window.Huisha3D;
 const story = new game.ThreeStory();
 const reader = $('reader');
 const audio = new game.ThreeAudio();
+const memoryJournal = new game.ThreeMemoryJournal({ story, open, close, knownRecords,
+    journal: () => journal(!!scene?.inspectionReturn), onReturn: returnMemory,
+    onSolved: () => { audio.chime(); scene.syncState(); updateStatus(); } });
 let mode = 'title', scene, lastFocus, saveTimer, lockFocus;
 const isPaused = () => mode !== 'game' || reader.open || document.hidden || !!scene?.inspectionReturn;
 function updateStatus() {
     $('objective').textContent = story.objective();
-    $('begin').textContent = story.state.records.length || story.state.position ? (story.state.courtyard ? '继续余温' : '继续归门') : '走进旧宅';
+    $('begin').textContent = story.state.memory ? `继续${game.MEMORIES[story.state.memory].title}`
+        : story.state.records.length || story.state.position ? (story.state.courtyard ? '继续余温' : '继续归门') : '走进旧宅';
     $('restart').hidden = !story.state.records.length && !story.state.position;
-    $('chapter-number').textContent = story.state.courtyard ? '贰' : '壹';
-    $('chapter-name').textContent = story.state.courtyard ? '余 温' : '归 门';
+    $('chapter-number').textContent = story.state.memory ? '忆' : story.state.courtyard ? '贰' : '壹';
+    $('chapter-name').textContent = story.state.memory ? game.MEMORIES[story.state.memory].title : story.state.courtyard ? '余 温' : '归 门';
 }
 function save() {
     if (scene?.controls) story.save(scene.playerSnapshot());
@@ -69,7 +73,25 @@ function journal(backToLock = false) {
         [backToLock ? inspectionLabel() : '继续观察', backToLock ? resumeInspection : close],
         ['需要一点提示', () => guidance(0, backToLock)]
     ], '只收录你亲眼见到的内容');
+    memoryJournal.appendLinks($('reader-body'));
     appendRecords();
+}
+function album() {
+    const item = game.WORLD_MAP.interactables.find(item => item.id === 'memory_album');
+    open(item.title, item.text, [...Object.entries(game.MEMORIES).map(([id, definition]) => [
+        `翻入记忆 · ${definition.title}`, () => enterMemory(id)
+    ]), ['合上相册，继续观察', close]], '回煞 · 厨房相册');
+}
+function enterMemory(id) {
+    leaveInspection(false);
+    if (!story.enterMemory(id, scene.playerSnapshot())) return;
+    scene.controls.teleport(story.state.position); scene.syncState(true); audio.resetPosition();
+    if (reader.open) reader.close(); save(); $('journal').focus();
+}
+function returnMemory() {
+    const pose = story.leaveMemory(); if (!pose) return;
+    scene.controls.teleport(pose); scene.syncState(true); audio.resetPosition();
+    if (reader.open) reader.close(); save(); $('journal').focus();
 }
 function guidance(stage = 0, backToLock = !!scene?.inspectionReturn) {
     const hint = story.guidance(stage);
@@ -151,17 +173,30 @@ function waterAction(action) {
 function ending(choice) {
     if (!story.depart(choice)) return;
     audio.chime();
-    const text = choice === 'stay'
+    const text = choice === 'wake'
+        ? '你循着另一边的灯走过去，第一次回应了自己的名字。\n\n母亲的语音停在「慢一点」。雨没有再落进旧宅，救护车上的人握住了你的手。\n\n你还有机会把这一夜说给活着的人听。\n\n结局 · 破茧'
+        : choice === 'remember'
+        ? '你转身回到那盏旧灯下。母亲没有责怪，也没有挽留。\n\n你知道门开着，却仍选择让今夜再过一遍。\n\n七月十四，回来一趟。\n\n结局 · 回煞'
+        : choice === 'stay'
         ? '你把信放回口袋，给自己盛了一碗热饭。\n\n今晚留下，是因为你想歇一歇。明天，门还会开着。\n\n结局 · 余温'
         : story.state.records.includes('medicine_letter')
             ? '你带着那封迟了十年的信走上山路。\n\n她的病不是你的错。厨房里的灯，也从来不是要你留下。\n\n结局 · 归路'
             : '你走上山路，没有再替任何人把门关上。\n\n厨房的抽屉里还留着一封信。你可以继续回看，也可以把这一夜留在身后。\n\n结局 · 归路';
-    open(choice === 'stay' ? '余温' : '归路', text, [['留在现场回看', close], ['返回标题', title]], '回煞 · 你的选择');
+    open({ stay: '余温', leave: '归路', wake: '破茧', remember: '回煞' }[choice], text, [['留在现场回看', close], ['返回标题', title]], '回煞 · 你的选择');
 }
 function inspect(item) {
     audio.knock();
     if (item.id === 'lock') { lock(); return; }
     if (item.id === 'water_station') { water(); return; }
+    if (item.id === 'memory_album') { album(); return; }
+    if (item.returnMemory) { open(item.title, item.text, [['继续观察', close], ['回到厨房', returnMemory]]); return; }
+    if (item.finalChoice) {
+        open(item.title, item.text, [['先不决定，继续观察', close], ['回应救护灯，醒来', () => ending('wake')],
+            ['留在母亲的记忆里', () => ending('remember')]]); return;
+    }
+    if (item.deduction) {
+        open(item.title, item.text, [['继续观察', close], ['整理这段记忆', () => memoryJournal.show(item.deduction)], ['回到厨房', returnMemory]]); return;
+    }
     if (item.id === 'medicine_letter') {
         open(item.title, item.text, [['带着信继续走', close], ['今晚留下，给自己煮碗饭', () => ending('stay')]]); return;
     }
@@ -196,7 +231,8 @@ function title() {
 function pause() {
     save();
     open('暂歇', '合上这页，就能继续观察。当前进度只保存在这台设备的浏览器中。', [
-        ['继续探索', close], ['回查手记', () => journal(!!scene.inspectionReturn)], ['返回标题', title]
+        ['继续探索', close], ['回查手记', () => journal(!!scene.inspectionReturn)],
+        ...(story.state.memory ? [['回到厨房', returnMemory]] : []), ['返回标题', title]
     ], '回煞 · 暂停');
     const setting = document.createElement('label'); setting.className = 'settings'; setting.textContent = '画面亮度';
     const slider = document.createElement('input'); slider.type = 'range'; slider.min = '0.8'; slider.max = '1.8'; slider.step = '0.05'; slider.value = scene.renderer.toneMappingExposure;
@@ -213,9 +249,9 @@ $('begin').addEventListener('click', () => {
     document.activeElement?.blur?.(); scene.controls.clear(); audio.start();
 });
 $('restart').addEventListener('click', () => {
-    open('重新回家', '重新开始会清除观察、字轮、量水和结局进度。', [['保留进度', close], ['确认重新开始', () => {
-        story.reset(); scene.controls.camera.position.set(0, 1.6, 3.4); scene.controls.yaw = Math.PI; scene.controls.pitch = 0;
-        scene.controls.clear(); scene.controls.applyLook(); scene.syncState(true); close(); updateStatus();
+    open('重新回家', '重新开始会清除观察、字轮、量水、记忆推理和结局进度。', [['保留进度', close], ['确认重新开始', () => {
+        story.reset(); scene.controls.teleport(scene.map.playerStart); audio.resetPosition();
+        scene.syncState(true); close(); updateStatus();
     }]], '开始新的归门');
 });
 $('journal').addEventListener('click', () => journal(!!scene.inspectionReturn));
@@ -277,7 +313,7 @@ try {
         onAssetError: name => { $('load-status').textContent = `部分材质未载入：${name}。请检查本地文件。`; },
         onFrame: (position, paused) => {
             audio.update(position, paused);
-            if (!paused && story.state.opened && position.z < -15.2 && story.enterCourtyard()) updateStatus();
+            if (!paused && !story.state.memory && story.state.opened && position.z < -15.2 && story.enterCourtyard()) updateStatus();
         } });
     await scene.start();
     let wheelPress;

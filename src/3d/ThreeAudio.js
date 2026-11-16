@@ -41,6 +41,7 @@
             this.last = { x: position.x, z: position.z };
         }
         pause() { this.context?.suspend()?.catch?.(() => {}); }
+        resetPosition() { this.last = null; this.distance = 0; }
         toggle() { this.muted = !this.muted; this.muted ? this.pause() : this.start(); }
         dispose() { this.rain?.stop(); this.context?.close()?.catch?.(() => {}); }
     }

@@ -3,7 +3,9 @@
     const SAVE_KEY = 'huisha.3d.homecoming.v1';
     const symbols = ['雨', '门', '人', '灯'];
     const freshState = () => ({ records: [], wheels: [0, 0, 0], opened: false, portrait: false, ending: false,
-        courtyard: false, buckets: [0, 0], waterSolved: false, departure: null, position: null });
+        courtyard: false, buckets: [0, 0], waterSolved: false, departure: null, position: null,
+        memory: null, memoryReturn: null, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
+    const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
     class ThreeStory {
         constructor(storage) {
             this.state = freshState();
@@ -29,8 +31,20 @@
                     }
                     this.state.waterSolved = saved.waterSolved === true && this.state.opened;
                     if (this.state.waterSolved) this.state.buckets[1] = 4;
-                    if (this.state.waterSolved && ['leave', 'stay'].includes(saved.departure)) this.state.departure = saved.departure;
-                    if (!this.state.waterSolved) this.state.records = this.state.records.filter(id => !['medicine_letter', 'road_exit'].includes(id));
+                    if (!this.state.waterSolved) this.state.records = this.state.records.filter(id =>
+                        !(game.WORLD_MAP || game.MAIN_HALL_MAP).interactables.find(item => item.id === id)?.requiresWater);
+                    for (const [id, definition] of Object.entries(game.MEMORY_CASES || {})) {
+                        this.state.deductions[id] = this.state.waterSolved && saved.deductions?.[id] === true
+                            && definition.records.every(record => this.state.records.includes(record));
+                        const draft = saved.drafts?.[id];
+                        this.state.drafts[id] = this.cleanDraft(id, draft?.evidence, draft?.interpretation);
+                    }
+                    if (this.state.waterSolved && typeof saved.memory === 'string' && Object.hasOwn(game.MEMORIES || {}, saved.memory)) {
+                        this.state.memory = saved.memory;
+                        this.state.memoryReturn = validPose(saved.memoryReturn) ? saved.memoryReturn : { x: 8.5, z: -20.4, yaw: Math.PI, pitch: 0 };
+                    }
+                    if (this.state.waterSolved && (['leave', 'stay'].includes(saved.departure)
+                        || (this.truthSolved() && ['wake', 'remember'].includes(saved.departure)))) this.state.departure = saved.departure;
                     const p = saved.position;
                     if (p && [p.x, p.z, p.yaw, p.pitch].every(Number.isFinite)) this.state.position = p;
                 }
@@ -85,19 +99,61 @@
             this.state.waterSolved = true; this.save(); return true;
         }
         depart(choice) {
-            if (!this.state.waterSolved || !['leave', 'stay'].includes(choice)) return false;
+            if (!this.state.waterSolved) return false;
+            if (['wake', 'remember'].includes(choice)) {
+                if (!this.truthSolved() || this.state.memory !== 'crash') return false;
+            } else if (!['leave', 'stay'].includes(choice) || this.state.memory) return false;
             this.state.departure = choice; this.save(); return true;
         }
+        enterMemory(id, pose) {
+            if (!this.state.waterSolved || this.state.memory || typeof id !== 'string' || !Object.hasOwn(game.MEMORIES || {}, id) || !validPose(pose)) return false;
+            this.state.memoryReturn = { ...pose }; this.state.memory = id;
+            this.state.position = { ...game.MEMORIES[id].start }; this.save(); return true;
+        }
+        leaveMemory() {
+            if (!this.state.memory) return null;
+            const pose = this.state.memoryReturn || { x: 8.5, z: -20.4, yaw: Math.PI, pitch: 0 };
+            this.state.memory = null; this.state.memoryReturn = null; this.state.position = { ...pose }; this.save(); return pose;
+        }
+        cleanDraft(id, evidence, interpretation) {
+            return { evidence: [0, 1].map(index => Array.isArray(evidence) && this.state.records.includes(evidence[index]) ? evidence[index] : ''),
+                interpretation: Number.isInteger(interpretation) && interpretation >= 0 && interpretation < (game.MEMORY_CASES?.[id]?.choices.length || 0) ? interpretation : null };
+        }
+        setMemoryDraft(id, evidence, interpretation) {
+            if (typeof id !== 'string' || !Object.hasOwn(game.MEMORY_CASES || {}, id)) return;
+            this.state.drafts[id] = this.cleanDraft(id, evidence, interpretation); this.save();
+        }
+        deduce(id) {
+            const definition = typeof id === 'string' && Object.hasOwn(game.MEMORY_CASES || {}, id) ? game.MEMORY_CASES[id] : null, draft = this.state.drafts[id];
+            if (!definition || !draft) return { success: false, message: '先选出两份记录，再试着解释它们。' };
+            if (this.state.deductions[id]) return { success: true, message: definition.conclusion };
+            const evidence = draft.evidence;
+            if (!evidence[0] || !evidence[1] || evidence[0] === evidence[1]) return { success: false, message: '需要两份不同的已读记录。草稿仍保留着。' };
+            if (!this.state.waterSolved || !evidence.every(record => this.state.records.includes(record))
+                || !definition.records.every(record => evidence.includes(record)) || draft.interpretation !== definition.answer) {
+                return { success: false, message: '这两份记录与解释还不能相互支持。留意日期、签字和原文；可以保留草稿，回去再看。' };
+            }
+            this.state.deductions[id] = true; this.save(); return { success: true, message: definition.conclusion };
+        }
+        truthSolved() { return ['school', 'hospital', 'crash'].every(id => this.state.deductions[id]); }
         objective() {
-            if (this.state.departure) return this.state.departure === 'leave' ? '归路 · 你已走出旧宅，可以继续回看' : '余温 · 今晚留下是你的选择，可以继续回看';
+            if (this.state.memory && ['wake', 'remember'].includes(this.state.departure)) return '已经作出去向选择 · 可以继续回看，或从暂停回到厨房';
+            if (this.state.memory) {
+                if (this.state.memory === 'crash' && this.truthSolved()) return '救护灯另一边还有人在叫你 · 靠近灯，主动决定去向';
+                return this.state.deductions[this.state.memory] ? '这段记忆已核对 · 可以继续观察，或从门边 / 暂停回到厨房'
+                    : `${game.MEMORIES[this.state.memory].title} · 观察记录，选出原文和解释，再主动提交推理`;
+            }
+            if (this.state.departure) return { leave: '归路 · 你已走出旧宅，可以继续回看', stay: '余温 · 今晚留下是你的选择，可以继续回看',
+                wake: '破茧 · 你回应了救护灯，可以继续回看', remember: '回煞 · 你选择留在记忆，可以继续回看' }[this.state.departure];
             if (this.state.waterSolved) return this.state.records.includes('medicine_letter')
-                ? '院门松开了 · 穿过雨庭，在山路上决定去留' : '量水秤压平了 · 查看打开的抽屉，院门也已松开';
+                ? '院门已开 · 可以走向山路，也可以翻厨房柜边的相册核对记忆' : '量水秤压平了 · 查看打开的抽屉，院门也已松开';
             if (this.state.courtyard) return '厨房还有一盏灯 · 观察提桶刻度，用水压平旧秤';
             if (this.state.ending || this.state.opened) return '门闩已经松开 · 穿过走廊，走入雨庭';
             if (this.state.records.includes('lock')) return '三枚字轮 · 对照旧宅里的字迹，尝试松开门闩';
             return '母亲的来信让你回到旧宅 · 找到走廊尽头的出路';
         }
         guidance(stage = 0) {
+            if (this.state.memory) return this.memoryGuidance(stage);
             if (this.state.waterSolved) return { text: '量水秤已经压平，桌下的抽屉打开了。低头查看抽屉里的家书；厨房外的院门也松开了，可从雨庭走向山路。' };
             if (this.state.courtyard) return this.waterGuidance(stage);
             if (this.state.opened) return { text: '门闩已经松开。沿走廊走到门外的石路，再走入雨庭。右手边的厨房还亮着一盏灯。' };
@@ -128,6 +184,17 @@
                 : '先去右手边的厨房。灶旁墙上留着一张校秤纸，桌上的提桶和秤盘也有刻度。', next: '想一想量水办法' };
             if (stage === 1) return { text: '三升和五升的差是两升。先把五升桶倒进空的三升桶，就能在大桶里留下两升。\n\n试着把这两升留在小桶里：下一次添满大桶时，小桶还差多少才满？', next: '直接查看量水做法' };
             return { text: '从两桶空着开始：\n\n添满五升桶 → 倒入三升桶，余二升。\n倒空三升桶 → 把余下二升倒入小桶。\n再添满五升桶 → 倒入小桶，补上它缺的一升。\n\n五升桶里现在恰好四升。把它放上秤盘。' };
+        }
+        memoryGuidance(stage) {
+            const id = this.state.memory, definition = game.MEMORY_CASES[id];
+            if (id === 'crash' && this.truthSolved()) return { text: '三段记忆已经核对。继续走向路尽头的红蓝救护灯，靠近后主动决定是否回应。也可以先回厨房。' };
+            if (this.state.deductions[id]) return { text: definition.conclusion + '\n\n可以继续观察，或从门边、暂停菜单回到厨房。' };
+            if (stage === 0) return { text: { school: '近处左侧课桌留着录取通知，远处右侧课桌有家长回执。先分别看原文，再用“整理记忆”核对。',
+                hospital: '看看右前方桌上的初诊病历，再去左侧轮椅旁查看签字的复诊安排。比较记录与离家的日期。',
+                crash: '来路左侧石块上有手机，前方右侧放着救护交接单。注意一个是旧录音，一个是今夜的记录。' }[id], next: '再想一想原文' };
+            if (stage === 1) return { text: '选两份不同的已读原文，留意日期和是谁签了字。不要把“如果当时”当成已经发生的事实。选好解释后仍需主动提交。', next: '直接查看这段推理做法' };
+            const titles = definition.records.map(record => game.WORLD_MAP.interactables.find(item => item.id === record).title);
+            return { text: `对照「${titles[0]}」和「${titles[1]}」，选择解释：\n\n${definition.choices[definition.answer]}\n\n没有观察过的记录仍须回到场景中调查，提示不会替你加入手记或完成推理。` };
         }
         save(position) {
             if (position) this.state.position = position;

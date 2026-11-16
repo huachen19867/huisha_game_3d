@@ -18,7 +18,7 @@ const canvasContext = { fillRect() {}, strokeRect() {}, fillText() {} };
 const document = { ...eventTarget, createElement() { return { getContext() { return canvasContext; } }; }, hidden: false };
 const window = { ...eventTarget, THREE, Huisha3D: {} };
 const context = vm.createContext({ window, document, console });
-for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeStory', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeHouseScene']) {
+for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeStory', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreeHouseScene']) {
     vm.runInContext(await text(`src/3d/${name}.js`), context, { filename: `${name}.js` });
 }
 const game = window.Huisha3D;
@@ -79,7 +79,7 @@ console.log('Story: optional guidance, observed evidence, incorrect attempt, fre
 // omit their material bindings here because Node has no browser image decoder or WebGL.
 globalThis.ProgressEvent ??= class { constructor(type, values) { Object.assign(this, { type }, values); } };
 const parsedModels = new Map();
-for (const id of ['chinese_armchair', 'chinese_console_table', 'chinese_cabinet']) {
+for (const id of ['chinese_armchair', 'chinese_console_table', 'chinese_cabinet', 'SchoolDesk_01', 'SchoolChair_01', 'wheelchair_01']) {
     const directory = `assets/models/${id}`;
     const gltf = JSON.parse(await text(`${directory}/model.gltf`));
     for (const buffer of gltf.buffers) {
@@ -108,7 +108,7 @@ house.outsideLight = { intensity: 0 }; house.syncState(true); house.scene.update
 assert.equal(house.scene.getObjectByName('chinese_armchair').isGroup, true);
 assert.equal(house.scene.getObjectByName('chinese_console_table').isGroup, true);
 assert.equal(house.scene.getObjectByName('chinese_cabinet').isGroup, true);
-console.log('Assets: all three real glTF models, binary buffers, texture dependencies and scene placement passed.');
+console.log('Assets: all six real glTF models, binary buffers, texture dependencies and scene placement passed.');
 
 let paused = false;
 const camera = new THREE.PerspectiveCamera(66, 1, 0.06, 60);
@@ -195,7 +195,9 @@ assert.equal(camera.position.distanceTo(before), 0); assert.equal(controls.keys.
 interaction.update(); assert.equal(prompt.hidden, true); paused = false;
 
 function flood() {
-    const step = 0.15, start = [0, 23], queue = [start], visited = new Set([start.join(',')]);
+    const origin = game.MEMORIES[story.state.memory]?.start || game.WORLD_MAP.playerStart;
+    const step = 0.15, start = [Math.round(origin.x / step), Math.round(origin.z / step)], queue = [start], visited = new Set([start.join(',')]);
+    assert.equal(controls.canOccupy(start[0] * step, start[1] * step), true, 'flood starts from a valid player spawn');
     for (let i = 0; i < queue.length; i++) {
         const [x, z] = queue[i];
         for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
@@ -222,8 +224,9 @@ function verifyReachable(item, points) {
     assert.ok(focusPoint, `${item.id} must be reachable and investigable through real geometry`);
     camera.lookAt(camera.position.clone().add(new THREE.Vector3(0, 0, 3))); camera.updateMatrixWorld(true);
     if (item.position.z < focusPoint.z) { interaction.update(); assert.notEqual(interaction.current?.id, item.id, 'looking away must not inspect behind the player'); }
+    return focusPoint;
 }
-for (const item of game.WORLD_MAP.interactables.filter(item => !item.requiresOpen)) verifyReachable(item, reachable);
+for (const item of game.WORLD_MAP.interactables.filter(item => !item.space && !item.requiresOpen && !item.requiresWater)) verifyReachable(item, reachable);
 story.state.wheels = [3, 2, 1]; story.unlock(); house.syncState(true); house.scene.updateMatrixWorld(true);
 const yardPoints = flood();
 const outside = yardPoints.find(p => p.z < -13.5);
@@ -283,11 +286,70 @@ assert.equal(house.courtyard.letter.visible, true, 'the released drawer reveals 
 assert.ok(house.courtyard.drawer.position.z > -22, 'the drawer physically slides out');
 const roadPoints = flood();
 assert.ok(roadPoints.some(point => point.z < -30.5), 'operating the scale opens a walkable path to the mountain road');
-for (const item of game.WORLD_MAP.interactables.filter(item => item.requiresWater)) verifyReachable(item, roadPoints);
+for (const item of game.WORLD_MAP.interactables.filter(item => !item.space && item.requiresWater)) verifyReachable(item, roadPoints);
 assert.equal(story.state.departure, null, 'reading clues and reaching the road do not choose an ending');
 assert.equal(story.depart('stay'), true); assert.equal(new game.ThreeStory(adapter).state.departure, 'stay');
 assert.equal(story.depart('leave'), true); assert.equal(new game.ThreeStory(adapter).state.departure, 'leave');
 console.log('Courtyard: connected kitchen, real object picks in six viewports, volume conservation, save recovery, moving props, gated road and explicit endings passed.');
+const returnPose = { x: 6.6, z: -23.5, yaw: 0.8, pitch: -0.1 };
+controls.teleport(returnPose);
+assert.equal(story.enterMemory('school', { x: 0 }), false, 'entering a memory requires a real return pose');
+assert.equal(story.enterMemory('__proto__', returnPose), false, 'unknown memory identifiers cannot become active spaces');
+assert.equal(story.depart('wake'), false, 'the deeper ending is not unlocked by the water puzzle');
+for (const [id, definition] of Object.entries(game.MEMORY_CASES)) {
+    assert.equal(story.enterMemory(id, controls.snapshot()), true);
+    controls.teleport(story.state.position); house.syncState(true);
+    assert.equal(house.homeRoot.visible, false);
+    for (const [space, room] of Object.entries(house.memories.rooms)) assert.equal(room.visible, space === id);
+    assert.equal(controls.canOccupy(returnPose.x, returnPose.z), false, 'movement is confined to the current memory, not the house');
+    const points = flood();
+    for (const item of game.WORLD_MAP.interactables.filter(item => item.space === id && !item.requiresTruth)) verifyReachable(item, points);
+    story.setMemoryDraft(id, [...definition.records], definition.answer);
+    assert.equal(story.deduce(id).success, false, 'unobserved records cannot be submitted as evidence');
+    for (const record of definition.records) {
+        const item = game.WORLD_MAP.interactables.find(item => item.id === record);
+        const point = verifyReachable(item, points);
+        camera.position.set(point.x, 1.6, point.z); camera.lookAt(item.position.x, item.position.y, item.position.z); camera.updateMatrixWorld(true);
+        interaction.activate(); assert.ok(story.state.records.includes(record));
+    }
+    assert.equal(story.state.deductions[id], false, 'reading both records does not automatically complete deduction');
+    story.setMemoryDraft(id, [...definition.records], (definition.answer + 1) % definition.choices.length);
+    const draftBeforeWrong = JSON.stringify(story.state.drafts[id]);
+    assert.equal(story.deduce(id).success, false); assert.equal(JSON.stringify(story.state.drafts[id]), draftBeforeWrong, 'wrong submissions keep the draft');
+    story.save(controls.snapshot());
+    const memoryRestored = new game.ThreeStory(adapter);
+    assert.equal(memoryRestored.state.memory, id); assert.equal(JSON.stringify(memoryRestored.state.drafts[id]), draftBeforeWrong);
+    const resumeCamera = new THREE.PerspectiveCamera(66, 1, 0.06, 60);
+    const resumeControls = new game.ThreeControls({ camera: resumeCamera, domElement: eventTarget, map: game.WORLD_MAP,
+        story: memoryRestored, isPaused: () => false });
+    assert.equal(resumeCamera.position.x, memoryRestored.state.position.x); assert.equal(resumeCamera.position.z, memoryRestored.state.position.z);
+    resumeControls.dispose();
+    story.setMemoryDraft(id, [...definition.records], definition.answer);
+    assert.equal(story.deduce(id).success, true); assert.equal(story.state.memory, id, 'correct deduction keeps the player in the memory');
+    if (id === 'crash') {
+        assert.equal(story.truthSolved(), true);
+        verifyReachable(game.WORLD_MAP.interactables.find(item => item.id === 'rescue_light'), points);
+        assert.equal(story.depart('wake'), true); assert.equal(new game.ThreeStory(adapter).state.departure, 'wake');
+        assert.equal(story.depart('remember'), true); assert.equal(new game.ThreeStory(adapter).state.departure, 'remember');
+    }
+    const pose = story.leaveMemory(); controls.teleport(pose); house.syncState(true);
+    assert.deepEqual({ ...controls.snapshot() }, returnPose, 'returning restores the original house position and view');
+    assert.equal(house.homeRoot.visible, true); assert.equal(story.state.memory, null);
+}
+console.log('Memories: real classroom/hospital/road reachability, space isolation, explicit observation and deduction, persistent drafts, return poses and four ending choices passed.');
+for (const memory of ['__proto__', ['school'], 'missing']) {
+    const invalid = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, opened: true, waterSolved: true, memory }), setItem() {} });
+    assert.equal(invalid.state.memory, null, 'malformed active-memory values cannot create an unwalkable space');
+}
+const brokenMemoryPosition = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, opened: true, waterSolved: true, memory: 'school',
+    position: { x: 0, z: 3.4, yaw: 0, pitch: 0 }, memoryReturn: { x: 0 } }), setItem() {} });
+const fallbackCamera = new THREE.PerspectiveCamera(66, 1, 0.06, 60);
+const fallbackControls = new game.ThreeControls({ camera: fallbackCamera, domElement: eventTarget, map: game.WORLD_MAP,
+    story: brokenMemoryPosition, isPaused: () => false });
+assert.equal(fallbackCamera.position.x, game.MEMORIES.school.start.x, 'an invalid memory position falls back inside that memory, not into the hidden house');
+const fallbackPose = brokenMemoryPosition.leaveMemory(); fallbackControls.teleport(fallbackPose);
+assert.equal(fallbackControls.canOccupy(fallbackCamera.position.x, fallbackCamera.position.z), true, 'missing return poses recover to a safe kitchen location');
+fallbackControls.dispose();
 controls.dispose(); interaction.dispose();
 assert.ok([...listeners.values()].every(set => set.size === 0), 'controls must release all event listeners');
 console.log('Space: every clue reachable with actual ray occlusion, correct strafe, collision substeps, reading pause and end route passed.');

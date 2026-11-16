@@ -17,8 +17,10 @@
                 this.camera.getWorldDirection(this.direction);
                 let best = Infinity;
                 for (const item of this.map.interactables) {
+                    if ((item.space || 'house') !== (this.story.state.memory || 'house')) continue;
                     if (item.requiresOpen && !this.story.state.opened) continue;
                     if (item.requiresWater && !this.story.state.waterSolved) continue;
+                    if (item.requiresTruth && !this.story.truthSolved()) continue;
                     const delta = new THREE.Vector3(item.position.x, item.position.y, item.position.z).sub(this.camera.position);
                     const distance = delta.length();
                     const facing = delta.clone().normalize().dot(this.direction);
@@ -37,7 +39,8 @@
         activate() {
             this.update();
             if (!this.current || this.isPaused()) return;
-            this.story.record(this.current.id); this.onInspect(this.current);
+            if (this.current.journal !== false) this.story.record(this.current.id);
+            this.onInspect(this.current);
         }
         dispose() { global.removeEventListener('keydown', this.onKey); }
     }

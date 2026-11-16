@@ -233,6 +233,7 @@
             this.wheelTargets = [0, 0, 0]; this.wheelSymbols = [0, 0, 0];
             this.label('lock-heading', '归　门', [1.3, 0.4], [1.17, 2.2, 0.11], [0, 0, 0], 'lock', this.door, '#352321', '#c9b389');
             if (game.ThreeCourtyard) { this.courtyard = new game.ThreeCourtyard(this); this.courtyard.build(); }
+            if (game.ThreeMemoryScenes) { this.memories = new game.ThreeMemoryScenes(this); this.memories.build(); }
         }
         createCandle(x, parent) {
             const m = this.materials;
@@ -244,7 +245,7 @@
         }
         async loadModels() {
             const loader = new game.GLTFLoader();
-            const entries = await Promise.all(['chinese_armchair', 'chinese_console_table', 'chinese_cabinet'].map(async id => {
+            const entries = await Promise.all(['chinese_armchair', 'chinese_console_table', 'chinese_cabinet', 'SchoolDesk_01', 'SchoolChair_01', 'wheelchair_01'].map(async id => {
                 const gltf = await loader.loadAsync(`assets/models/${id}/model.gltf`);
                 return [id, gltf.scene];
             }));
@@ -271,12 +272,14 @@
                         }
                     }
                 });
+                return group;
             };
             place('chinese_console_table', [2.5, 1.08, 0.95], [-2.75, 0, -3.12], 0, 'altar', true);
             place('chinese_armchair', [0.78, 1.22, 0.78], [-3.5, 0, 0.8], 0.15);
             place('chinese_armchair', [0.78, 1.22, 0.78], [3.5, 0, 0.8], -0.15);
             place('chinese_cabinet', [1.45, 2.15, 0.85], [3.4, 0, -3.4], 0);
             this.courtyard?.placeFurniture(place);
+            this.memories?.placeFurniture(place); this.memories?.sealHome();
         }
         createLights() {
             this.scene.add(new THREE.HemisphereLight(0xb1bec8, 0x51402e, 1.8));
@@ -307,6 +310,7 @@
             this.scene.traverse(obj => { if (obj.userData.cord) obj.visible = !s.opened; });
             this.outsideLight.intensity = s.opened ? 9 : 4;
             this.courtyard?.sync(immediate);
+            this.memories?.sync();
         }
         moveWheels(delta) {
             const immediate = this.reducedMotion?.matches;

@@ -1,8 +1,8 @@
 {
   "name": "huisha-game-3d",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
-  "description": "回煞 3D：归门与余温，独立制作的第一人称民俗悬疑游戏",
+  "description": "回煞 3D：归门、余温与三段记忆，第一人称民俗悬疑探索游戏",
   "scripts": {
     "start": "node tools/serve.mjs",
     "verify": "node tools/verify.mjs"

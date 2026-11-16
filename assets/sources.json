@@ -107,6 +107,81 @@
       "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/damaged_plaster/damaged_plaster_rough_1k.jpg",
       "md5": "bbdad97a6d7c74e24b58b6e398e8eb19",
       "path": "materials/plaster-roughness.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/SchoolDesk_01/SchoolDesk_01_1k.gltf",
+      "md5": "f327b010a117ab6af3dec7538cdf23ee",
+      "path": "models/SchoolDesk_01/model.gltf"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/SchoolDesk_01/SchoolDesk_01_diff_1k.jpg",
+      "md5": "f6be3e2428c88c86c1a328798b592e5e",
+      "path": "models/SchoolDesk_01/textures/SchoolDesk_01_diff_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/SchoolDesk_01/SchoolDesk_01_nor_gl_1k.jpg",
+      "md5": "b79a0c557ecea2c7d79433ac70547a43",
+      "path": "models/SchoolDesk_01/textures/SchoolDesk_01_nor_gl_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/SchoolDesk_01/SchoolDesk_01_arm_1k.jpg",
+      "md5": "34b3a4444d2a2b0266e3bf3a6dfc9b2c",
+      "path": "models/SchoolDesk_01/textures/SchoolDesk_01_arm_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/SchoolDesk_01/SchoolDesk_01.bin",
+      "md5": "af08b1337236d6b951ea9805032abd32",
+      "path": "models/SchoolDesk_01/SchoolDesk_01.bin"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/wheelchair_01/wheelchair_01_1k.gltf",
+      "md5": "53901a369849ad929d030279a3d1f719",
+      "path": "models/wheelchair_01/model.gltf"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/wheelchair_01/wheelchair_01_diff_1k.jpg",
+      "md5": "8f3f7ef28ebe675f20fefb8fbafb8ac3",
+      "path": "models/wheelchair_01/textures/wheelchair_01_diff_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/wheelchair_01/wheelchair_01_nor_gl_1k.jpg",
+      "md5": "256c08e1dcf3a937b7d66a845bd21f04",
+      "path": "models/wheelchair_01/textures/wheelchair_01_nor_gl_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/wheelchair_01/wheelchair_01.bin",
+      "md5": "419414082dc40cae13c9141d8922a218",
+      "path": "models/wheelchair_01/wheelchair_01.bin"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/wheelchair_01/wheelchair_01_arm_1k.jpg",
+      "md5": "4c4d70458a7848b9d4f60d0b2ec84d2c",
+      "path": "models/wheelchair_01/textures/wheelchair_01_arm_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/SchoolChair_01/SchoolChair_01_1k.gltf",
+      "md5": "dea922d55d029fb99085b50196d1eec0",
+      "path": "models/SchoolChair_01/model.gltf"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/SchoolChair_01/SchoolChair_01_nor_gl_1k.jpg",
+      "md5": "223a0e5d115fb86cf1ae675fe73dc04a",
+      "path": "models/SchoolChair_01/textures/SchoolChair_01_nor_gl_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/SchoolChair_01/SchoolChair_01_diff_1k.jpg",
+      "md5": "2d5c9c77d97ba2edd5084a9d72b5dd63",
+      "path": "models/SchoolChair_01/textures/SchoolChair_01_diff_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/SchoolChair_01/SchoolChair_01_arm_1k.jpg",
+      "md5": "559daea007902aae5b5d5623a34b3a13",
+      "path": "models/SchoolChair_01/textures/SchoolChair_01_arm_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/SchoolChair_01/SchoolChair_01.bin",
+      "md5": "d1f13f71f9f9979cde18c798e25dd9d3",
+      "path": "models/SchoolChair_01/SchoolChair_01.bin"
     }
   ]
 }

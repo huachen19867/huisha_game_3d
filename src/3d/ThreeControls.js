@@ -6,11 +6,12 @@
             Object.assign(this, { camera, domElement, map, story, isPaused, getDoorAngle });
             this.keys = new Set();
             this.touchMove = { x: 0, y: 0 };
-            this.yaw = map.playerStart.yaw;
+            const start = game.MEMORIES?.[story.state.memory]?.start || map.playerStart;
+            this.yaw = start.yaw;
             this.pitch = 0;
             this.playerRadius = map.playerRadius;
             this.handlers = [];
-            camera.position.set(map.playerStart.x, map.playerStart.y, map.playerStart.z);
+            camera.position.set(start.x, map.playerStart.y, start.z);
             const saved = story.state.position;
             if (saved && this.canOccupy(saved.x, saved.z)) {
                 camera.position.x = saved.x;
@@ -88,10 +89,12 @@
         }
         canOccupy(x, z) {
             const radius = this.playerRadius;
-            const inside = this.map.walkable.some(rect => (!rect.requiresState || this.story.state[rect.requiresState])
+            const space = this.story.state.memory || 'house';
+            const inside = this.map.walkable.some(rect => (rect.space || 'house') === space && (!rect.requiresState || this.story.state[rect.requiresState])
                 && x >= rect.xMin + radius && x <= rect.xMax - radius
                 && z >= rect.zMin + radius && z <= rect.zMax - radius);
             return inside && !this.blocksDoor(x, z) && !this.map.obstacles.some(rect => {
+                if ((rect.space || 'house') !== space) return false;
                 if (rect.requiresState && !this.story.state[rect.requiresState]) return false;
                 const dx = x - Math.max(rect.xMin, Math.min(rect.xMax, x));
                 const dz = z - Math.max(rect.zMin, Math.min(rect.zMax, z));
@@ -99,6 +102,7 @@
             });
         }
         blocksDoor(x, z) {
+            if (this.story.state.memory) return false;
             return [this.map.door, ...(this.map.extraDoors || [])].filter(Boolean).some(door => this.blocksLeaf(x, z, door));
         }
         blocksLeaf(x, z, door) {
@@ -115,6 +119,15 @@
             return gapX * gapX + gapZ * gapZ < this.playerRadius * this.playerRadius;
         }
         snapshot() { return { x: this.camera.position.x, z: this.camera.position.z, yaw: this.yaw, pitch: this.pitch }; }
+        teleport(pose) {
+            this.clear();
+            const start = game.MEMORIES?.[this.story.state.memory]?.start || this.map.playerStart;
+            const target = pose && this.canOccupy(pose.x, pose.z) ? pose : start;
+            this.camera.position.set(target.x, this.map.playerStart.y, target.z);
+            this.yaw = Number.isFinite(target.yaw) ? target.yaw : start.yaw;
+            this.pitch = Number.isFinite(target.pitch) ? Math.max(-1.15, Math.min(1.15, target.pitch)) : 0;
+            this.applyLook();
+        }
         dispose() {
             this.clear();
             this.handlers.forEach(([target, type, handler, options]) => target.removeEventListener(type, handler, options));

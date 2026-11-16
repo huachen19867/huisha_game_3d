@@ -1,0 +1,9 @@
+.memory-links { padding: 8px 0 18px; border-bottom: 1px solid var(--line); }
+.memory-links h3 { font-size: 17px; font-weight: normal; margin: 0 0 10px; }
+.memory-links button { font-size: 12px; margin: 0 7px 7px 0; }
+.memory-draft { white-space: normal; }
+.memory-draft label { display: block; font-size: 14px; margin-top: 18px; }
+.memory-draft select { display: block; width: 100%; min-height: 44px; margin-top: 7px; padding: 10px; background: #1e281e; color: var(--paper); border: 1px solid var(--line); font: inherit; font-size: 15px; line-height: 1.5; }
+.memory-draft select:focus-visible { outline: 2px solid #e0c98a; outline-offset: 3px; }
+.memory-quote { font-size: 13px; line-height: 1.8; white-space: pre-line; border-left: 2px solid var(--line); padding: 5px 12px; color: #c4c5b6; }
+.memory-feedback { font-size: 13px; line-height: 1.8; color: #dbc18e; }
