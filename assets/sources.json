@@ -1,0 +1,112 @@
+{
+  "fetched": "2026-11-16",
+  "license": "CC0-1.0",
+  "license_url": "https://polyhaven.com/license",
+  "files": [
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/chinese_armchair/chinese_armchair_1k.gltf",
+      "md5": "ecad26c95dbf2c7e631f848711700678",
+      "path": "models/chinese_armchair/model.gltf"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/chinese_armchair/chinese_armchair_arm_1k.jpg",
+      "md5": "ed3bece412754abf3aa2c5f6bc6aa9de",
+      "path": "models/chinese_armchair/textures/chinese_armchair_arm_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/chinese_armchair/chinese_armchair_nor_gl_1k.jpg",
+      "md5": "ba905cf32062cf2869ec39f7adbb95b8",
+      "path": "models/chinese_armchair/textures/chinese_armchair_nor_gl_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/chinese_armchair/chinese_armchair.bin",
+      "md5": "7575b1f0e7de094e7c1cbebf610e5da0",
+      "path": "models/chinese_armchair/chinese_armchair.bin"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/chinese_armchair/chinese_armchair_diff_1k.jpg",
+      "md5": "5ae99f09fe8a767d4ecd49c86539d46d",
+      "path": "models/chinese_armchair/textures/chinese_armchair_diff_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/chinese_console_table/chinese_console_table_1k.gltf",
+      "md5": "7afbbc2473741124afb17b8b7a92f1dd",
+      "path": "models/chinese_console_table/model.gltf"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/chinese_console_table/chinese_console_table_arm_1k.jpg",
+      "md5": "3aa4e460645083b231b20846b4d01df0",
+      "path": "models/chinese_console_table/textures/chinese_console_table_arm_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/chinese_console_table/chinese_console_table_diff_1k.jpg",
+      "md5": "1b6e339d5610bff8fd018ad8cbd7022c",
+      "path": "models/chinese_console_table/textures/chinese_console_table_diff_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/chinese_console_table/chinese_console_table_nor_gl_1k.jpg",
+      "md5": "ae12146cca5c94fd82b9de395e46b994",
+      "path": "models/chinese_console_table/textures/chinese_console_table_nor_gl_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/chinese_console_table/chinese_console_table.bin",
+      "md5": "08e53d44d181263d5d4e731f7cd713c3",
+      "path": "models/chinese_console_table/chinese_console_table.bin"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/chinese_cabinet/chinese_cabinet_1k.gltf",
+      "md5": "d805bdf4ffa5df0e8b5bd40d2b463d4c",
+      "path": "models/chinese_cabinet/model.gltf"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/chinese_cabinet/chinese_cabinet_diff_1k.jpg",
+      "md5": "940dbb968436533fc5b5f54727c90fd0",
+      "path": "models/chinese_cabinet/textures/chinese_cabinet_diff_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/chinese_cabinet/chinese_cabinet_nor_gl_1k.jpg",
+      "md5": "307d1e6c77603c15d8d21de38b791464",
+      "path": "models/chinese_cabinet/textures/chinese_cabinet_nor_gl_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/chinese_cabinet/chinese_cabinet_arm_1k.jpg",
+      "md5": "dd5157ff4dd4c36359c2d912760d39a3",
+      "path": "models/chinese_cabinet/textures/chinese_cabinet_arm_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/chinese_cabinet/chinese_cabinet.bin",
+      "md5": "392eda89aa40550e7c193efd4075235a",
+      "path": "models/chinese_cabinet/chinese_cabinet.bin"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/dark_wooden_planks/dark_wooden_planks_diff_1k.jpg",
+      "md5": "7ec8fe3e0b84289a4add3b10a54090bb",
+      "path": "materials/wood-color.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/dark_wooden_planks/dark_wooden_planks_nor_gl_1k.jpg",
+      "md5": "4093b4023a4270b3a06b762076106d58",
+      "path": "materials/wood-normal.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/dark_wooden_planks/dark_wooden_planks_rough_1k.jpg",
+      "md5": "6eaec29bb24d157dde74d38bc5a63018",
+      "path": "materials/wood-roughness.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/damaged_plaster/damaged_plaster_diff_1k.jpg",
+      "md5": "a8df39b93ebece3c1c84290e3e916ec1",
+      "path": "materials/plaster-color.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/damaged_plaster/damaged_plaster_nor_gl_1k.jpg",
+      "md5": "f51f2fb57309e9d1974b9841f9b605ea",
+      "path": "materials/plaster-normal.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/damaged_plaster/damaged_plaster_rough_1k.jpg",
+      "md5": "bbdad97a6d7c74e24b58b6e398e8eb19",
+      "path": "materials/plaster-roughness.jpg"
+    }
+  ]
+}

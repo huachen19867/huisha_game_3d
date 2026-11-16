@@ -1,0 +1,11 @@
+* text=auto
+*.js text eol=lf
+*.mjs text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+*.bat text eol=crlf
+# Preserve downloaded source bytes; glTF MD5s are recorded in assets/sources.json.
+assets/models/**/*.gltf -text
+vendor/* -text -whitespace
+docs/references/* -text -whitespace
