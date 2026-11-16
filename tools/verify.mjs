@@ -18,7 +18,7 @@ const canvasContext = { fillRect() {}, strokeRect() {}, fillText() {} };
 const document = { ...eventTarget, createElement() { return { getContext() { return canvasContext; } }; }, hidden: false };
 const window = { ...eventTarget, THREE, Huisha3D: {} };
 const context = vm.createContext({ window, document, console });
-for (const name of ['ThreeHouseMap', 'ThreeStory', 'ThreeControls', 'ThreeInteraction', 'ThreeHouseScene']) {
+for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeStory', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeHouseScene']) {
     vm.runInContext(await text(`src/3d/${name}.js`), context, { filename: `${name}.js` });
 }
 const game = window.Huisha3D;
@@ -61,6 +61,15 @@ storage.set('huisha.3d.homecoming.v1', JSON.stringify({ version: 1, portrait: tr
 assert.ok(new game.ThreeStory(adapter).state.records.includes('portrait_back'), 'a revealed portrait always has its readable record after restoring');
 storage.set('huisha.3d.homecoming.v1', JSON.stringify({ version: 1, portrait: false, records: ['portrait_back'] }));
 assert.ok(!new game.ThreeStory(adapter).state.records.includes('portrait_back'), 'a covered portrait must not leak its hidden inscription into the journal');
+storage.set('huisha.3d.homecoming.v1', JSON.stringify({ version: 1, opened: true, ending: true, records: ['letter', 'lock'] }));
+const legacy = new game.ThreeStory(adapter);
+assert.equal(legacy.state.ending, true); assert.equal(legacy.state.waterSolved, false);
+assert.deepEqual([...legacy.state.buckets], [0, 0], 'an existing chapter-one save gets safe defaults for the extension');
+assert.match(legacy.objective(), /雨庭/, 'old chapter endings now point to the continuation instead of a dead end');
+storage.set('huisha.3d.homecoming.v1', JSON.stringify({ version: 1, buckets: [-2, 99], waterSolved: true, departure: 'leave', records: ['medicine_letter'] }));
+const malformedWater = new game.ThreeStory(adapter);
+assert.deepEqual([...malformedWater.state.buckets], [0, 0]); assert.equal(malformedWater.state.waterSolved, false);
+assert.equal(malformedWater.state.departure, null); assert.ok(!malformedWater.state.records.includes('medicine_letter'));
 story.reset(); assert.equal(story.state.records.length, 0); assert.equal(story.state.opened, false);
 const guess = new game.ThreeStory(adapter); guess.state.wheels = [3, 2, 1];
 assert.equal(guess.unlock(), true, 'a correct guess is valid without artificially requiring clue counts');
@@ -103,8 +112,17 @@ console.log('Assets: all three real glTF models, binary buffers, texture depende
 
 let paused = false;
 const camera = new THREE.PerspectiveCamera(66, 1, 0.06, 60);
-const controls = new game.ThreeControls({ camera, domElement: eventTarget, map: game.MAIN_HALL_MAP, story,
-    isPaused: () => paused, getDoorAngle: () => house.door.rotation.y });
+const controls = new game.ThreeControls({ camera, domElement: eventTarget, map: game.WORLD_MAP, story,
+    isPaused: () => paused, getDoorAngle: id => id === 'yard' ? house.courtyard.gate.rotation.y : house.door.rotation.y });
+for (const [opened, waterSolved, z, expectedZ] of [[false, false, -20, 3.4], [true, false, -31, 3.4], [true, true, -31, -31]]) {
+    const resumeStory = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, opened, waterSolved,
+        position: { x: 0, z, yaw: Math.PI, pitch: 0 } }), setItem() {} });
+    const resumeCamera = new THREE.PerspectiveCamera(66, 1, 0.06, 60);
+    const resumeControls = new game.ThreeControls({ camera: resumeCamera, domElement: eventTarget, map: game.WORLD_MAP,
+        story: resumeStory, isPaused: () => false });
+    assert.equal(resumeCamera.position.z, expectedZ, 'restored positions cannot bypass an unsolved region gate');
+    resumeControls.dispose();
+}
 house.camera = camera; house.controls = controls;
 house.isPaused = () => paused;
 house.root = { clientWidth: 1280, clientHeight: 720 };
@@ -138,14 +156,14 @@ assert.ok(selectedNormal.z > 0.999, 'selected engraved face must point toward th
 for (let i = 0; i < 3; i++) { story.rotate(0); house.syncState(); }
 assert.equal(story.state.wheels[0], 0);
 assert.ok(house.wheelTargets[0] >= Math.PI * 2, 'wrapping from the fourth face continues forward');
-house.endLockInspection();
+house.endInspection();
 assert.deepEqual({ ...controls.snapshot() }, { ...playerBeforeInspection }, 'leaving must restore both position and view direction');
 assert.equal(camera.view?.enabled, false, 'leaving restores ordinary projection');
 assert.equal(house.pickWheel(100, 100), null, 'world exploration must not turn the lock remotely');
 story.reset(); house.syncState(true); camera.aspect = 16 / 9; camera.updateProjectionMatrix();
 console.log('Mechanism: actual drum faces, pointer picks, portrait/landscape framing, animation and player-pose restoration passed.');
 const prompt = { hidden: true, textContent: '' };
-const interaction = new game.ThreeInteraction({ camera, map: game.MAIN_HALL_MAP, scene: house.scene, prompt, story,
+const interaction = new game.ThreeInteraction({ camera, map: game.WORLD_MAP, scene: house.scene, prompt, story,
     isPaused: () => paused, onInspect(item) { assert.ok(item.id); } });
 controls.keys.add('KeyD'); controls.update(0.05); assert.ok(camera.position.x > 0, 'D must move to camera right, not left');
 controls.clear(); camera.position.set(0, 1.6, 3.4);
@@ -191,9 +209,9 @@ function flood() {
 }
 const reachable = flood();
 assert.ok(reachable.length > 2000);
-for (const item of game.MAIN_HALL_MAP.interactables.filter(item => !item.requiresOpen)) {
+function verifyReachable(item, points) {
     let focusPoint;
-    for (const point of reachable) {
+    for (const point of points) {
         if (Math.hypot(point.x - item.position.x, point.z - item.position.z) > item.radius) continue;
         const elevation = Math.atan2(item.position.y - 1.6, Math.hypot(point.x - item.position.x, point.z - item.position.z));
         if (Math.abs(elevation) > 1.15) continue;
@@ -205,12 +223,71 @@ for (const item of game.MAIN_HALL_MAP.interactables.filter(item => !item.require
     camera.lookAt(camera.position.clone().add(new THREE.Vector3(0, 0, 3))); camera.updateMatrixWorld(true);
     if (item.position.z < focusPoint.z) { interaction.update(); assert.notEqual(interaction.current?.id, item.id, 'looking away must not inspect behind the player'); }
 }
+for (const item of game.WORLD_MAP.interactables.filter(item => !item.requiresOpen)) verifyReachable(item, reachable);
 story.state.wheels = [3, 2, 1]; story.unlock(); house.syncState(true); house.scene.updateMatrixWorld(true);
-const outside = flood().find(p => p.z < -13.5);
+const yardPoints = flood();
+const outside = yardPoints.find(p => p.z < -13.5);
 assert.ok(outside, 'door opening must make the ending area physically reachable');
 camera.position.set(0, 1.6, -12.9); camera.lookAt(new THREE.Vector3(0, 1.25, -13.9)); camera.updateMatrixWorld(true);
 interaction.update(); assert.equal(interaction.current?.id, 'threshold');
 interaction.activate(); assert.ok(story.state.records.includes('threshold')); assert.equal(story.state.ending, false, 'reaching or reading the threshold must not auto-finish');
+for (const item of game.WORLD_MAP.interactables.filter(item => item.requiresOpen && !item.requiresWater)) verifyReachable(item, yardPoints);
+assert.ok(yardPoints.some(point => point.x > 7 && point.z < -20), 'the kitchen must connect physically to the hall and yard');
+assert.ok(!yardPoints.some(point => point.z < -28), 'the courtyard gate stays shut until the water mechanism is operated');
+assert.equal(story.depart('leave'), false, 'unlocking the first door is not the final ending');
+story.enterCourtyard();
+const kitchenPose = { x: 8.5, z: -20.4, yaw: Math.PI, pitch: -0.1 };
+camera.position.set(kitchenPose.x, 1.6, kitchenPose.z); controls.yaw = kitchenPose.yaw; controls.pitch = kitchenPose.pitch; controls.applyLook();
+for (const [width, height] of [[1280, 720], [390, 844], [844, 390], [390, 640], [680, 720], [667, 375]]) {
+    house.root.clientWidth = width; house.root.clientHeight = height; camera.aspect = width / height; camera.updateProjectionMatrix();
+    house.beginWaterInspection();
+    assert.ok(camera.position.z < -17.7 && camera.position.y < 3.05, 'inspection stays inside the kitchen, below its solid roof');
+    assert.deepEqual({ ...house.playerSnapshot() }, kitchenPose, 'close-up camera is never used as the saved position');
+    const targets = [
+        [house.scene.getObjectByName('bucket-0'), 'bucket0'], [house.scene.getObjectByName('bucket-1'), 'bucket1'],
+        [house.scene.getObjectByName('kitchen-tank-water'), 'fill'], [house.scene.getObjectByName('water-sink'), 'empty'],
+        [house.courtyard.pan, 'weigh']
+    ];
+    house.scene.updateMatrixWorld(true);
+    for (const [object, action] of targets) {
+        const point = object.getWorldPosition(new THREE.Vector3()).project(camera);
+        assert.ok(Math.abs(point.x) < 0.98 && Math.abs(point.y) < 0.9 && point.z < 1, `${action} fits in ${width}x${height}`);
+        if (width >= 900 || (height <= 520 && width > 680)) {
+            assert.ok((point.x + 1) * width / 2 < width - 338, 'water objects leave room for the right-side controls');
+        } else {
+            assert.ok((1 - point.y) * height / 2 < height * 0.57 - 12, 'water objects stay above the maximum-height bottom controls');
+        }
+        assert.equal(house.courtyard.pick((point.x + 1) * width / 2, (1 - point.y) * height / 2), action, `${action} can be picked through real geometry`);
+    }
+    house.beginWaterInspection();
+    house.endInspection();
+    assert.equal(camera.fov, 66, 'leaving restores the exploration field of view');
+    assert.deepEqual({ ...controls.snapshot() }, kitchenPose);
+}
+assert.equal(story.weighWater(), false, 'empty pails cannot release the drawer');
+story.fillBucket(1); assert.equal(story.pourBucket(1), 3);
+assert.deepEqual([...story.state.buckets], [3, 2], 'pouring conserves water and stops at the smaller capacity');
+story.emptyBucket(0); assert.equal(story.pourBucket(1), 2);
+story.fillBucket(1);
+assert.deepEqual([...new game.ThreeStory(adapter).state.buckets], [2, 5], 'an intermediate water puzzle resumes from saved quantities');
+assert.equal(story.pourBucket(1), 1);
+assert.deepEqual([...story.state.buckets], [3, 4]);
+assert.equal(story.state.waterSolved, false, 'having the correct quantity does not automatically operate the scale');
+assert.equal(story.weighWater(), true);
+assert.equal(story.fillBucket(1), false, 'the bucket placed on the scale is no longer refilled');
+assert.equal(controls.canOccupy(0, -27.5), false, 'the yard gate collision remains until its actual leaf rotates');
+house.syncState(true); house.scene.updateMatrixWorld(true);
+assert.equal(house.courtyard.waterParts[1].visible, true);
+assert.equal(house.courtyard.buckets[1].position.x, 9.4, 'the five-litre bucket physically moves onto the scale');
+assert.equal(house.courtyard.letter.visible, true, 'the released drawer reveals an actual letter in the scene');
+assert.ok(house.courtyard.drawer.position.z > -22, 'the drawer physically slides out');
+const roadPoints = flood();
+assert.ok(roadPoints.some(point => point.z < -30.5), 'operating the scale opens a walkable path to the mountain road');
+for (const item of game.WORLD_MAP.interactables.filter(item => item.requiresWater)) verifyReachable(item, roadPoints);
+assert.equal(story.state.departure, null, 'reading clues and reaching the road do not choose an ending');
+assert.equal(story.depart('stay'), true); assert.equal(new game.ThreeStory(adapter).state.departure, 'stay');
+assert.equal(story.depart('leave'), true); assert.equal(new game.ThreeStory(adapter).state.departure, 'leave');
+console.log('Courtyard: connected kitchen, real object picks in six viewports, volume conservation, save recovery, moving props, gated road and explicit endings passed.');
 controls.dispose(); interaction.dispose();
 assert.ok([...listeners.values()].every(set => set.size === 0), 'controls must release all event listeners');
 console.log('Space: every clue reachable with actual ray occlusion, correct strafe, collision substeps, reading pause and end route passed.');

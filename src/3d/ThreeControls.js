@@ -88,18 +88,22 @@
         }
         canOccupy(x, z) {
             const radius = this.playerRadius;
-            const inside = this.map.walkable.some(rect => x >= rect.xMin + radius && x <= rect.xMax - radius
+            const inside = this.map.walkable.some(rect => (!rect.requiresState || this.story.state[rect.requiresState])
+                && x >= rect.xMin + radius && x <= rect.xMax - radius
                 && z >= rect.zMin + radius && z <= rect.zMax - radius);
             return inside && !this.blocksDoor(x, z) && !this.map.obstacles.some(rect => {
+                if (rect.requiresState && !this.story.state[rect.requiresState]) return false;
                 const dx = x - Math.max(rect.xMin, Math.min(rect.xMax, x));
                 const dz = z - Math.max(rect.zMin, Math.min(rect.zMax, z));
                 return dx * dx + dz * dz < radius * radius;
             });
         }
         blocksDoor(x, z) {
-            const door = this.map.door;
-            if (!door) return false;
-            const angle = this.getDoorAngle?.() ?? (this.story.state.opened ? door.openAngle : 0);
+            return [this.map.door, ...(this.map.extraDoors || [])].filter(Boolean).some(door => this.blocksLeaf(x, z, door));
+        }
+        blocksLeaf(x, z, door) {
+            const opened = this.story.state[door.stateField || 'opened'];
+            const angle = this.getDoorAngle?.(door.id) ?? (opened ? door.openAngle : 0);
             const dx = x - door.hingeX, dz = z - door.hingeZ;
             // Transform the player into the rotating leaf's local space, then test circle vs rectangle.
             const localX = Math.cos(angle) * dx - Math.sin(angle) * dz;

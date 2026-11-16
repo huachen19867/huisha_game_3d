@@ -7,13 +7,14 @@
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="src/style.css">
     <link rel="stylesheet" href="src/lock.css">
-    <title>回煞 3D · 归门</title>
+    <link rel="stylesheet" href="src/water.css">
+    <title>回煞 3D · 归门与余温</title>
 </head>
 <body>
     <main id="world" aria-label="旧宅三维场景"></main>
     <div class="grain" aria-hidden="true"></div>
     <section id="title-screen" class="title-screen" aria-labelledby="game-name">
-        <div class="edition">中 式 民 俗 悬 疑 <span>第一章 / 归门</span></div>
+        <div class="edition">中 式 民 俗 悬 疑 <span>归门 / 余温</span></div>
         <div class="title-content">
             <p class="eyebrow">RETURN TO THE THRESHOLD</p>
             <h1 id="game-name">回<span>煞</span></h1>
@@ -28,7 +29,7 @@
         <footer class="title-footer"><span>观察 · 记住 · 自己决定</span><span>建议戴耳机游玩</span></footer>
     </section>
     <section id="hud" class="hud" hidden aria-label="探索界面">
-        <div class="hud-top"><div class="chapter"><span>壹</span><p>归 门<small id="objective"></small></p></div><nav><button id="journal">手记 <kbd>J</kbd></button><button id="pause">暂停 <kbd>Esc</kbd></button></nav></div>
+        <div class="hud-top"><div class="chapter"><span id="chapter-number">壹</span><p><span id="chapter-name">归 门</span><small id="objective"></small></p></div><nav><button id="journal">手记 <kbd>J</kbd></button><button id="pause">暂停 <kbd>Esc</kbd></button></nav></div>
         <div class="reticle" aria-hidden="true"></div>
         <button id="prompt" class="prompt" hidden>调查</button>
         <p class="help">WASD 移动 <i>·</i> 鼠标看向物件 <i>·</i> E 调查 <i>·</i> J 回查记录</p>
@@ -44,6 +45,20 @@
         </div>
         <p id="lock-status" role="status">可以对照已读字迹，再尝试压下门闩。</p>
         <div class="lock-actions"><button id="lock-attempt" type="button">压下门闩</button><button id="lock-records" type="button">回查手记 <kbd>J</kbd></button><button id="lock-hint" type="button">需要提示</button><button id="lock-leave" type="button">退回门前 <kbd>Esc</kbd></button></div>
+    </section>
+    <section id="water-inspector" class="lock-inspector water-inspector" hidden aria-labelledby="water-title">
+        <div class="lock-heading"><h2 id="water-title">量水秤</h2><span>三升与五升 · 留下四升水</span></div>
+        <p id="water-levels" class="water-levels"></p>
+        <div class="water-controls" aria-label="选桶与量水操作">
+            <button type="button" data-bucket="0" aria-pressed="true">选三升桶 <kbd>1</kbd></button>
+            <button type="button" data-bucket="1" aria-pressed="false">选五升桶 <kbd>2</kbd></button>
+            <button id="water-fill" type="button">添满选中的桶 <kbd>F</kbd></button>
+            <button id="water-empty" type="button">倒空选中的桶 <kbd>X</kbd></button>
+            <button id="water-pour" type="button">选中桶倒入另一桶 <kbd>P</kbd></button>
+            <button id="water-weigh" type="button">五升桶放上秤盘</button>
+        </div>
+        <p id="water-status" role="status"></p>
+        <div class="lock-actions"><button id="water-records" type="button">回查手记 <kbd>J</kbd></button><button id="water-hint" type="button">需要提示</button><button id="water-leave" type="button">退回桌前 <kbd>Esc</kbd></button></div>
     </section>
     <dialog id="reader" aria-labelledby="reader-title">
         <div class="reader-heading"><p id="reader-eyebrow" class="eyebrow">旧宅 · 观察记录</p><button id="reader-close" class="close" aria-label="合上">合上 <kbd>Esc</kbd></button></div>

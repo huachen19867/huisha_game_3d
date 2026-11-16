@@ -1,0 +1,24 @@
+.water-levels { color: #e3cf9b; font-size: 14px; letter-spacing: 1px; margin: 10px 0; }
+.water-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.water-controls button { padding: 7px 9px; font-size: 12px; min-height: 44px; }
+.water-controls button[aria-pressed="true"] { border-color: #d7b875; background: #76613b70; }
+.water-controls #water-weigh { border-color: #ab7953; background: #71392a80; }
+.water-controls button:disabled { cursor: default; }
+#water-status { font-size: 12px; line-height: 1.7; color: var(--muted); margin: 9px 0; }
+@media(max-width: 680px) {
+    .water-controls button { padding: 6px; font-size: 11px; }
+    .water-levels { font-size: 12px; margin: 7px 0; }
+    #water-status { font-size: 11px; }
+}
+@media(max-height: 520px) and (min-width: 681px) {
+    .water-inspector { max-height: none; }
+    .water-controls button { font-size: 11px; padding: 5px; }
+    .water-levels { font-size: 12px; }
+}
+.water-inspector { max-height: 43dvh; overflow-y: auto; }
+@media(min-width: 900px) {
+    .water-inspector { left: auto; right: 18px; top: 90px; bottom: 20px; transform: none; width: 320px; padding: 12px; max-height: none; }
+    .water-inspector .lock-heading { display: block; }
+    .water-inspector .lock-heading span { display: block; margin-top: 5px; }
+    .water-inspector kbd { display: none; }
+}

@@ -4,7 +4,7 @@
     class ThreeHouseScene {
         constructor({ root, prompt, story, isPaused, onInspect, onAssetError, onFrame }) {
             Object.assign(this, { root, prompt, story, isPaused, onInspect, onAssetError, onFrame });
-            this.map = game.MAIN_HALL_MAP;
+            this.map = game.WORLD_MAP || game.MAIN_HALL_MAP;
             this.clock = new THREE.Clock();
             this.textures = [];
             this.labelCache = new Map();
@@ -31,14 +31,15 @@
             await this.loadModels();
             this.syncState(true);
             this.controls = new game.ThreeControls({ camera: this.camera, domElement: this.renderer.domElement,
-                map: this.map, story: this.story, isPaused: this.isPaused, getDoorAngle: () => this.door.rotation.y });
+                map: this.map, story: this.story, isPaused: this.isPaused,
+                getDoorAngle: id => id === 'yard' ? this.courtyard.gate.rotation.y : this.door.rotation.y });
             this.interaction = new game.ThreeInteraction({ camera: this.camera, map: this.map, scene: this.scene,
                 prompt: this.prompt, story: this.story, isPaused: this.isPaused, onInspect: this.onInspect });
             this.onResize = () => {
                 this.camera.aspect = this.root.clientWidth / Math.max(1, this.root.clientHeight);
                 this.camera.updateProjectionMatrix();
                 this.renderer.setSize(this.root.clientWidth, this.root.clientHeight);
-                if (this.inspectionReturn) this.frameLock();
+                if (this.inspectionReturn) this.frameInspection();
             };
             global.addEventListener('resize', this.onResize);
             this.animate();
@@ -166,7 +167,7 @@
             this.label('path-sign', '归\n路', [0.22, 0.5], [1.2, 0.7, -13.995], [0, 0, 0], 'threshold', undefined, '#4e5551', '#b4b6a4');
             const foliage = new THREE.MeshStandardMaterial({ color: 0x1d302d, roughness: 1 });
             for (let i = 0; i < 16; i++) {
-                const side = i % 2 ? 1 : -1, x = side * (2.8 + (i % 3) * 1.65), z = -14.4 - Math.floor(i / 2) * 2.1;
+                const side = i % 2 ? 1 : -1, x = side * (13.5 + (i % 3) * 1.65), z = -18 - Math.floor(i / 2) * 2.1;
                 const height = 3.2 + (i % 4) * 0.55;
                 this.cylinder(`tree-trunk-${i}`, 0.06, 0.15, height, [x, height / 2, z], m.darkWood);
                 for (let j = 0; j < 3; j++) {
@@ -231,6 +232,7 @@
             }
             this.wheelTargets = [0, 0, 0]; this.wheelSymbols = [0, 0, 0];
             this.label('lock-heading', '归　门', [1.3, 0.4], [1.17, 2.2, 0.11], [0, 0, 0], 'lock', this.door, '#352321', '#c9b389');
+            if (game.ThreeCourtyard) { this.courtyard = new game.ThreeCourtyard(this); this.courtyard.build(); }
         }
         createCandle(x, parent) {
             const m = this.materials;
@@ -274,6 +276,7 @@
             place('chinese_armchair', [0.78, 1.22, 0.78], [-3.5, 0, 0.8], 0.15);
             place('chinese_armchair', [0.78, 1.22, 0.78], [3.5, 0, 0.8], -0.15);
             place('chinese_cabinet', [1.45, 2.15, 0.85], [3.4, 0, -3.4], 0);
+            this.courtyard?.placeFurniture(place);
         }
         createLights() {
             this.scene.add(new THREE.HemisphereLight(0xb1bec8, 0x51402e, 1.8));
@@ -303,6 +306,7 @@
             if (immediate) this.door.rotation.y = s.opened ? this.map.door.openAngle : 0;
             this.scene.traverse(obj => { if (obj.userData.cord) obj.visible = !s.opened; });
             this.outsideLight.intensity = s.opened ? 9 : 4;
+            this.courtyard?.sync(immediate);
         }
         moveWheels(delta) {
             const immediate = this.reducedMotion?.matches;
@@ -324,7 +328,7 @@
             this.camera.updateMatrixWorld(true);
         }
         pickWheel(clientX, clientY) {
-            if (!this.inspectionReturn) return null;
+            if (this.inspectionKind !== 'lock') return null;
             const bounds = this.renderer.domElement.getBoundingClientRect();
             const pointer = new THREE.Vector2((clientX - bounds.left) / bounds.width * 2 - 1, 1 - (clientY - bounds.top) / bounds.height * 2);
             const ray = new THREE.Raycaster();
@@ -337,22 +341,29 @@
             return null;
         }
         beginLockInspection() {
-            if (!this.inspectionReturn) this.inspectionReturn = this.controls.snapshot();
+            if (!this.inspectionReturn) { this.inspectionReturn = this.controls.snapshot(); this.inspectionFov = this.camera.fov; }
+            this.inspectionKind = 'lock';
             this.controls.clear(); this.frameLock();
         }
-        endLockInspection() {
+        beginWaterInspection() {
+            if (!this.inspectionReturn) { this.inspectionReturn = this.controls.snapshot(); this.inspectionFov = this.camera.fov; }
+            this.inspectionKind = 'water'; this.controls.clear(); this.courtyard.frame(); this.syncState();
+        }
+        frameInspection() { this.inspectionKind === 'water' ? this.courtyard.frame() : this.frameLock(); }
+        endInspection() {
             const pose = this.inspectionReturn;
             if (!pose) return;
             this.camera.position.set(pose.x, this.map.playerStart.y, pose.z);
-            this.camera.clearViewOffset();
+            this.camera.fov = this.inspectionFov; this.camera.clearViewOffset(); this.camera.updateProjectionMatrix();
             this.controls.yaw = pose.yaw; this.controls.pitch = pose.pitch;
-            this.inspectionReturn = null; this.controls.clear(); this.controls.applyLook();
+            this.inspectionReturn = null; this.inspectionKind = null; this.controls.clear(); this.controls.applyLook(); this.syncState();
         }
         animate() {
             this.animationId = global.requestAnimationFrame(() => this.animate());
             const delta = Math.min(this.clock.getDelta(), 0.05);
             this.controls.update(delta); this.syncState(); this.moveWheels(delta);
             this.moveDoor(delta);
+            this.courtyard?.update(delta);
             this.scene.updateMatrixWorld(true); this.camera.updateMatrixWorld(true);
             this.interaction.update();
             this.onFrame?.(this.inspectionReturn || this.camera.position, this.isPaused());
@@ -366,6 +377,7 @@
             const target = this.story.state.opened ? this.map.door.openAngle : 0;
             const remaining = target - this.door.rotation.y;
             this.door.rotation.y += this.reducedMotion?.matches || Math.abs(remaining) < 0.001 ? remaining : remaining * Math.min(1, delta * 4);
+            this.courtyard?.moveGate(delta);
         }
         dispose() {
             global.cancelAnimationFrame(this.animationId);

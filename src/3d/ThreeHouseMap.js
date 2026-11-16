@@ -7,7 +7,8 @@
         door: { hingeX: -1.17, hingeZ: -11.5, width: 2.34, thickness: 0.18, frontDepth: 0.56, openAngle: Math.PI / 2 },
         walkable: [
             { xMin: -4.8, xMax: 4.8, zMin: -4.1, zMax: 4.2 },
-            { xMin: -1.25, xMax: 1.25, zMin: -14.5, zMax: -3.3 }
+            { xMin: -1.25, xMax: 1.25, zMin: -11.5, zMax: -3.3 },
+            { xMin: -1.25, xMax: 1.25, zMin: -14.5, zMax: -10.9, requiresState: 'opened' }
         ],
         obstacles: [
             { id: 'altar', xMin: -4, xMax: -1.5, zMin: -3.7, zMax: -2.6 },
@@ -32,7 +33,7 @@
             { id: 'lock', title: '归门字轮', position: { x: 0, y: 1.42, z: -11.19 }, radius: 1.8,
                 text: '门上嵌着三枚铜轮，每枚都有「雨、门、人、灯」四个字。红绳接在铜轮背面，门闩落在你这一侧。' },
             { id: 'threshold', title: '雨停后的门槛', position: { x: 0, y: 1.25, z: -13.9 }, radius: 1.8,
-                text: '雨已经停了。门外没有人催你。\n\n这一次，要不要走出去，由你决定。', requiresOpen: true }
+                text: '雨已经停了。石路通向一座小院。\n\n右手边的厨房里，还亮着一盏灯。母亲留下的门没有锁，院门却仍由一根铜索扣着。', requiresOpen: true }
         ]
     };
 })(window);

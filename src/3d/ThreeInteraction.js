@@ -18,6 +18,7 @@
                 let best = Infinity;
                 for (const item of this.map.interactables) {
                     if (item.requiresOpen && !this.story.state.opened) continue;
+                    if (item.requiresWater && !this.story.state.waterSolved) continue;
                     const delta = new THREE.Vector3(item.position.x, item.position.y, item.position.z).sub(this.camera.position);
                     const distance = delta.length();
                     const facing = delta.clone().normalize().dot(this.direction);
