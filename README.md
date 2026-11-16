@@ -30,10 +30,14 @@ WASD / 方向键移动，鼠标拖动或点击画面锁定视角，Shift 快走�
 
 运行 `npm run verify` 检查六份真实 glTF、射线、路线可达性、机关流程、量水守恒、中途/旧存档恢复、记忆区域隔离、两份选证/解释提交、草稿、返回点和四种主动结局。量水近看核对六种视口的投影、点选和控制区预留范围；没有运行 DOM 布局或浏览器。该检查不能证明真实 WebGL 画质、原生下拉控件、手机操作或最终游玩体验。此前浏览器启动被审批拦截，本轮未重试或绕过；画面与实机手感仍未验收。
 
+0.3.1 减少调查开销：提示按约 20 Hz 扫描，调查键即时复查；只对当前空间、可见、确实遮挡且不属于目标自己的几何执行射线。优先判断最可能的目标，被挡住再检查下一个；暂停与记忆切换即时刷新。红绳改为直接更新，记忆环境只在切换时更新，避免重复遍历与赋值。这里验证的是查询次数与语义，未测得真实 WebGL 帧率。加载过程出现的材质错误会保留在标题提示里。
+
 ## 文件索引
 
 入口为 `index.html`，界面与生命周期在 `src/main.mjs` / `src/style.css`，两套机关界面分别使用 `src/lock.css` / `src/water.css`。`src/3d/ThreeHouseScene.js` 搭建场景并加载模型，`ThreeHouseMap.js` 描述正厅；`ThreeCourtyardMap.js` 合并雨庭/厨房/山路的可走区域、碰撞与线索，`ThreeCourtyard.js` 建立实体量水装置、院门、近看相机与动画，复用已下载的真实中式条案和柜子。`ThreeControls.js` 负责移动与两扇转动门的碰撞，`ThreeInteraction.js` 负责视线调查，`ThreeStory.js` 管理两种机关与存档，`ThreeAudio.js` 合成环境声与反馈。`tools/serve.mjs` 提供本地静态服务。
 
 记忆部分由 `ThreeMemoryMap.js` 定义空间、原文和推理条件，`ThreeMemoryScenes.js` 布置课桌/椅、轮椅与事故护栏等真实场景，`ThreeMemoryJournal.js` 管理原生选证与解释控件，样式在 `src/memory.css`。主世界与记忆只显示当前空间，移动和调查也按当前空间限制；未解锁或异常的存档位置会安全回退。
+
+`ThreeInteraction` 在模型载入完成后建立各空间遮挡物索引，门扇旋转和物件显隐会直接生效；若后续在运行中增删几何或改变其所属空间，需要调用 `rebuildOccluders()` 重建索引。当前游戏的机关只移动或隐藏已有几何。
 
 设计范围见 [PLAN](docs/PLAN.md)，开发进度见 [DEV_LOG](DEV_LOG.md)，后续工作见 [ROADMAP](ROADMAP.md)，素材和参考来源见 [资源说明](assets/README.md) 与 [参考索引](docs/references/README.md)。

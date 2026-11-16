@@ -10,11 +10,17 @@ const game = window.Huisha3D;
 const story = new game.ThreeStory();
 const reader = $('reader');
 const audio = new game.ThreeAudio();
+const assetErrors = new Set();
 const memoryJournal = new game.ThreeMemoryJournal({ story, open, close, knownRecords,
     journal: () => journal(!!scene?.inspectionReturn), onReturn: returnMemory,
     onSolved: () => { audio.chime(); scene.syncState(); updateStatus(); } });
 let mode = 'title', scene, lastFocus, saveTimer, lockFocus;
 const isPaused = () => mode !== 'game' || reader.open || document.hidden || !!scene?.inspectionReturn;
+function updateLoadStatus() {
+    $('load-status').textContent = assetErrors.size
+        ? `部分材质未载入：${[...assetErrors].join('、')}。画面可能不完整，请检查本地文件。`
+        : story.saveAvailable ? '进度会自动保存 · 可随时暂停' : '此浏览器暂不支持保存，可在当前页面游玩';
+}
 function updateStatus() {
     $('objective').textContent = story.objective();
     $('begin').textContent = story.state.memory ? `继续${game.MEMORIES[story.state.memory].title}`
@@ -310,7 +316,7 @@ window.addEventListener('pagehide', event => {
 window.addEventListener('pageshow', event => { if (event.persisted && mode === 'game') audio.start(); });
 try {
     scene = new game.ThreeHouseScene({ root: $('world'), prompt: $('prompt'), story, isPaused, onInspect: inspect,
-        onAssetError: name => { $('load-status').textContent = `部分材质未载入：${name}。请检查本地文件。`; },
+        onAssetError: name => { assetErrors.add(name); updateLoadStatus(); },
         onFrame: (position, paused) => {
             audio.update(position, paused);
             if (!paused && !story.state.memory && story.state.opened && position.z < -15.2 && story.enterCourtyard()) updateStatus();
@@ -332,7 +338,7 @@ try {
     });
     scene.renderer.domElement.addEventListener('pointercancel', () => { wheelPress = null; });
     updateStatus(); $('begin').disabled = false;
-    $('load-status').textContent = story.saveAvailable ? '进度会自动保存 · 可随时暂停' : '此浏览器暂不支持保存，可在当前页面游玩';
+    updateLoadStatus();
     saveTimer = setInterval(() => { if (mode === 'game' && !reader.open) save(); }, 5000);
 } catch (error) {
     scene?.dispose();

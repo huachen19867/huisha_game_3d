@@ -95,6 +95,8 @@
         }
         sync() {
             const h = this.house, space = h.story.state.memory;
+            if (space === this.lastSpace) return;
+            this.lastSpace = space;
             if (h.homeRoot) h.homeRoot.visible = !space;
             for (const [id, root] of Object.entries(this.rooms)) root.visible = id === space;
             if (h.scene.background?.isColor) h.scene.background.setHex(space ? game.MEMORIES[space].color : 0x151b21);

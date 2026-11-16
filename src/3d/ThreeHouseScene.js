@@ -203,10 +203,12 @@
             this.mesh('coffin-body', body, m.darkWood, [0, 0.17, 0.65], 'coffin');
             this.box('coffin-lid', [2.72, 0.16, 1.35], [0, 0.81, 0.65], m.wood, 'coffin');
             this.label('coffin-inscription', '左位留灯　右位留门', [1.75, 0.33], [0, 0.899, 0.65], [-Math.PI / 2, 0, 0], 'coffin', undefined, '#5c3b2c', '#c5b38c');
+            this.cords = [];
             for (let i = -1; i <= 1; i++) {
                 this.box(`coffin-cord-${i}`, [0.025, 0.025, 1.38], [i * 0.76, 0.905, 0.65], m.red, 'coffin', undefined, false);
                 const cord = this.box(`floor-cord-${i}`, [0.018, 0.014, 11.25], [i * 0.24, 0.015, -5.65], m.red, undefined, undefined, false);
                 cord.userData.cord = true;
+                this.cords.push(cord);
             }
             this.box('letter-shelf', [0.95, 0.1, 0.35], [2.65, 0.95, 4.07], m.wood, 'letter');
             this.label('letter', '七月十四\n回来一趟', [0.6, 0.4], [2.65, 1.15, 3.98], [0, Math.PI, 0], 'letter');
@@ -307,7 +309,7 @@
                 if (immediate) wheel.rotation.x = this.wheelTargets[i];
             });
             if (immediate) this.door.rotation.y = s.opened ? this.map.door.openAngle : 0;
-            this.scene.traverse(obj => { if (obj.userData.cord) obj.visible = !s.opened; });
+            this.cords.forEach(cord => { cord.visible = !s.opened; });
             this.outsideLight.intensity = s.opened ? 9 : 4;
             this.courtyard?.sync(immediate);
             this.memories?.sync();
@@ -369,7 +371,7 @@
             this.moveDoor(delta);
             this.courtyard?.update(delta);
             this.scene.updateMatrixWorld(true); this.camera.updateMatrixWorld(true);
-            this.interaction.update();
+            this.interaction.update(delta);
             this.onFrame?.(this.inspectionReturn || this.camera.position, this.isPaused());
             const direction = new THREE.Vector3(); this.camera.getWorldDirection(direction);
             this.flashlight.position.copy(this.camera.position);

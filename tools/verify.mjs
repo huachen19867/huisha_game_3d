@@ -350,6 +350,53 @@ assert.equal(fallbackCamera.position.x, game.MEMORIES.school.start.x, 'an invali
 const fallbackPose = brokenMemoryPosition.leaveMemory(); fallbackControls.teleport(fallbackPose);
 assert.equal(fallbackControls.canOccupy(fallbackCamera.position.x, fallbackCamera.position.z), true, 'missing return poses recover to a safe kitchen location');
 fallbackControls.dispose();
+const queryScene = new THREE.Scene(), queryCamera = new THREE.PerspectiveCamera(66, 1, 0.06, 10);
+queryCamera.position.set(0, 1.6, 3); queryCamera.lookAt(0, 1.6, 0); queryCamera.updateMatrixWorld(true);
+const queryItems = [
+    { id: 'near', title: '近处纸张', position: { x: 0, y: 1.6, z: 0 }, radius: 4 },
+    { id: 'far', title: '旁边纸张', position: { x: 1.6, y: 1.6, z: 0 }, radius: 4 },
+    { id: 'school_clue', title: '记忆里的纸张', position: { x: 0, y: 1.6, z: 0 }, radius: 4, space: 'school' }
+];
+const queryCounts = { self: 0, hidden: 0, otherSpace: 0, decoration: 0 };
+function queryMesh(name, position, size, parent = queryScene, data = {}) {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), new THREE.MeshBasicMaterial());
+    mesh.position.set(...position); Object.assign(mesh.userData, { blocksSight: true }, data); parent.add(mesh);
+    const raycast = mesh.raycast;
+    mesh.raycast = function (...args) { if (name in queryCounts) queryCounts[name]++; return raycast.apply(this, args); };
+    return mesh;
+}
+queryMesh('self', [0, 1.6, 0.5], [0.3, 0.3, 0.3], queryScene, { item: 'near' });
+const obstruction = queryMesh('wall', [0, 1.6, 1.5], [0.5, 0.5, 0.2]); obstruction.visible = false;
+const hiddenRoot = new THREE.Group(); hiddenRoot.visible = false; queryScene.add(hiddenRoot);
+queryMesh('hidden', [0, 1.6, 2], [8, 8, 0.1], hiddenRoot);
+const otherSpace = new THREE.Group(); otherSpace.userData.memorySpace = 'school'; queryScene.add(otherSpace);
+queryMesh('otherSpace', [0, 1.6, 2.3], [8, 8, 0.1], otherSpace, { item: 'school_clue' });
+queryMesh('decoration', [0, 1.6, 2.7], [8, 8, 0.1], queryScene, { blocksSight: false });
+queryScene.updateMatrixWorld(true);
+let queryPaused = false, activated = 0;
+const queryStory = { state: { records: [], memory: null }, record(id) { this.state.records.push(id); } };
+const queryPrompt = { hidden: true, textContent: '' };
+const query = new game.ThreeInteraction({ camera: queryCamera, map: { interactables: queryItems }, scene: queryScene,
+    prompt: queryPrompt, story: queryStory, isPaused: () => queryPaused, onInspect() { activated++; } });
+query.update(); assert.equal(query.current?.id, 'near');
+assert.deepEqual(queryCounts, { self: 0, hidden: 0, otherSpace: 0, decoration: 0 }, 'self, hidden branches, other spaces and decorations never enter narrow-phase raycasting');
+obstruction.visible = true; query.update(); assert.equal(query.current?.id, 'far', 'a blocked best candidate must fall back to the next visible candidate');
+obstruction.visible = false; hiddenRoot.visible = true; query.update(); assert.equal(query.current, null, 'a newly visible blocking ancestor takes effect without rebuilding the cache');
+hiddenRoot.visible = false;
+let occlusionQueries = 0;
+const originalIntersect = query.ray.intersectObjects.bind(query.ray);
+query.ray.intersectObjects = (...args) => { occlusionQueries++; return originalIntersect(...args); };
+query.untilQuery = 0;
+for (let frame = 0; frame < 120; frame++) query.update(1 / 120);
+assert.equal(occlusionQueries, 20, '120 ordinary frames perform only 20 prompt occlusion queries');
+queryCamera.lookAt(0, 1.6, 6); queryCamera.updateMatrixWorld(true); query.activate();
+assert.equal(activated, 0, 'activation rechecks the current direction instead of using a stale prompt');
+queryCamera.lookAt(0, 1.6, 0); queryCamera.updateMatrixWorld(true); query.activate(); assert.equal(activated, 1);
+queryPaused = true; query.update(0); assert.equal(queryPrompt.hidden, true, 'pause hides prompts immediately despite the query interval');
+queryPaused = false; query.update(0); assert.equal(query.current?.id, 'near');
+queryStory.state.memory = 'school'; query.update(0); assert.equal(query.current?.id, 'school_clue', 'space changes refresh prompts immediately');
+query.dispose();
+console.log('Queries: current-space visibility, self/decorative geometry exclusion, blocked-candidate fallback, 20Hz prompt scans and fresh activation passed. This is a CPU query check, not a WebGL frame-rate measurement.');
 controls.dispose(); interaction.dispose();
 assert.ok([...listeners.values()].every(set => set.size === 0), 'controls must release all event listeners');
 console.log('Space: every clue reachable with actual ray occlusion, correct strafe, collision substeps, reading pause and end route passed.');
