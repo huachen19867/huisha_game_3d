@@ -1,0 +1,44 @@
+.lock-inspector {
+    position: fixed;
+    z-index: 3;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(620px, calc(100vw - 30px));
+    padding: 16px 22px;
+    background: linear-gradient(135deg, #141d14ed, #20271cee);
+    border: 1px solid var(--line);
+    box-shadow: 0 8px 35px #0007;
+}
+.lock-heading { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+.lock-heading h2 { font-size: 20px; letter-spacing: 3px; margin: 0; }
+.lock-heading span, #lock-status { font-size: 12px; color: var(--muted); line-height: 1.7; }
+.lock-turns { display: flex; gap: 10px; margin-top: 14px; }
+.lock-turns button { flex: 1; padding: 8px; font-size: 13px; }
+.lock-turns small { display: block; margin-top: 4px; color: #d8c392; font-size: 12px; }
+.lock-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.lock-actions button { padding: 7px 12px; font-size: 12px; }
+.lock-actions #lock-attempt { background: #71392a80; border-color: #ab7953; }
+.inspecting .reticle, .inspecting .help, .inspecting .touch-pad, .inspecting .prompt { display: none !important; }
+@media(max-height: 520px) and (min-width: 681px) {
+    .lock-inspector { left: auto; right: 18px; top: 90px; bottom: 15px; transform: none; width: 310px; padding: 12px; overflow-y: auto; }
+    .lock-heading { display: block; }
+    .lock-heading h2 { font-size: 18px; }
+    .lock-heading span { display: block; margin-top: 5px; font-size: 10px; }
+    .lock-turns { gap: 5px; }
+    .lock-turns button { padding: 7px 3px; font-size: 11px; }
+    .lock-inspector kbd { display: none; }
+    .lock-actions { gap: 5px; }
+    .lock-actions button { padding: 6px 8px; font-size: 11px; }
+}
+@media(max-width: 680px) {
+    .lock-inspector { bottom: max(12px, env(safe-area-inset-bottom)); padding: 12px; }
+    .lock-heading h2 { font-size: 17px; }
+    .lock-heading span { font-size: 10px; max-width: 145px; }
+    .lock-turns { gap: 6px; margin-top: 8px; }
+    .lock-turns button { font-size: 12px; }
+    .lock-actions { gap: 5px; }
+    .lock-actions button { flex: 1; padding: 7px 5px; font-size: 11px; }
+    .lock-inspector kbd { display: none; }
+    #lock-status { margin: 7px 0; font-size: 11px; }
+}

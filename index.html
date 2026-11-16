@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#111310">
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="src/style.css">
+    <link rel="stylesheet" href="src/lock.css">
     <title>回煞 3D · 归门</title>
 </head>
 <body>
@@ -33,6 +34,16 @@
         <p class="help">WASD 移动 <i>·</i> 鼠标看向物件 <i>·</i> E 调查 <i>·</i> J 回查记录</p>
         <div id="touch-pad" class="touch-pad" aria-label="移动方向"><button data-move="0,1" aria-label="向前">前</button><button data-move="-1,0" aria-label="向左">左</button><button data-move="0,-1" aria-label="向后">后</button><button data-move="1,0" aria-label="向右">右</button></div>
         <p id="toast" class="toast" role="status" hidden></p>
+    </section>
+    <section id="lock-inspector" class="lock-inspector" hidden aria-labelledby="lock-title">
+        <div class="lock-heading"><h2 id="lock-title">归门字轮</h2><span>看向铜轮，按从左到右的顺序转动</span></div>
+        <div class="lock-turns" aria-label="转动实体字轮">
+            <button type="button" data-wheel="0">转动左轮 <kbd>1</kbd><small></small></button>
+            <button type="button" data-wheel="1">转动中轮 <kbd>2</kbd><small></small></button>
+            <button type="button" data-wheel="2">转动右轮 <kbd>3</kbd><small></small></button>
+        </div>
+        <p id="lock-status" role="status">可以对照已读字迹，再尝试压下门闩。</p>
+        <div class="lock-actions"><button id="lock-attempt" type="button">压下门闩</button><button id="lock-records" type="button">回查手记 <kbd>J</kbd></button><button id="lock-leave" type="button">退回门前 <kbd>Esc</kbd></button></div>
     </section>
     <dialog id="reader" aria-labelledby="reader-title">
         <div class="reader-heading"><p id="reader-eyebrow" class="eyebrow">旧宅 · 观察记录</p><button id="reader-close" class="close" aria-label="合上">合上 <kbd>Esc</kbd></button></div>

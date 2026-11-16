@@ -10,20 +10,21 @@ const game = window.Huisha3D;
 const story = new game.ThreeStory();
 const reader = $('reader');
 const audio = new game.ThreeAudio();
-let mode = 'title', scene, lastFocus, saveTimer;
-const isPaused = () => mode !== 'game' || reader.open || document.hidden;
+let mode = 'title', scene, lastFocus, saveTimer, lockFocus;
+const isPaused = () => mode !== 'game' || reader.open || document.hidden || !!scene?.inspectionReturn;
 function updateStatus() {
     $('objective').textContent = story.objective();
     $('begin').textContent = story.state.records.length || story.state.position ? '继续归门' : '走进旧宅';
     $('restart').hidden = !story.state.records.length && !story.state.position;
 }
 function save() {
-    if (scene?.controls) story.save(scene.controls.snapshot());
+    if (scene?.controls) story.save(scene.playerSnapshot());
     updateStatus();
 }
 function open(title, text, actions = [], eyebrow = '旧宅 · 观察记录') {
     if (!reader.open) lastFocus = document.activeElement;
     scene?.controls?.clear();
+    touches.clear(); updateTouch();
     if (document.pointerLockElement) document.exitPointerLock();
     $('reader-title').textContent = title;
     $('reader-eyebrow').textContent = eyebrow;
@@ -65,28 +66,34 @@ function journal(backToLock = false) {
     open('随身手记', '', [[backToLock ? '回到字轮' : '继续观察', backToLock ? () => lock() : close]], '只收录你亲眼见到的内容');
     appendRecords();
 }
-function lock(message = '每次按动，铜轮转过一格。按从左到右的顺序看。', focusIndex) {
-    if (story.state.opened) { open('门闩已松开', '三根红绳垂下来。门外透进雨后的天光。', [['回到门前', close]]); return; }
-    open('归门字轮', '三枚铜轮各有四个字。可以回查已经读过的字迹，再按下门闩。', [
-        ['试着压下门闩', () => {
-            if (story.unlock()) { scene.syncState(); audio.chime(); lock(); }
-            else { audio.knock(); lock('门闩只抬起一点，又落了回去。可以调整字轮，再核对字迹。'); }
-        }],
-        ['对照已读记录', () => journal(true)], ['暂不动它', close]
-    ], '走廊尽头 · 三位铜锁');
-    const row = document.createElement('div'); row.className = 'wheel-row';
-    story.state.wheels.forEach((value, index) => {
-        const button = document.createElement('button');
-        const caption = document.createElement('small'); caption.textContent = ['左位', '中位', '右位'][index];
-        const symbol = document.createElement('span'); symbol.textContent = game.ThreeStory.symbols[value];
-        button.setAttribute('aria-label', `${caption.textContent}，当前${symbol.textContent}，点击转动`);
-        button.append(symbol, caption);
-        button.addEventListener('click', () => { story.rotate(index); audio.knock(); scene.syncState(); lock(message, index); });
-        row.append(button);
+function updateLock(message) {
+    if (message) $('lock-status').textContent = message;
+    document.querySelectorAll('[data-wheel]').forEach((button, index) => {
+        const symbol = game.ThreeStory.symbols[story.state.wheels[index]];
+        button.querySelector('small').textContent = `当前：${symbol}`;
+        button.setAttribute('aria-label', `${['左', '中', '右'][index]}轮，当前${symbol}，按动转过一格`);
     });
-    const feedback = document.createElement('p'); feedback.className = 'lock-feedback'; feedback.setAttribute('role', 'status'); feedback.textContent = message;
-    $('reader-body').append(row, feedback);
-    if (focusIndex !== undefined) row.children[focusIndex].focus();
+}
+function leaveLock(restoreFocus = true) {
+    if (!scene?.inspectionReturn) return;
+    scene.endLockInspection(); $('lock-inspector').hidden = true; $('hud').classList.remove('inspecting');
+    touches.clear(); updateTouch();
+    if (restoreFocus && lockFocus?.isConnected) lockFocus.focus?.({ preventScroll: true });
+    save();
+}
+function rotateLock(index) {
+    if (!scene.inspectionReturn || reader.open) return;
+    story.rotate(index); audio.knock(); scene.syncState(); updateLock();
+}
+function lock() {
+    if (story.state.opened) { open('门闩已松开', '三根红绳垂下来。门外透进雨后的天光。', [['回到门前', close]]); return; }
+    if (!scene.inspectionReturn) lockFocus = document.activeElement;
+    if (reader.open) reader.close();
+    if (document.pointerLockElement) document.exitPointerLock();
+    touches.clear(); updateTouch(); scene.beginLockInspection();
+    $('lock-inspector').hidden = false; $('hud').classList.add('inspecting');
+    updateLock('每次转动一格。可以回查已读字迹，再压下门闩。');
+    document.querySelector('[data-wheel]').focus();
 }
 function inspect(item) {
     audio.knock();
@@ -111,6 +118,7 @@ function inspect(item) {
     open(item.title, item.text, [['继续观察', close], ['打开手记', () => journal()]]);
 }
 function title() {
+    leaveLock(false);
     save(); if (reader.open) reader.close();
     scene.controls.clear(); if (document.pointerLockElement) document.exitPointerLock();
     mode = 'title'; $('hud').hidden = true; $('title-screen').hidden = false;
@@ -119,7 +127,7 @@ function title() {
 function pause() {
     save();
     open('暂歇', '合上这页，就能继续观察。当前进度只保存在这台设备的浏览器中。', [
-        ['继续探索', close], ['回查手记', () => journal()], ['返回标题', title]
+        ['继续探索', close], ['回查手记', () => journal(!!scene.inspectionReturn)], ['返回标题', title]
     ], '归门 · 暂停');
     const setting = document.createElement('label'); setting.className = 'settings'; setting.textContent = '画面亮度';
     const slider = document.createElement('input'); slider.type = 'range'; slider.min = '0.8'; slider.max = '1.8'; slider.step = '0.05'; slider.value = scene.renderer.toneMappingExposure;
@@ -141,13 +149,27 @@ $('restart').addEventListener('click', () => {
         scene.controls.clear(); scene.controls.applyLook(); scene.syncState(true); close(); updateStatus();
     }]], '开始新的归门');
 });
-$('journal').addEventListener('click', () => journal());
+$('journal').addEventListener('click', () => journal(!!scene.inspectionReturn));
 $('pause').addEventListener('click', pause);
 $('prompt').addEventListener('click', () => scene.interaction.activate());
+document.querySelectorAll('[data-wheel]').forEach(button => button.addEventListener('click', () => rotateLock(Number(button.dataset.wheel))));
+$('lock-leave').addEventListener('click', () => leaveLock());
+$('lock-records').addEventListener('click', () => journal(true));
+$('lock-attempt').addEventListener('click', () => {
+    if (reader.open || !scene.inspectionReturn) return;
+    scene.syncState(true);
+    if (!story.unlock()) { audio.knock(); updateLock('门闩又落了回去。可以继续调整字轮，或回查字迹。'); return; }
+    scene.syncState(); audio.chime(); leaveLock();
+    $('toast').textContent = '门闩松开了。你可以继续观察，也可以穿过门去。'; $('toast').hidden = false;
+    setTimeout(() => { $('toast').hidden = true; }, 5000);
+});
 window.addEventListener('keydown', event => {
     if (event.defaultPrevented || event.isComposing || event.repeat || reader.open || mode !== 'game') return;
-    if (event.code === 'KeyJ') { event.preventDefault(); journal(); }
-    if (event.code === 'Escape') { event.preventDefault(); pause(); }
+    if (scene.inspectionReturn && /^(Digit|Numpad)[123]$/.test(event.code)) {
+        event.preventDefault(); rotateLock(Number(event.code.slice(-1)) - 1);
+    }
+    if (event.code === 'KeyJ') { event.preventDefault(); journal(!!scene.inspectionReturn); }
+    if (event.code === 'Escape') { event.preventDefault(); scene.inspectionReturn ? leaveLock() : pause(); }
 });
 const touches = new Map();
 function updateTouch() {
@@ -176,6 +198,17 @@ try {
         onAssetError: name => { $('load-status').textContent = `部分材质未载入：${name}。请检查本地文件。`; },
         onFrame: (position, paused) => audio.update(position, paused) });
     await scene.start();
+    let wheelPress;
+    scene.renderer.domElement.addEventListener('pointerdown', event => {
+        wheelPress = scene.inspectionReturn && !reader.open ? { x: event.clientX, y: event.clientY, id: event.pointerId } : null;
+    });
+    scene.renderer.domElement.addEventListener('pointerup', event => {
+        const press = wheelPress; wheelPress = null;
+        if (!press || press.id !== event.pointerId || Math.hypot(event.clientX - press.x, event.clientY - press.y) > 8) return;
+        const index = scene.pickWheel(event.clientX, event.clientY);
+        if (Number.isInteger(index)) rotateLock(index);
+    });
+    scene.renderer.domElement.addEventListener('pointercancel', () => { wheelPress = null; });
     updateStatus(); $('begin').disabled = false;
     $('load-status').textContent = story.saveAvailable ? '进度会自动保存 · 可随时暂停' : '此浏览器暂不支持保存，可在当前页面游玩';
     saveTimer = setInterval(() => { if (mode === 'game' && !reader.open) save(); }, 5000);

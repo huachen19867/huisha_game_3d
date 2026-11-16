@@ -8,6 +8,7 @@
             this.clock = new THREE.Clock();
             this.textures = [];
             this.labelCache = new Map();
+            this.reducedMotion = global.matchMedia?.('(prefers-reduced-motion: reduce)');
         }
         async start() {
             this.scene = new THREE.Scene();
@@ -36,6 +37,7 @@
                 this.camera.aspect = this.root.clientWidth / Math.max(1, this.root.clientHeight);
                 this.camera.updateProjectionMatrix();
                 this.renderer.setSize(this.root.clientWidth, this.root.clientHeight);
+                if (this.inspectionReturn) this.frameLock();
             };
             global.addEventListener('resize', this.onResize);
             this.syncState(true);
@@ -213,10 +215,20 @@
             this.box('lock-plate', [1.85, 0.72, 0.12], [1.17, 1.42, 0.16], m.brass, 'lock', this.door);
             this.wheels = [];
             for (let i = 0; i < 3; i++) {
-                const wheel = this.cylinder(`wheel-${i}`, 0.23, 0.23, 0.15, [0.6 + i * 0.57, 1.42, 0.3], m.darkWood, 'lock', this.door);
-                wheel.rotation.x = Math.PI / 2;
-                this.wheels.push(this.label(`wheel-face-${i}`, '雨', [0.37, 0.37], [0.6 + i * 0.57, 1.42, 0.382], [0, 0, 0], 'lock', this.door, '#473a28', '#e9d5a1'));
+                const drum = new THREE.Group(); drum.name = `wheel-${i}`;
+                drum.userData.wheelIndex = i;
+                drum.position.set(0.6 + i * 0.57, 1.42, 0.3); this.door.add(drum);
+                const core = this.cylinder(`wheel-core-${i}`, 0.245, 0.245, 0.4, [0, 0, 0], m.darkWood, 'lock', drum);
+                core.rotation.z = Math.PI / 2;
+                for (let face = 0; face < 4; face++) {
+                    const angle = face * Math.PI / 2;
+                    this.label(`wheel-face-${i}-${face}`, game.ThreeStory.symbols[face], [0.3, 0.28],
+                        [0, Math.sin(angle) * 0.26, Math.cos(angle) * 0.26], [-angle, 0, 0], 'lock', drum, '#473a28', '#e9d5a1');
+                }
+                this.box(`wheel-index-${i}`, [0.05, 0.07, 0.055], [0.6 + i * 0.57, 1.76, 0.32], m.red, 'lock', this.door);
+                this.wheels.push(drum);
             }
+            this.wheelTargets = [0, 0, 0]; this.wheelSymbols = [0, 0, 0];
             this.label('lock-heading', '归　门', [1.3, 0.4], [1.17, 2.2, 0.11], [0, 0, 0], 'lock', this.door, '#352321', '#c9b389');
         }
         createCandle(x, parent) {
@@ -281,24 +293,69 @@
         syncState(immediate = false) {
             const s = this.story.state;
             this.portraitCloth.visible = !s.portrait;
-            const signature = s.wheels.join('');
-            if (signature !== this.wheelSignature) {
-                this.wheels.forEach((wheel, i) => { wheel.material = this.labelMaterial(game.ThreeStory.symbols[s.wheels[i]], '#473a28', '#e9d5a1'); });
-                this.wheelSignature = signature;
-            }
+            this.wheels.forEach((wheel, i) => {
+                if (immediate) this.wheelTargets[i] = s.wheels[i] * Math.PI / 2;
+                else this.wheelTargets[i] += ((s.wheels[i] - this.wheelSymbols[i] + 4) % 4) * Math.PI / 2;
+                this.wheelSymbols[i] = s.wheels[i];
+                if (immediate) wheel.rotation.x = this.wheelTargets[i];
+            });
             if (immediate) this.door.rotation.y = s.opened ? -Math.PI / 2 : 0;
             this.scene.traverse(obj => { if (obj.userData.cord) obj.visible = !s.opened; });
             this.outsideLight.intensity = s.opened ? 9 : 4;
         }
+        moveWheels(delta) {
+            const immediate = this.reducedMotion?.matches;
+            this.wheels.forEach((wheel, i) => {
+                const remaining = this.wheelTargets[i] - wheel.rotation.x;
+                wheel.rotation.x += immediate || Math.abs(remaining) < 0.001 ? remaining : remaining * Math.min(1, delta * 15);
+            });
+        }
+        playerSnapshot() { return this.inspectionReturn || this.controls.snapshot(); }
+        frameLock() {
+            const height = this.root?.clientHeight || 720;
+            const width = this.root?.clientWidth || height * this.camera.aspect;
+            const sidePanel = height <= 520 && width > 680;
+            if (sidePanel) this.camera.setViewOffset(width, height, width * 0.19, 0, width, height);
+            else this.camera.clearViewOffset();
+            const distance = Math.max(1.2, 2.15 / (2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) * this.camera.aspect * (sidePanel ? 0.55 : 1)));
+            this.camera.position.set(0, 1.42, -10.94 + distance);
+            this.camera.lookAt(0, 1.25, -11.2);
+            this.camera.updateMatrixWorld(true);
+        }
+        pickWheel(clientX, clientY) {
+            if (!this.inspectionReturn) return null;
+            const bounds = this.renderer.domElement.getBoundingClientRect();
+            const pointer = new THREE.Vector2((clientX - bounds.left) / bounds.width * 2 - 1, 1 - (clientY - bounds.top) / bounds.height * 2);
+            const ray = new THREE.Raycaster();
+            this.scene.updateMatrixWorld(true); this.camera.updateMatrixWorld(true);
+            ray.setFromCamera(pointer, this.camera);
+            const hit = ray.intersectObjects(this.wheels, true)[0];
+            for (let object = hit?.object; object; object = object.parent) {
+                if (Number.isInteger(object.userData.wheelIndex)) return object.userData.wheelIndex;
+            }
+            return null;
+        }
+        beginLockInspection() {
+            if (!this.inspectionReturn) this.inspectionReturn = this.controls.snapshot();
+            this.controls.clear(); this.frameLock();
+        }
+        endLockInspection() {
+            const pose = this.inspectionReturn;
+            if (!pose) return;
+            this.camera.position.set(pose.x, this.map.playerStart.y, pose.z);
+            this.camera.clearViewOffset();
+            this.controls.yaw = pose.yaw; this.controls.pitch = pose.pitch;
+            this.inspectionReturn = null; this.controls.clear(); this.controls.applyLook();
+        }
         animate() {
             this.animationId = global.requestAnimationFrame(() => this.animate());
             const delta = Math.min(this.clock.getDelta(), 0.05);
-            this.controls.update(delta); this.syncState();
+            this.controls.update(delta); this.syncState(); this.moveWheels(delta);
             const target = this.story.state.opened ? -Math.PI / 2 : 0;
             if (!this.isPaused()) this.door.rotation.y += (target - this.door.rotation.y) * Math.min(1, delta * 4);
             this.scene.updateMatrixWorld(true); this.camera.updateMatrixWorld(true);
             this.interaction.update();
-            this.onFrame?.(this.camera.position, this.isPaused());
+            this.onFrame?.(this.inspectionReturn || this.camera.position, this.isPaused());
             const direction = new THREE.Vector3(); this.camera.getWorldDirection(direction);
             this.flashlight.position.copy(this.camera.position);
             this.flashTarget.position.copy(this.camera.position).add(direction.multiplyScalar(4));

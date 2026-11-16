@@ -85,6 +85,44 @@ console.log('Assets: all three real glTF models, binary buffers, texture depende
 let paused = false;
 const camera = new THREE.PerspectiveCamera(66, 1, 0.06, 60);
 const controls = new game.ThreeControls({ camera, domElement: eventTarget, map: game.MAIN_HALL_MAP, story, isPaused: () => paused });
+house.camera = camera; house.controls = controls;
+house.root = { clientWidth: 1280, clientHeight: 720 };
+house.renderer = { domElement: { getBoundingClientRect: () => ({ left: 0, top: 0, width: house.root.clientWidth, height: house.root.clientHeight }) } };
+const playerBeforeInspection = controls.snapshot();
+house.beginLockInspection();
+assert.notEqual(camera.position.z, playerBeforeInspection.z, 'inspection must use a close view of the actual door');
+assert.deepEqual({ ...house.playerSnapshot() }, { ...playerBeforeInspection }, 'inspection must save the real player pose, not the close-up camera');
+house.beginLockInspection();
+assert.deepEqual({ ...house.playerSnapshot() }, { ...playerBeforeInspection }, 'returning from records must not overwrite the return pose');
+for (const [width, height] of [[1280, 720], [390, 844], [844, 390]]) {
+    house.root.clientWidth = width; house.root.clientHeight = height;
+    camera.aspect = width / height; camera.updateProjectionMatrix(); house.frameLock();
+    house.scene.updateMatrixWorld(true);
+    for (let i = 0; i < 3; i++) {
+        const face = house.scene.getObjectByName(`wheel-face-${i}-0`);
+        const projected = face.getWorldPosition(new THREE.Vector3()).project(camera);
+        assert.ok(Math.abs(projected.x) < 0.95 && Math.abs(projected.y) < 0.85 && projected.z < 1,
+            `wheel ${i} must fit in the ${width}x${height} view`);
+        assert.equal(house.pickWheel((projected.x + 1) * width / 2, (1 - projected.y) * height / 2), i,
+            'clicking an actual projected drum must select that drum');
+        if (height <= 520) assert.ok((projected.x + 1) / 2 < 0.59, 'landscape close-up leaves space for the side controls');
+    }
+}
+story.rotate(0); house.syncState(); house.moveWheels(0.016);
+assert.ok(house.wheels[0].rotation.x > 0 && house.wheels[0].rotation.x < Math.PI / 2, 'wheel turns through geometry, rather than replacing a texture');
+for (let i = 0; i < 100; i++) house.moveWheels(0.05);
+assert.ok(Math.abs(house.wheels[0].rotation.x - Math.PI / 2) < 0.001);
+const selectedNormal = new THREE.Vector3(0, 0, 1).applyQuaternion(house.scene.getObjectByName('wheel-face-0-1').getWorldQuaternion(new THREE.Quaternion()));
+assert.ok(selectedNormal.z > 0.999, 'selected engraved face must point toward the player');
+for (let i = 0; i < 3; i++) { story.rotate(0); house.syncState(); }
+assert.equal(story.state.wheels[0], 0);
+assert.ok(house.wheelTargets[0] >= Math.PI * 2, 'wrapping from the fourth face continues forward');
+house.endLockInspection();
+assert.deepEqual({ ...controls.snapshot() }, { ...playerBeforeInspection }, 'leaving must restore both position and view direction');
+assert.equal(camera.view?.enabled, false, 'leaving restores ordinary projection');
+assert.equal(house.pickWheel(100, 100), null, 'world exploration must not turn the lock remotely');
+story.reset(); house.syncState(true); camera.aspect = 16 / 9; camera.updateProjectionMatrix();
+console.log('Mechanism: actual drum faces, pointer picks, portrait/landscape framing, animation and player-pose restoration passed.');
 const prompt = { hidden: true, textContent: '' };
 const interaction = new game.ThreeInteraction({ camera, map: game.MAIN_HALL_MAP, scene: house.scene, prompt, story,
     isPaused: () => paused, onInspect(item) { assert.ok(item.id); } });
