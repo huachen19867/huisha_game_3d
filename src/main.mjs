@@ -63,8 +63,17 @@ function appendRecords() {
     }
 }
 function journal(backToLock = false) {
-    open('随身手记', '', [[backToLock ? '回到字轮' : '继续观察', backToLock ? () => lock() : close]], '只收录你亲眼见到的内容');
+    open('随身手记', '', [
+        [backToLock ? '回到字轮' : '继续观察', backToLock ? () => lock() : close],
+        ['需要一点提示', () => guidance(0, backToLock)]
+    ], '只收录你亲眼见到的内容');
     appendRecords();
+}
+function guidance(stage = 0, backToLock = !!scene?.inspectionReturn) {
+    const hint = story.guidance(stage);
+    const actions = [['回查手记', () => journal(backToLock)], [backToLock ? '回到字轮' : '继续观察', backToLock ? () => lock() : close]];
+    if (hint.next) actions.push([hint.next, () => guidance(stage + 1, backToLock)]);
+    open('一点头绪', hint.text, actions, stage >= 2 && !story.state.opened ? '字轮答案 · 按需查看' : '探索提示 · 按需查看');
 }
 function updateLock(message) {
     if (message) $('lock-status').textContent = message;
@@ -155,6 +164,7 @@ $('prompt').addEventListener('click', () => scene.interaction.activate());
 document.querySelectorAll('[data-wheel]').forEach(button => button.addEventListener('click', () => rotateLock(Number(button.dataset.wheel))));
 $('lock-leave').addEventListener('click', () => leaveLock());
 $('lock-records').addEventListener('click', () => journal(true));
+$('lock-hint').addEventListener('click', () => guidance(0, true));
 $('lock-attempt').addEventListener('click', () => {
     if (reader.open || !scene.inspectionReturn) return;
     scene.syncState(true);

@@ -25,6 +25,20 @@ const game = window.Huisha3D;
 const storage = new Map();
 const adapter = { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value) };
 const story = new game.ThreeStory(adapter);
+const untouched = JSON.stringify(story.state);
+assert.match(story.guidance().text, /入口右手边/);
+assert.doesNotMatch(story.guidance(1).text, /已经确定|说的是中轮|说明雨字/,
+    'interpreted evidence must come from observed records');
+assert.equal(JSON.stringify(story.state), untouched, 'asking for help must not observe clues or move a wheel');
+assert.match(story.guidance(2).text, /灯 · 人 · 门/, 'only the explicit answer tier reveals the combination');
+story.record('letter'); assert.match(story.guidance().text, /红绳/);
+story.record('lock'); assert.match(story.guidance().text, /棺沿/);
+story.record('coffin'); assert.match(story.guidance().text, /身高刻线/);
+assert.match(story.guidance(1).text, /已经确定/);
+assert.doesNotMatch(story.guidance(1).text, /说的是中轮/, 'unobserved height marks must not be quoted as known evidence');
+story.record('wall_marks'); assert.match(story.guidance().text, /供桌/);
+story.record('altar'); assert.match(story.guidance(1).text, /说明雨字/);
+story.reset();
 assert.equal(story.finish(), false, 'cannot finish through a closed door');
 for (const item of game.MAIN_HALL_MAP.interactables) story.record(item.id);
 assert.equal(story.state.opened, false, 'reading everything must not solve the lock');
@@ -36,16 +50,21 @@ story.revealPortrait(); story.save({ x: 0, z: -12.3, yaw: Math.PI, pitch: 0 });
 const restored = new game.ThreeStory(adapter);
 assert.equal(restored.state.ending, true); assert.equal(restored.state.portrait, true);
 assert.equal(restored.state.position.z, -12.3);
+assert.match(restored.guidance().text, /门闩已经松开/);
 assert.deepEqual([...restored.state.wheels], [3, 2, 1]);
 assert.equal([...storage.keys()][0], 'huisha.3d.homecoming.v1');
 const unavailable = new game.ThreeStory({ getItem() { throw new Error('denied'); } });
 assert.equal(unavailable.saveAvailable, false); unavailable.record('letter'); assert.equal(unavailable.state.records.length, 1);
 storage.set('huisha.3d.homecoming.v1', '{broken');
 assert.equal(new game.ThreeStory(adapter).state.opened, false, 'corrupt save falls back to new chapter');
+storage.set('huisha.3d.homecoming.v1', JSON.stringify({ version: 1, portrait: true, records: [] }));
+assert.ok(new game.ThreeStory(adapter).state.records.includes('portrait_back'), 'a revealed portrait always has its readable record after restoring');
+storage.set('huisha.3d.homecoming.v1', JSON.stringify({ version: 1, portrait: false, records: ['portrait_back'] }));
+assert.ok(!new game.ThreeStory(adapter).state.records.includes('portrait_back'), 'a covered portrait must not leak its hidden inscription into the journal');
 story.reset(); assert.equal(story.state.records.length, 0); assert.equal(story.state.opened, false);
 const guess = new game.ThreeStory(adapter); guess.state.wheels = [3, 2, 1];
 assert.equal(guess.unlock(), true, 'a correct guess is valid without artificially requiring clue counts');
-console.log('Story: observations, incorrect attempt, free guess, unlock, explicit ending and isolated save passed.');
+console.log('Story: optional guidance, observed evidence, incorrect attempt, free guess, unlock, explicit ending and isolated save passed.');
 
 // Parse the downloaded glTF geometry with the real loader. Images are checked separately;
 // omit their material bindings here because Node has no browser image decoder or WebGL.
@@ -84,8 +103,10 @@ console.log('Assets: all three real glTF models, binary buffers, texture depende
 
 let paused = false;
 const camera = new THREE.PerspectiveCamera(66, 1, 0.06, 60);
-const controls = new game.ThreeControls({ camera, domElement: eventTarget, map: game.MAIN_HALL_MAP, story, isPaused: () => paused });
+const controls = new game.ThreeControls({ camera, domElement: eventTarget, map: game.MAIN_HALL_MAP, story,
+    isPaused: () => paused, getDoorAngle: () => house.door.rotation.y });
 house.camera = camera; house.controls = controls;
+house.isPaused = () => paused;
 house.root = { clientWidth: 1280, clientHeight: 720 };
 house.renderer = { domElement: { getBoundingClientRect: () => ({ left: 0, top: 0, width: house.root.clientWidth, height: house.root.clientHeight }) } };
 const playerBeforeInspection = controls.snapshot();
@@ -131,6 +152,26 @@ controls.clear(); camera.position.set(0, 1.6, 3.4);
 controls.tryMove(new THREE.Vector3(0, 0, -6)); assert.ok(camera.position.z > 1.5, 'substeps prevent crossing the coffin');
 camera.position.set(0, 1.6, -10); controls.tryMove(new THREE.Vector3(0, 0, -4));
 assert.ok(camera.position.z > -11.1, 'closed gate must stop the player');
+story.state.opened = true;
+assert.equal(controls.canOccupy(0, -11.5), false, 'unlocking must not immediately remove a still-closed leaf collision');
+house.moveDoor(0.05);
+assert.ok(house.door.rotation.y > 0 && house.door.rotation.y < Math.PI / 2, 'the door swings outward rather than through the player');
+const leaf = house.scene.getObjectByName('sealed-door');
+for (const angle of [0, Math.PI / 6, Math.PI / 4, Math.PI / 3, Math.PI / 2]) {
+    house.door.rotation.y = angle; house.scene.updateMatrixWorld(true);
+    for (const offset of [-0.9, 0, 0.9]) {
+        const point = leaf.localToWorld(new THREE.Vector3(offset, 0, 0));
+        assert.equal(controls.blocksDoor(point.x, point.z), true, 'collision follows actual mesh points during the entire swing');
+        const clear = leaf.localToWorld(new THREE.Vector3(offset, 0, 0.9));
+        assert.equal(controls.blocksDoor(clear.x, clear.z), false, 'space clear of the leaf must stay passable');
+    }
+}
+assert.equal(controls.canOccupy(0, -11.5), true, 'the fully open doorway must be passable');
+house.door.rotation.y = 0; paused = true; house.moveDoor(0.05);
+assert.equal(house.door.rotation.y, 0, 'reading pauses the opening motion');
+paused = false; house.reducedMotion = { matches: true }; house.moveDoor(0.05);
+assert.equal(house.door.rotation.y, game.MAIN_HALL_MAP.door.openAngle, 'reduced motion opens the leaf without animation');
+house.reducedMotion = null; story.state.opened = false; house.syncState(true);
 paused = true; const before = camera.position.clone(); controls.keys.add('KeyW'); controls.update(0.05);
 assert.equal(camera.position.distanceTo(before), 0); assert.equal(controls.keys.size, 0);
 interaction.update(); assert.equal(prompt.hidden, true); paused = false;

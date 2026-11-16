@@ -2,8 +2,8 @@
     const game = global.Huisha3D || (global.Huisha3D = {});
     const THREE = global.THREE;
     class ThreeControls {
-        constructor({ camera, domElement, map, story, isPaused }) {
-            Object.assign(this, { camera, domElement, map, story, isPaused });
+        constructor({ camera, domElement, map, story, isPaused, getDoorAngle }) {
+            Object.assign(this, { camera, domElement, map, story, isPaused, getDoorAngle });
             this.keys = new Set();
             this.touchMove = { x: 0, y: 0 };
             this.yaw = map.playerStart.yaw;
@@ -90,13 +90,25 @@
             const radius = this.playerRadius;
             const inside = this.map.walkable.some(rect => x >= rect.xMin + radius && x <= rect.xMax - radius
                 && z >= rect.zMin + radius && z <= rect.zMax - radius);
-            return inside && !this.map.obstacles.some(rect => {
-                if (rect.gate && this.story.state.opened) return false;
-                if (rect.openLeaf && !this.story.state.opened) return false;
+            return inside && !this.blocksDoor(x, z) && !this.map.obstacles.some(rect => {
                 const dx = x - Math.max(rect.xMin, Math.min(rect.xMax, x));
                 const dz = z - Math.max(rect.zMin, Math.min(rect.zMax, z));
                 return dx * dx + dz * dz < radius * radius;
             });
+        }
+        blocksDoor(x, z) {
+            const door = this.map.door;
+            if (!door) return false;
+            const angle = this.getDoorAngle?.() ?? (this.story.state.opened ? door.openAngle : 0);
+            const dx = x - door.hingeX, dz = z - door.hingeZ;
+            // Transform the player into the rotating leaf's local space, then test circle vs rectangle.
+            const localX = Math.cos(angle) * dx - Math.sin(angle) * dz;
+            const localZ = Math.sin(angle) * dx + Math.cos(angle) * dz;
+            const gapX = localX - Math.max(0, Math.min(door.width, localX));
+            const halfDepth = door.thickness / 2;
+            // Include the plate and drums projecting from the front, so the camera cannot enter them.
+            const gapZ = localZ - Math.max(-halfDepth, Math.min(door.frontDepth ?? halfDepth, localZ));
+            return gapX * gapX + gapZ * gapZ < this.playerRadius * this.playerRadius;
         }
         snapshot() { return { x: this.camera.position.x, z: this.camera.position.z, yaw: this.yaw, pitch: this.pitch }; }
         dispose() {

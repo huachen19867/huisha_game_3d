@@ -29,8 +29,9 @@
             this.createProps();
             this.createLights();
             await this.loadModels();
+            this.syncState(true);
             this.controls = new game.ThreeControls({ camera: this.camera, domElement: this.renderer.domElement,
-                map: this.map, story: this.story, isPaused: this.isPaused });
+                map: this.map, story: this.story, isPaused: this.isPaused, getDoorAngle: () => this.door.rotation.y });
             this.interaction = new game.ThreeInteraction({ camera: this.camera, map: this.map, scene: this.scene,
                 prompt: this.prompt, story: this.story, isPaused: this.isPaused, onInspect: this.onInspect });
             this.onResize = () => {
@@ -40,7 +41,6 @@
                 if (this.inspectionReturn) this.frameLock();
             };
             global.addEventListener('resize', this.onResize);
-            this.syncState(true);
             this.animate();
         }
         texture(name, repeat) {
@@ -209,8 +209,9 @@
             }
             this.box('letter-shelf', [0.95, 0.1, 0.35], [2.65, 0.95, 4.07], m.wood, 'letter');
             this.label('letter', '七月十四\n回来一趟', [0.6, 0.4], [2.65, 1.15, 3.98], [0, Math.PI, 0], 'letter');
-            this.door = new THREE.Group(); this.door.position.set(-1.17, 0, -11.5); this.scene.add(this.door);
-            this.box('sealed-door', [2.34, 2.8, 0.18], [1.17, 1.4, 0], m.darkWood, 'lock', this.door);
+            const door = this.map.door;
+            this.door = new THREE.Group(); this.door.position.set(door.hingeX, 0, door.hingeZ); this.scene.add(this.door);
+            this.box('sealed-door', [door.width, 2.8, door.thickness], [door.width / 2, 1.4, 0], m.darkWood, 'lock', this.door);
             for (let i = 0; i < 6; i++) this.box(`door-plank-${i}`, [0.025, 2.67, 0.025], [0.2 + i * 0.39, 1.4, 0.107], m.wood, 'lock', this.door);
             this.box('lock-plate', [1.85, 0.72, 0.12], [1.17, 1.42, 0.16], m.brass, 'lock', this.door);
             this.wheels = [];
@@ -299,7 +300,7 @@
                 this.wheelSymbols[i] = s.wheels[i];
                 if (immediate) wheel.rotation.x = this.wheelTargets[i];
             });
-            if (immediate) this.door.rotation.y = s.opened ? -Math.PI / 2 : 0;
+            if (immediate) this.door.rotation.y = s.opened ? this.map.door.openAngle : 0;
             this.scene.traverse(obj => { if (obj.userData.cord) obj.visible = !s.opened; });
             this.outsideLight.intensity = s.opened ? 9 : 4;
         }
@@ -351,8 +352,7 @@
             this.animationId = global.requestAnimationFrame(() => this.animate());
             const delta = Math.min(this.clock.getDelta(), 0.05);
             this.controls.update(delta); this.syncState(); this.moveWheels(delta);
-            const target = this.story.state.opened ? -Math.PI / 2 : 0;
-            if (!this.isPaused()) this.door.rotation.y += (target - this.door.rotation.y) * Math.min(1, delta * 4);
+            this.moveDoor(delta);
             this.scene.updateMatrixWorld(true); this.camera.updateMatrixWorld(true);
             this.interaction.update();
             this.onFrame?.(this.inspectionReturn || this.camera.position, this.isPaused());
@@ -360,6 +360,12 @@
             this.flashlight.position.copy(this.camera.position);
             this.flashTarget.position.copy(this.camera.position).add(direction.multiplyScalar(4));
             this.renderer.render(this.scene, this.camera);
+        }
+        moveDoor(delta) {
+            if (this.isPaused()) return;
+            const target = this.story.state.opened ? this.map.door.openAngle : 0;
+            const remaining = target - this.door.rotation.y;
+            this.door.rotation.y += this.reducedMotion?.matches || Math.abs(remaining) < 0.001 ? remaining : remaining * Math.min(1, delta * 4);
         }
         dispose() {
             global.cancelAnimationFrame(this.animationId);

@@ -4,6 +4,7 @@
         id: 'homecoming',
         playerStart: { x: 0, y: 1.6, z: 3.4, yaw: Math.PI },
         playerRadius: 0.25,
+        door: { hingeX: -1.17, hingeZ: -11.5, width: 2.34, thickness: 0.18, frontDepth: 0.56, openAngle: Math.PI / 2 },
         walkable: [
             { xMin: -4.8, xMax: 4.8, zMin: -4.1, zMax: 4.2 },
             { xMin: -1.25, xMax: 1.25, zMin: -14.5, zMax: -3.3 }
@@ -15,9 +16,7 @@
             { id: 'chair_left', xMin: -3.9, xMax: -3.1, zMin: 0.4, zMax: 1.2 },
             { id: 'chair_right', xMin: 3.1, xMax: 3.9, zMin: 0.4, zMax: 1.2 },
             { id: 'pillar_left', xMin: -4.35, xMax: -3.85, zMin: -1.75, zMax: -1.25 },
-            { id: 'pillar_right', xMin: 3.85, xMax: 4.35, zMin: -1.75, zMax: -1.25 },
-            { id: 'sealed_door', xMin: -1.3, xMax: 1.3, zMin: -11.65, zMax: -11.35, gate: true },
-            { id: 'open_door_leaf', xMin: -1.3, xMax: -1.04, zMin: -11.65, zMax: -9.1, openLeaf: true }
+            { id: 'pillar_right', xMin: 3.85, xMax: 4.35, zMin: -1.75, zMax: -1.25 }
         ],
         interactables: [
             { id: 'letter', title: '门边来信', position: { x: 2.65, y: 1.1, z: 3.95 }, radius: 1.85,
