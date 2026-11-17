@@ -2,8 +2,8 @@
     const game = global.Huisha3D || (global.Huisha3D = {});
     const THREE = global.THREE;
     class ThreeControls {
-        constructor({ camera, domElement, map, story, isPaused, getDoorAngle }) {
-            Object.assign(this, { camera, domElement, map, story, isPaused, getDoorAngle });
+        constructor({ camera, domElement, map, story, isPaused, getDoorAngle, getPreferences }) {
+            Object.assign(this, { camera, domElement, map, story, isPaused, getDoorAngle, getPreferences });
             this.keys = new Set();
             this.touchMove = { x: 0, y: 0 };
             const start = game.MEMORIES?.[story.state.memory]?.start || map.playerStart;
@@ -38,9 +38,10 @@
             this.listen(document, 'visibilitychange', () => { if (document.hidden) this.clear(); });
             this.listen(document, 'pointerlockchange', () => this.clear());
             this.listen(this.domElement, 'pointerdown', event => {
-                if (this.isPaused()) return;
-                this.drag = { id: event.pointerId, x: event.clientX, y: event.clientY };
-                if (event.pointerType === 'mouse' && this.domElement.requestPointerLock) {
+                if (this.isPaused() || (event.pointerType === 'mouse' && event.button !== 0)
+                    || (this.drag && this.drag.id !== event.pointerId)) return;
+                this.drag = { id: event.pointerId, type: event.pointerType, x: event.clientX, y: event.clientY };
+                if (event.pointerType === 'mouse' && this.getPreferences?.()?.pointerLock !== false && this.domElement.requestPointerLock) {
                     try { this.domElement.requestPointerLock()?.catch?.(() => {}); } catch (_) { /* drag remains available */ }
                 }
             });
@@ -48,11 +49,17 @@
                 if (this.isPaused()) return;
                 const locked = document.pointerLockElement === this.domElement;
                 if (!locked && (!this.drag || this.drag.id !== event.pointerId)) return;
+                if (locked && event.pointerType === 'touch') return;
+                if (!locked && event.pointerType === 'mouse' && event.buttons === 0) { this.drag = null; return; }
                 const dx = locked ? event.movementX : event.clientX - this.drag.x;
                 const dy = locked ? event.movementY : event.clientY - this.drag.y;
                 if (!Number.isFinite(dx) || !Number.isFinite(dy)) return;
-                this.yaw -= dx * 0.0024;
-                this.pitch = Math.max(-1.15, Math.min(1.15, this.pitch - dy * 0.0024));
+                const preferences = this.getPreferences?.() || {};
+                const touch = !locked && this.drag?.type === 'touch';
+                const sensitivity = touch ? preferences.touchSensitivity : preferences.mouseSensitivity;
+                const scale = 0.0024 * (sensitivity ?? 1);
+                this.yaw -= dx * scale;
+                this.pitch = Math.max(-1.15, Math.min(1.15, this.pitch - dy * scale * (preferences.invertY ? -1 : 1)));
                 if (this.drag) Object.assign(this.drag, { x: event.clientX, y: event.clientY });
                 this.applyLook();
             });

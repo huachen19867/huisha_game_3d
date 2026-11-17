@@ -1,9 +1,12 @@
 (function (global) {
     const game = global.Huisha3D, world = game.WORLD_MAP;
     game.MEMORIES = {
-        school: { title: '录取那年', center: [-32, 0], start: { x: -32, z: 3, yaw: Math.PI, pitch: 0 }, color: 0x292319 },
-        hospital: { title: '病历之前', center: [32, 0], start: { x: 32, z: 3, yaw: Math.PI, pitch: 0 }, color: 0x18252b },
-        crash: { title: '雨夜归途', center: [0, -56], start: { x: 0, z: -50, yaw: Math.PI, pitch: 0 }, color: 0x101923 }
+        school: { title: '录取那年', center: [-32, 0], start: { x: -32, z: 3, yaw: Math.PI, pitch: 0 }, color: 0x292319,
+            audio: { surface: 'wood', rain: 0, cutoff: 650 } },
+        hospital: { title: '病历之前', center: [32, 0], start: { x: 32, z: 3, yaw: Math.PI, pitch: 0 }, color: 0x18252b,
+            audio: { surface: 'concrete', rain: 0, cutoff: 650 } },
+        crash: { title: '雨夜归途', center: [0, -56], start: { x: 0, z: -50, yaw: Math.PI, pitch: 0 }, color: 0x101923,
+            audio: { surface: 'concrete', rain: 0.13, cutoff: 4500 } }
     };
     game.MEMORY_CASES = {
         school: { title: '离家意味着什么', records: ['school_notice', 'school_receipt'],

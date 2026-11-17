@@ -7,5 +7,6 @@
 *.bat text eol=crlf
 # Preserve downloaded source bytes; glTF MD5s are recorded in assets/sources.json.
 assets/models/**/*.gltf -text
+assets/audio/kenney-impact/* -text -whitespace
 vendor/* -text -whitespace
 docs/references/* -text -whitespace

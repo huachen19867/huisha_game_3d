@@ -1,4 +1,5 @@
 node_modules/
+assets/audio/.source/
 *.log
 .env
 .env.*

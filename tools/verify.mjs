@@ -18,10 +18,44 @@ const canvasContext = { fillRect() {}, strokeRect() {}, fillText() {} };
 const document = { ...eventTarget, createElement() { return { getContext() { return canvasContext; } }; }, hidden: false };
 const window = { ...eventTarget, THREE, Huisha3D: {} };
 const context = vm.createContext({ window, document, console });
-for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeStory', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreeHouseScene']) {
+for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeStory', 'ThreePreferences', 'ThreeAudio', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreeHouseScene']) {
     vm.runInContext(await text(`src/3d/${name}.js`), context, { filename: `${name}.js` });
 }
 const game = window.Huisha3D;
+const preferenceData = new Map([['huisha.3d.homecoming.v1', 'existing-story']]);
+const preferenceAdapter = { getItem: key => preferenceData.get(key), setItem: (key, value) => preferenceData.set(key, value) };
+const preferences = new game.ThreePreferences(preferenceAdapter);
+preferences.set('brightness', 99); preferences.set('mouseSensitivity', -3); preferences.set('invertY', true);
+assert.equal(preferences.set('volume', NaN), false); assert.equal(preferences.set('muted', 'false'), false);
+const restoredPreferences = new game.ThreePreferences(preferenceAdapter);
+assert.equal(restoredPreferences.values.brightness, 1.8); assert.equal(restoredPreferences.values.mouseSensitivity, 0.25);
+assert.equal(restoredPreferences.values.invertY, true); assert.equal(restoredPreferences.values.volume, 1);
+preferences.reset(); assert.equal(preferenceData.get('huisha.3d.homecoming.v1'), 'existing-story', 'setting defaults never touch story progress');
+const deniedPreferences = new game.ThreePreferences({ getItem() { throw new Error('denied'); }, setItem() { throw new Error('denied'); } });
+deniedPreferences.set('volume', 0.3); assert.equal(deniedPreferences.values.volume, 0.3); assert.equal(deniedPreferences.saveAvailable, false);
+assert.equal(new game.ThreePreferences({ getItem: () => '{broken' }).values.brightness, 1.28);
+const adjustableAudio = new game.ThreeAudio();
+let gainValue;
+adjustableAudio.context = { currentTime: 3, suspend() {} };
+adjustableAudio.gain = { gain: { setTargetAtTime(value) { gainValue = value; } } };
+adjustableAudio.setVolume(0.5); assert.equal(gainValue, 0.12, 'volume changes the existing master gain');
+adjustableAudio.setMuted(true); adjustableAudio.setMuted(false, false); assert.equal(adjustableAudio.muted, false);
+const soundAudio = new game.ThreeAudio(), footsteps = [];
+soundAudio.step = surface => footsteps.push(surface);
+soundAudio.update({ x: 0, z: 3 }, false); soundAudio.update({ x: 0, z: 2 }, false);
+soundAudio.update({ x: 0, z: -20 }, false); soundAudio.update({ x: 0, z: -21 }, false);
+soundAudio.update({ x: 8.5, z: -20 }, false); soundAudio.update({ x: 8.5, z: -21 }, false);
+assert.deepEqual(footsteps, ['wood', 'concrete', 'wood'], 'footsteps follow the actual hall/yard/kitchen floor materials; teleport jumps add no steps');
+soundAudio.update({ x: 8.5, z: -20 }, true); assert.equal(footsteps.length, 3, 'reading and paused movement never emit footsteps');
+soundAudio.update({ x: 32, z: 3 }, false, 'hospital'); assert.equal(soundAudio.currentSoundscape.rain, 0);
+soundAudio.update({ x: 0, z: -50 }, false, 'crash'); assert.ok(soundAudio.currentSoundscape.rain > 0);
+assert.equal(footsteps.length, 3, 'a memory transition resets accumulated walking distance');
+const rainChanges = [];
+soundAudio.context = { currentTime: 2 };
+soundAudio.rainGain = { gain: { setTargetAtTime(value) { rainChanges.push(value); } } };
+soundAudio.rainFilter = { frequency: { setTargetAtTime() {} } };
+soundAudio.applySoundscape(); soundAudio.applySoundscape();
+assert.equal(rainChanges.length, 1, 'unchanged ambience never reschedules gain automation each frame');
 const storage = new Map();
 const adapter = { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value) };
 const story = new game.ThreeStory(adapter);
@@ -461,3 +495,25 @@ for (const asset of sources.files) {
 }
 for (const art of ['木墙', '木梁']) await access(path.join(root, `assets/art/${art}.png`));
 console.log(`Sources: ${sources.files.length} downloaded asset checksums match the recorded Poly Haven originals.`);
+const audioSources = JSON.parse((await text('assets/audio/sources.json')).replace(/^\uFEFF/, ''));
+for (const asset of audioSources.files) {
+    const bytes = await readFile(path.join(root, 'assets/audio', asset.path));
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), asset.sha256);
+    assert.equal(bytes.subarray(0, 4).toString(), 'OggS'); assert.ok(bytes.includes(Buffer.from('vorbis')));
+}
+assert.match(await text('assets/audio/kenney-impact/License.txt'), /Creative Commons Zero/);
+const requestedAudio = [];
+window.fetch = async url => { requestedAudio.push(url); return { ok: true, arrayBuffer: async () => new ArrayBuffer(8) }; };
+const loadingAudio = new game.ThreeAudio(); loadingAudio.context = { decodeAudioData: async () => ({}), close() {} };
+const loading = loadingAudio.loadSamples(); assert.equal(loadingAudio.loadSamples(), loading, 'sample requests are shared across repeated starts');
+await loading;
+assert.deepEqual(requestedAudio.sort(), audioSources.files.map(file => `assets/audio/${file.path}`).sort(), 'every requested sound exists in the source manifest');
+const lateAudio = new game.ThreeAudio(); lateAudio.context = loadingAudio.context;
+const lateLoading = lateAudio.loadSamples(); lateAudio.dispose(); await lateLoading;
+assert.equal(lateAudio.samples.size, 0, 'late decoding cannot retain samples after disposal');
+window.fetch = async () => { throw new Error('unavailable audio sample'); };
+const failedAudio = new game.ThreeAudio(); failedAudio.context = loadingAudio.context;
+assert.ok((await failedAudio.loadSamples()).every(result => result.status === 'rejected'));
+assert.equal(failedAudio.sample('footstep_wood_000'), false, 'missing/unsupported audio safely leaves the existing synthesis fallback available');
+delete window.fetch;
+console.log(`Sound/settings: ${audioSources.files.length} original CC0 audio hashes, local request paths, load failure/disposal, floor-aware footsteps, ambience transitions, preferences and master gain passed. No real device or audio decoder was used.`);

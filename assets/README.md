@@ -16,6 +16,8 @@
 
 Poly Haven 对其资产的 [CC0 许可说明](https://polyhaven.com/license) 已下载至 `docs/references/polyhaven-license.html`。Three.js / GLTFLoader / BufferGeometryUtils 为 r160 MIT，见 `vendor/THREE-LICENSE.txt`；后两者仅将 import 路径改为本地 `.mjs`，不走 CDN。
 
-棺体、香炉、烛台、门窗、字轮与线索铭牌为本项目编写的真实几何结构与局部文字材质。文字牌是附在器物上的平面，不代替整个三维房间。环境声、脚步与机关声由 Web Audio 生成。
+棺体、香炉、烛台、门窗、字轮与线索铭牌为本项目编写的真实几何结构与局部文字材质。文字牌是附在器物上的平面，不代替整个三维房间。脚步与木、金属碰撞使用 Kenney 的 CC0 音效；雨声、翻纸、倒水及界面提示由现有 Web Audio 系统合成。
 
 2026-11-16 记忆扩展从 Poly Haven 官方 files API 下载 SchoolDesk_01、SchoolChair_01、wheelchair_01 的 1K glTF、二进制和各三张贴图，新增 15 份原始文件。`sources.json` 记录全部 36 份下载文件的 URL、MD5 和本地路径，检查脚本读取原始字节核对。三个目录的 source.json 保留当次完整 files API 返回。事故现场的护栏、路面、手机和救护物件为自建几何，不使用未经授权的车辆照片或收费模型。
+
+2026-11-17 从 [Kenney Impact Sounds 1.0](https://kenney.nl/assets/impact-sounds) 官方下载包导入九份原始 Ogg Vorbis 音效：木地板/硬地面脚步各三份，轻金属碰撞两份，轻木碰撞一份。位于 `audio/kenney-impact/`，合计约 57 KB，逐文件 SHA-256、包 SHA-256、官方入口和原包路径见 `audio/sources.json`；CC0 原文在 `audio/kenney-impact/License.txt`。没有修改或重新编码原文件。完整下载包和页面留在本地忽略的 `audio/.source/`，只随游戏分发实际使用的九份音效和许可。

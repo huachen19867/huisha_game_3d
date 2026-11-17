@@ -2,12 +2,14 @@ import * as THREE from '../vendor/three.module.mjs';
 import { GLTFLoader } from '../vendor/GLTFLoader.mjs';
 window.THREE = THREE;
 window.Huisha3D = { GLTFLoader };
-for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeStory', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreeMemoryJournal', 'ThreeEvidenceJournal', 'ThreeHouseScene', 'ThreeAudio']) {
+for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeStory', 'ThreePreferences', 'ThreeSettings', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreeMemoryJournal', 'ThreeEvidenceJournal', 'ThreeHouseScene', 'ThreeAudio']) {
     await import(`./3d/${name}.js`);
 }
 const $ = id => document.getElementById(id);
 const game = window.Huisha3D;
 const story = new game.ThreeStory();
+const preferences = new game.ThreePreferences();
+const settings = new game.ThreeSettings({ preferences, onChange: applyPreferences });
 const reader = $('reader');
 const audio = new game.ThreeAudio();
 const assetErrors = new Set();
@@ -31,8 +33,18 @@ function updateStatus() {
     $('chapter-name').textContent = story.state.memory ? game.MEMORIES[story.state.memory].title : story.state.courtyard ? '余 温' : '归 门';
 }
 function save() {
-    if (scene?.controls) story.save(scene.playerSnapshot());
+    if (mode === 'game' && scene?.controls) story.save(scene.playerSnapshot());
     updateStatus();
+}
+function applyPreferences() {
+    if (scene?.renderer) scene.renderer.toneMappingExposure = preferences.values.brightness;
+    audio.setVolume(preferences.values.volume);
+    audio.setMuted(preferences.values.muted, mode === 'game' && !document.hidden);
+    if (!preferences.values.pointerLock && document.pointerLockElement) document.exitPointerLock();
+}
+function titleSettings() {
+    open('游玩设置', '先把视角和声音调到舒服的程度。设置即时生效。', [['返回标题', close]], '回煞 · 游玩设置');
+    settings.append($('reader-body'));
 }
 function open(title, text, actions = [], eyebrow = '旧宅 · 观察记录') {
     if (!reader.open) lastFocus = document.activeElement;
@@ -119,7 +131,7 @@ function leaveInspection(restoreFocus = true) {
 }
 function rotateLock(index) {
     if (scene.inspectionKind !== 'lock' || reader.open) return;
-    story.rotate(index); audio.knock(); scene.syncState(); updateLock();
+    story.rotate(index); audio.latch(); scene.syncState(); updateLock();
 }
 function lock() {
     if (story.state.opened) { open('门闩已松开', '三根红绳垂下来。门外透进雨后的天光。', [['回到门前', close]]); return; }
@@ -170,7 +182,7 @@ function waterAction(action) {
         message = changed ? '四升水压平了秤盘。旧抽屉弹开，院门的铜索也松了。退回桌前，可以低头看信。'
             : '秤盘又弹了回来。需要五升桶里恰好四升水，桶里的水还保留着。';
     } else return;
-    if (changed) action === 'weigh' ? audio.chime() : audio.knock();
+    if (changed) action === 'weigh' ? audio.release() : audio.water(action);
     updateWater(message);
 }
 function ending(choice) {
@@ -188,7 +200,7 @@ function ending(choice) {
     open({ stay: '余温', leave: '归路', wake: '破茧', remember: '回煞' }[choice], text, [['留在现场回看', close], ['返回标题', title]], '回煞 · 你的选择');
 }
 function inspect(item) {
-    audio.knock();
+    ['lock', 'water_station'].includes(item.id) ? audio.knock() : audio.paper();
     if (item.id === 'lock') { lock(); return; }
     if (item.id === 'water_station') { water(); return; }
     if (item.id === 'memory_album') { album(); return; }
@@ -237,12 +249,7 @@ function pause() {
         ['继续探索', close], ['回查手记', () => journal(!!scene.inspectionReturn)],
         ...(story.state.memory ? [['回到厨房', returnMemory]] : []), ['返回标题', title]
     ], '回煞 · 暂停');
-    const setting = document.createElement('label'); setting.className = 'settings'; setting.textContent = '画面亮度';
-    const slider = document.createElement('input'); slider.type = 'range'; slider.min = '0.8'; slider.max = '1.8'; slider.step = '0.05'; slider.value = scene.renderer.toneMappingExposure;
-    slider.setAttribute('aria-label', '画面亮度'); slider.addEventListener('input', () => { scene.renderer.toneMappingExposure = Number(slider.value); }); setting.append(slider);
-    const sound = document.createElement('button'); sound.textContent = audio.muted ? '开启声音' : '关闭声音';
-    sound.addEventListener('click', () => { audio.toggle(); sound.textContent = audio.muted ? '开启声音' : '关闭声音'; });
-    $('reader-body').append(setting, sound);
+    settings.append($('reader-body'));
     if (!story.saveAvailable) { const p = document.createElement('p'); p.textContent = '浏览器未允许保存。当前页面内可以继续，关闭页面后进度可能丢失。'; $('reader-body').append(p); }
 }
 $('reader-close').addEventListener('click', close);
@@ -259,6 +266,7 @@ $('restart').addEventListener('click', () => {
 });
 $('journal').addEventListener('click', () => journal(!!scene.inspectionReturn));
 $('pause').addEventListener('click', pause);
+$('title-settings').addEventListener('click', titleSettings);
 $('prompt').addEventListener('click', () => scene.interaction.activate());
 document.querySelectorAll('[data-wheel]').forEach(button => button.addEventListener('click', () => rotateLock(Number(button.dataset.wheel))));
 $('lock-leave').addEventListener('click', () => leaveInspection());
@@ -268,7 +276,7 @@ $('lock-attempt').addEventListener('click', () => {
     if (reader.open || scene.inspectionKind !== 'lock') return;
     scene.syncState(true);
     if (!story.unlock()) { audio.knock(); updateLock('门闩又落了回去。可以继续调整字轮，或回查字迹。'); return; }
-    scene.syncState(); audio.chime(); leaveInspection();
+    scene.syncState(); audio.release(); leaveInspection();
     $('toast').textContent = '门闩松开了。你可以继续观察，也可以穿过门去。'; $('toast').hidden = false;
     setTimeout(() => { $('toast').hidden = true; }, 5000);
 });
@@ -315,12 +323,14 @@ window.addEventListener('pagehide', event => {
 window.addEventListener('pageshow', event => { if (event.persisted && mode === 'game') audio.start(); });
 try {
     scene = new game.ThreeHouseScene({ root: $('world'), prompt: $('prompt'), focusMarker: $('focus-marker'), story, isPaused, onInspect: inspect,
+        getPreferences: () => preferences.values,
         onAssetError: name => { assetErrors.add(name); updateLoadStatus(); },
         onFrame: (position, paused) => {
-            audio.update(position, paused);
+            audio.update(position, paused, story.state.memory || 'house');
             if (!paused && !story.state.memory && story.state.opened && position.z < -15.2 && story.enterCourtyard()) updateStatus();
         } });
     await scene.start();
+    applyPreferences();
     let wheelPress;
     scene.renderer.domElement.addEventListener('pointerdown', event => {
         wheelPress = scene.inspectionReturn && !reader.open ? { x: event.clientX, y: event.clientY, id: event.pointerId } : null;
@@ -336,7 +346,7 @@ try {
         }
     });
     scene.renderer.domElement.addEventListener('pointercancel', () => { wheelPress = null; });
-    updateStatus(); $('begin').disabled = false;
+    updateStatus(); $('begin').disabled = false; $('title-settings').disabled = false;
     updateLoadStatus();
     saveTimer = setInterval(() => { if (mode === 'game' && !reader.open) save(); }, 5000);
 } catch (error) {

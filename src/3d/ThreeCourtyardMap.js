@@ -3,6 +3,11 @@
     const hall = game.MAIN_HALL_MAP;
     game.WORLD_MAP = {
         ...hall,
+        audioZones: [
+            { xMin: 6, xMax: 11, zMin: -25, zMax: -17, audio: { surface: 'wood', rain: 0.05, cutoff: 1000 } },
+            { xMin: -6, xMax: 6, zMin: -27.5, zMax: -14, audio: { surface: 'concrete', rain: 0.12, cutoff: 3600 } },
+            { xMin: -2, xMax: 2, zMin: -33, zMax: -27.5, audio: { surface: 'concrete', rain: 0.1, cutoff: 4500 } }
+        ],
         extraDoors: [{ id: 'yard', stateField: 'waterSolved', hingeX: -1, hingeZ: -27.5, width: 2,
             thickness: 0.16, frontDepth: 0.12, openAngle: Math.PI / 2 }],
         walkable: [...hall.walkable,

@@ -12,7 +12,7 @@ import { GLTFLoader } from '../vendor/GLTFLoader.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const html = await readFile(path.join(root, 'index.html'), 'utf8');
 const saveKey = 'huisha.3d.homecoming.v1';
-async function boot(saved) {
+async function boot(saved, preferences) {
     const errors = [], virtualConsole = new VirtualConsole();
     virtualConsole.on('jsdomError', error => errors.push(error));
     const dom = new JSDOM(html, { url: 'http://127.0.0.1:8133/', runScripts: 'outside-only', pretendToBeVisual: true, virtualConsole });
@@ -21,6 +21,7 @@ async function boot(saved) {
     window.HTMLDialogElement.prototype.showModal = function () { this.open = true; };
     window.HTMLDialogElement.prototype.close = function () { this.open = false; this.dispatchEvent(new window.Event('close')); };
     if (saved) window.localStorage.setItem(saveKey, saved);
+    if (preferences) window.localStorage.setItem('huisha.3d.preferences.v1', preferences);
     let scene;
     const modules = new Map();
     const synthetic = (identifier, exports) => new vm.SyntheticModule(Object.keys(exports), function () {
@@ -45,7 +46,7 @@ async function boot(saved) {
                         this.renderer = { domElement: canvas, toneMappingExposure: 1.28, dispose() {} };
                         this.courtyard = { selected: 0, frame() {}, pick() { return null; } }; this.wheels = [];
                         this.controls = new game.ThreeControls({ camera: this.camera, domElement: canvas, map: this.map,
-                            story: this.story, isPaused: this.isPaused });
+                            story: this.story, isPaused: this.isPaused, getPreferences: this.getPreferences });
                         this.interaction = new game.ThreeInteraction({ camera: this.camera, map: this.map, scene: this.scene,
                             prompt: this.prompt, focusMarker: this.focusMarker, story: this.story, isPaused: this.isPaused, onInspect: this.onInspect });
                         this.onAssetError('wood-color'); // Verify that an early error survives the ready message.
@@ -93,7 +94,47 @@ try {
     ui = await boot();
     assert.equal(ui.$('begin').disabled, false);
     assert.match(ui.$('load-status').textContent, /wood-color/, 'early material errors remain visible after readiness');
+    ui.$('title-settings').click();
+    const adjust = (name, value) => {
+        const input = ui.document.querySelector(`[data-setting="${name}"]`); input.value = value;
+        input.dispatchEvent(new ui.window.Event('input', { bubbles: true }));
+    };
+    adjust('brightness', 1.57); adjust('mouseSensitivity', 2); adjust('touchSensitivity', 0.5); adjust('volume', 0.4);
+    ui.document.querySelector('[data-setting="invertY"]').click();
+    ui.document.querySelector('[data-setting="pointerLock"]').click(); ui.click('关闭声音');
+    assert.equal(ui.scene.renderer.toneMappingExposure, 1.57, 'settings apply to the production scene boundary immediately');
+    const savedPreferences = ui.window.localStorage.getItem('huisha.3d.preferences.v1');
+    assert.equal(ui.window.localStorage.getItem(saveKey), null, 'opening title settings does not create story progress');
+    ui.click('返回标题'); assert.equal(ui.scene.story.state.position, null); assert.equal(ui.$('restart').hidden, true);
+    ui.destroy(); ui = await boot(null, savedPreferences);
+    assert.equal(ui.scene.renderer.toneMappingExposure, 1.57, 'production boot reapplies saved brightness');
     ui.$('begin').click();
+    const pointer = (type, target, { id = 1, kind = 'mouse', x = 100, y = 100, button = 0, buttons = 1 } = {}) => {
+        const event = new ui.window.MouseEvent(type, { bubbles: true, clientX: x, clientY: y, button, buttons });
+        Object.defineProperties(event, { pointerId: { value: id }, pointerType: { value: kind } }); target.dispatchEvent(event);
+    };
+    const canvas = ui.scene.renderer.domElement, controls = ui.scene.controls;
+    let lockRequests = 0;
+    canvas.requestPointerLock = () => { lockRequests++; throw new Error('simulated unavailable pointer lock'); };
+    const yaw = controls.yaw;
+    pointer('pointerdown', canvas); pointer('pointermove', ui.window, { x: 200, y: 120 }); pointer('pointerup', ui.window);
+    assert.ok(Math.abs(controls.yaw - (yaw - 0.48)) < 1e-9); assert.ok(Math.abs(controls.pitch - 0.096) < 1e-9);
+    assert.equal(lockRequests, 0, 'drag mode never asks for pointer lock');
+    const touchYaw = controls.yaw;
+    pointer('pointerdown', canvas, { id: 2, kind: 'touch' });
+    pointer('pointerdown', canvas, { id: 3, kind: 'touch' });
+    pointer('pointermove', ui.window, { id: 3, kind: 'touch', x: 300 });
+    assert.equal(controls.yaw, touchYaw, 'a second finger does not steal the current look gesture');
+    pointer('pointermove', ui.window, { id: 2, kind: 'touch', x: 200 }); pointer('pointerup', ui.window, { id: 2, kind: 'touch' });
+    assert.ok(Math.abs(controls.yaw - (touchYaw - 0.12)) < 1e-9, 'touch uses its own sensitivity');
+    pointer('pointerdown', canvas); const releasedYaw = controls.yaw;
+    pointer('pointermove', ui.window, { x: 400, buttons: 0 }); assert.equal(controls.yaw, releasedYaw, 'a lost mouse-up cannot keep dragging');
+    ui.$('pause').click(); ui.document.querySelector('[data-setting="pointerLock"]').click(); ui.click('继续探索');
+    pointer('pointerdown', canvas, { button: 2 }); assert.equal(lockRequests, 0, 'right-click does not capture the mouse');
+    pointer('pointerdown', canvas); assert.equal(lockRequests, 1);
+    pointer('pointermove', ui.window, { x: 150 }); pointer('pointerup', ui.window);
+    assert.ok(controls.yaw < releasedYaw, 'the drag fallback still works when pointer lock is unavailable');
+    ui.$('pause').click(); ui.document.querySelector('[data-setting="pointerLock"]').click(); ui.click('继续探索');
     ui.inspect('letter'); assert.equal(ui.$('reader').open, true);
     ui.scene.interaction.update(); assert.equal(ui.$('focus-marker').hidden, true, 'reading hides the focus marker');
     ui.click('放入摘记');
@@ -152,7 +193,7 @@ try {
     const saved = ui.window.localStorage.getItem(saveKey);
     assert.deepEqual(JSON.parse(saved).drafts.school.evidence, ['school_notice', 'school_receipt']);
     assert.equal(ui.errors.length, 0, ui.errors.map(error => error.message).join('\n'));
-    ui.destroy(); ui = await boot(saved); ui.$('begin').click(); ui.key('KeyJ');
+    ui.destroy(); ui = await boot(saved, savedPreferences); ui.$('begin').click(); ui.key('KeyJ');
     assert.deepEqual([...ui.scene.story.state.pinnedRecords], ['school_notice', 'school_receipt'], 'pinned originals survive production startup');
     assert.equal(ui.document.querySelectorAll('.evidence-journal [data-pinned-record]').length, 2);
     ui.click('整理 · 录取那年'); fields = [...ui.document.querySelectorAll('.memory-draft select')];
@@ -180,7 +221,12 @@ try {
     assert.equal(ui.scene.story.state.records.length, 0); assert.deepEqual([...ui.scene.story.state.buckets], [0, 0]);
     assert.equal(ui.scene.story.state.pinnedRecords.length, 0);
     assert.equal(ui.document.querySelectorAll('.inspection-notes [data-pinned-record]').length, 0, 'restarting clears stale originals from both inspectors');
+    assert.equal(ui.window.localStorage.getItem('huisha.3d.preferences.v1'), savedPreferences, 'restarting the story keeps device preferences');
+    ui.$('title-settings').click(); assert.equal(ui.document.querySelector('[data-setting="volume"]').value, '0.4');
+    ui.click('恢复默认设置'); assert.equal(ui.scene.renderer.toneMappingExposure, 1.28);
+    assert.equal(ui.scene.controls.getPreferences().invertY, false); assert.equal(ui.scene.story.state.records.length, 0);
+    ui.click('返回标题');
     assert.equal(ui.errors.length, 0, ui.errors.map(error => error.message).join('\n'));
-    console.log('UI: production boot, early errors, lock/water buttons, grouped journal, explicit comparison/pin removal, inspector notes, current-memory filter, explicit draft copy, pin/draft reload, memory return, four endings and restart passed.');
+    console.log('UI: production boot, persistent title/pause settings, separate mouse/touch look, inversion, pointer-lock fallback, grouped evidence/inspector notes, explicit drafts, memory return, four endings and restart passed.');
     console.log('Scope: jsdom DOM events with a rendering stub and dialog shim; no browser, native dialog/select behavior, layout, WebGL, pointer lock, audio or real-device acceptance.');
 } finally { ui?.destroy(); }
