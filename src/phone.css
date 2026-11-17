@@ -1,0 +1,8 @@
+.phone-inspector { width: min(560px, calc(100vw - 30px)); max-height: 40vh; overflow-y: auto; }
+.phone-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.phone-actions button { padding: 9px 12px; font-size: 13px; }
+.phone-actions button[aria-pressed="true"] { border-color: #d7b875; background: #7c694238; }
+.phone-actions button:disabled { opacity: .45; }
+#phone-status { color: var(--muted); font-size: 12px; line-height: 1.7; margin: 10px 0; }
+@media (max-height: 520px) and (min-width: 681px) { .phone-inspector { width: 310px; max-height: none; } }
+@media (max-width: 680px) { .phone-actions { gap: 6px; margin: 8px 0; } .phone-actions button { flex: 1; padding: 8px; font-size: 12px; } #phone-read { flex-basis: 100%; } }

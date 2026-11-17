@@ -4,7 +4,7 @@
     const symbols = ['雨', '门', '人', '灯'];
     const freshState = () => ({ records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
         courtyard: false, buckets: [0, 0], waterSolved: false, departure: null, position: null,
-        memory: null, memoryReturn: null, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
+        memory: null, memoryReturn: null, phoneViews: [], deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
     class ThreeStory {
         constructor(storage) {
@@ -34,11 +34,17 @@
                     if (this.state.waterSolved) this.state.buckets[1] = 4;
                     if (!this.state.waterSolved) this.state.records = this.state.records.filter(id =>
                         !(game.WORLD_MAP || game.MAIN_HALL_MAP).interactables.find(item => item.id === id)?.requiresWater);
+                    this.state.phoneViews = !this.state.waterSolved ? [] : !Object.hasOwn(saved, 'phoneViews') && this.state.records.includes('crash_phone')
+                        ? Object.keys(game.PHONE_PAGES) : [...new Set((Array.isArray(saved.phoneViews) ? saved.phoneViews : [])
+                            .filter(page => typeof page === 'string' && Object.hasOwn(game.PHONE_PAGES, page)))];
+                    if (!this.state.phoneViews.length) this.state.records = this.state.records.filter(id => id !== 'crash_phone');
+                    else if (!this.state.records.includes('crash_phone')) this.state.records.push('crash_phone');
                     this.state.pinnedRecords = [...new Set((Array.isArray(saved.pinnedRecords) ? saved.pinnedRecords : [])
                         .filter(id => this.state.records.includes(id)))].slice(0, 2);
                     for (const [id, definition] of Object.entries(game.MEMORY_CASES || {})) {
                         this.state.deductions[id] = this.state.waterSolved && saved.deductions?.[id] === true
-                            && definition.records.every(record => this.state.records.includes(record));
+                            && definition.records.every(record => this.state.records.includes(record))
+                            && definition.facts.every(fact => !fact.phonePage || this.knowsFact(fact));
                         const draft = saved.drafts?.[id];
                         this.state.drafts[id] = this.cleanDraft(id, draft?.evidence, draft?.interpretation, draft?.timeline);
                     }
@@ -61,6 +67,13 @@
             this.markArea(this.recordArea(id));
             this.save();
         }
+        readPhonePage(page) {
+            if (!this.state.waterSolved || this.state.memory !== 'crash' || typeof page !== 'string' || !Object.hasOwn(game.PHONE_PAGES, page)) return false;
+            if (!this.state.phoneViews.includes(page)) this.state.phoneViews.push(page);
+            this.record('crash_phone'); return true;
+        }
+        phoneText() { return this.state.phoneViews.map(page => `${game.PHONE_PAGES[page].title}\n\n${game.PHONE_PAGES[page].text}`).join('\n\n'); }
+        knowsFact(fact) { return this.state.records.includes(fact.record) && (!fact.phonePage || this.state.phoneViews.includes(fact.phonePage)); }
         recordArea(id) {
             return id === 'portrait_back' ? 'hall' : (game.WORLD_MAP || game.MAIN_HALL_MAP).interactables.find(item => item.id === id)?.area;
         }
@@ -153,7 +166,7 @@
                 interpretation: Number.isInteger(interpretation) && interpretation >= 0 && interpretation < (game.MEMORY_CASES?.[id]?.choices.length || 0) ? interpretation : null,
                 timeline: [...new Set((Array.isArray(timeline) ? timeline : []).filter(event => {
                     const fact = game.MEMORY_CASES?.[id]?.facts.find(fact => fact.id === event);
-                    return fact && this.state.records.includes(fact.record);
+                    return fact && this.knowsFact(fact);
                 }))] };
         }
         setMemoryDraft(id, evidence, interpretation, timeline) {
@@ -173,6 +186,9 @@
                 return { success: false, message: '时间线里有缺少明确日期的片段，暂时不能据此确定先后。可以先把它放回旁边。草稿还在。' };
             }
             if (!definition.records.every(record => evidence.includes(record))) return mismatch;
+            if (definition.facts.some(fact => fact.phonePage && !this.knowsFact(fact))) {
+                return { success: false, message: '手机还有没有记下的页面。把通话记录与本地录音资料分别阅读，再回到这份草稿。' };
+            }
             if (!timeline.length) return { success: false, message: '先把能确定时间的原文片段放上时间线，按从早到晚排列。选好解释后还要主动提交。' };
             if (timeline.length !== definition.timelineOrder.length || !definition.timelineOrder.every((event, index) => event === timeline[index])) {
                 return { success: false, message: '时间线的先后还对不上。回看原文里的年份、日期和时刻。'
@@ -237,7 +253,7 @@
             if (this.state.deductions[id]) return { text: definition.conclusion + '\n\n可以继续观察，或从门边、暂停菜单回到厨房。' };
             if (stage === 0) return { text: { school: '近处左侧课桌留着录取通知，远处右侧课桌有家长回执。先分别看原文，再用“整理记忆”核对。',
                 hospital: '看看右前方桌上的初诊病历，再去左侧轮椅旁查看签字的复诊安排。比较记录与离家的日期。',
-                crash: '来路左侧石块上有手机，前方右侧放着救护交接单。注意一个是旧录音，一个是今夜的记录。' }[id], next: '再想一想原文' };
+                crash: '来路左侧石块上有手机，前方右侧放着救护交接单。拿近手机，分别查看通话记录和本地录音资料，留意日期。' }[id], next: '再想一想原文' };
             if (stage === 1) return { text: '选两份不同的已读原文，把有明确日期的片段从早到晚放上时间线，再选择解释。没有具体日期的描述或猜想，可以先留在旁边。选好后仍需主动提交。', next: '直接查看这段推理做法' };
             const titles = definition.records.map(record => game.WORLD_MAP.interactables.find(item => item.id === record).title);
             const sequence = definition.timelineOrder.map(event => { const fact = definition.facts.find(fact => fact.id === event); return `${fact.title}：${fact.quote}`; });

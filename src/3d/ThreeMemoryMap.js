@@ -8,6 +8,12 @@
         crash: { title: '雨夜归途', center: [0, -56], start: { x: 0, z: -50, yaw: Math.PI, pitch: 0 }, color: 0x101923,
             audio: { surface: 'concrete', rain: 0.13, cutoff: 4500 } }
     };
+    game.PHONE_PAGES = {
+        calls: { title: '通话记录', lines: ['今夜', '21:12', '呼出 → 旧宅', '未接通'],
+            text: '二十一时十二分，你给旧宅拨过电话，没有人接。' },
+        recording: { title: '本地录音资料', lines: ['本地录音', '母亲', '2016.07.14', '录音文字', '别赶夜路，慢一点。', '灯会给你留着。'],
+            text: '屏幕停在本地录音：「母亲，二〇一六年七月十四日。」\n\n录音文字：「别赶夜路，慢一点。灯会给你留着。」' }
+    };
     game.MEMORY_CASES = {
         school: { title: '离家意味着什么', records: ['school_notice', 'school_receipt'],
             choices: ['留下才算尽孝，离家就是背叛', '离家读书不等于遗弃，父亲也承认了自己的控制', '父亲签过字，过去的伤害就不存在了'], answer: 1,
@@ -29,8 +35,8 @@
             choices: ['你在事故后仍有生命体征，老宅在重复旧记忆', '母亲打来电话，把你带来陪葬', '已经宣告死亡，只能留在旧宅'], answer: 0,
             facts: [
                 { id: 'handover', record: 'crash_report', title: '今夜的救护交接', quote: '二〇二六年七月十四日，二十一时十八分。' },
-                { id: 'call', record: 'crash_phone', title: '给旧宅拨出的电话', quote: '二十一时十二分，你给旧宅拨过电话，没有人接。' },
-                { id: 'voice', record: 'crash_phone', title: '手机保存的母亲语音', quote: '屏幕停在本地录音：「母亲，二〇一六年七月十四日。」' }
+                { id: 'call', record: 'crash_phone', phonePage: 'calls', title: '给旧宅拨出的电话', quote: '二十一时十二分，你给旧宅拨过电话，没有人接。' },
+                { id: 'voice', record: 'crash_phone', phonePage: 'recording', title: '手机保存的母亲语音', quote: '屏幕停在本地录音：「母亲，二〇一六年七月十四日。」' }
             ], timelineOrder: ['voice', 'call', 'handover'],
             conclusion: '手机播放的是十年前保存的语音，救护交接单却写着今夜、你的名字和“仍有呼吸”。这座宅子把旧日的声音接在了一起。救护灯的另一边，还有人正在叫你。' }
     };
@@ -71,8 +77,8 @@
         '你曾反复想象：如果再早一点回来，会不会不一样。\n\n钟面却没有哪一格写着“保证来得及”。可以拿记录核对发生过的事，不必把猜想当成证据。', { deduction: 'hospital' });
     add('crash', 'crash_report', '救护交接单', 1.7, 1.05, -4.5,
         '二〇二六年七月十四日，二十一时十八分。\n\n地点：回宅山路弯道，雨后落石。\n伤者姓名与你相同。\n「呼吸存在，呼名反应微弱，继续转运。」\n\n纸角的雨水还没有干。这是今夜的记录。', { deduction: 'crash' });
-    add('crash', 'crash_phone', '仍在播放的手机', -1.65, 0.7, 1.2,
-        '二十一时十二分，你给旧宅拨过电话，没有人接。\n\n屏幕停在本地录音：「母亲，二〇一六年七月十四日。」\n\n「别赶夜路，慢一点。灯会给你留着。」\n\n那不是今夜打来的电话，是你一直没舍得删的语音。', { deduction: 'crash' });
+    add('crash', 'crash_phone', '雨夜的旧手机', -1.65, 0.7, 1.2,
+        '二十一时十二分，你给旧宅拨过电话，没有人接。\n\n屏幕停在本地录音：「母亲，二〇一六年七月十四日。」\n\n「别赶夜路，慢一点。灯会给你留着。」\n\n那不是今夜打来的电话，是你一直没舍得删的语音。', { deduction: 'crash', journal: false });
     add('crash', 'crash_return', '回到厨房的旧影', 0, 1.3, 6.8,
         '身后的雨幕里，厨房那盏灯仍在。可以先回去核对其他记录。', { journal: false, returnMemory: true });
     add('crash', 'rescue_light', '另一边的救护灯', 0, 1.2, -7,

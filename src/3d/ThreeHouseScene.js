@@ -354,14 +354,21 @@
             const entering = this.inspectionKind !== 'portrait'; this.inspectionKind = 'portrait'; this.controls.clear();
             if (entering) this.portrait.begin(); else this.portrait.frame();
         }
+        beginPhoneInspection() {
+            if (!this.inspectionReturn) { this.inspectionReturn = this.controls.snapshot(); this.inspectionFov = this.camera.fov; }
+            const entering = this.inspectionKind !== 'phone'; this.inspectionKind = 'phone'; this.controls.clear();
+            if (entering) this.phone.begin(); else this.phone.frame();
+        }
         frameInspection() {
-            if (this.inspectionKind === 'portrait') this.portrait.frame();
+            if (this.inspectionKind === 'phone') this.phone.frame();
+            else if (this.inspectionKind === 'portrait') this.portrait.frame();
             else if (this.inspectionKind === 'water') this.courtyard.frame(); else this.frameLock();
         }
         endInspection() {
             const pose = this.inspectionReturn;
             if (!pose) return;
             if (this.inspectionKind === 'portrait') this.portrait.end();
+            if (this.inspectionKind === 'phone') this.phone.end();
             if (this.inspectionKind === 'water') this.courtyard.cancelWeigh();
             this.camera.position.set(pose.x, this.map.playerStart.y, pose.z);
             this.camera.fov = this.inspectionFov; this.camera.clearViewOffset(); this.camera.updateProjectionMatrix();

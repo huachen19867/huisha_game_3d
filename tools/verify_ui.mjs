@@ -37,6 +37,12 @@ async function boot(saved, preferences) {
                 importModuleDynamically: (specifier, parent) => load(path.resolve(path.dirname(parent.identifier), specifier)) });
             await module.link((specifier, parent) => load(path.resolve(path.dirname(parent.identifier), specifier)));
             await module.evaluate();
+            if (identifier.endsWith(`${path.sep}ThreePhone.js`)) {
+                window.Huisha3D.ThreePhone.prototype.createScreen = function () {
+                    this.ctx = { fillRect() {}, fillText() {} }; this.texture = new THREE.Texture(); this.house.textures.push(this.texture);
+                    return new THREE.MeshBasicMaterial({ map: this.texture }); // Text pixels remain outside this DOM check.
+                };
+            }
             if (identifier.endsWith(`${path.sep}ThreeHouseScene.js`)) {
                 const game = window.Huisha3D;
                 game.ThreeHouseScene = class extends game.ThreeHouseScene {
@@ -49,6 +55,8 @@ async function boot(saved, preferences) {
                         this.door = new THREE.Group(); this.door.position.set(this.map.door.hingeX, 0, this.map.door.hingeZ); this.scene.add(this.door);
                         this.outsideLight = { intensity: 4 }; this.doorMechanism = new game.ThreeDoorMechanism(this); this.doorMechanism.build();
                         this.courtyard = new game.ThreeCourtyard(this); this.courtyard.build(); this.wheels = [];
+                        const crash = new THREE.Group(); crash.position.set(...[game.MEMORIES.crash.center[0], 0, game.MEMORIES.crash.center[1]]);
+                        crash.userData.memorySpace = 'crash'; this.scene.add(crash); this.phone = new game.ThreePhone(this); this.phone.build(crash);
                         this.controls = new game.ThreeControls({ camera: this.camera, domElement: canvas, map: this.map,
                             story: this.story, isPaused: this.isPaused, getPreferences: this.getPreferences });
                         this.interaction = new game.ThreeInteraction({ camera: this.camera, map: this.map, scene: this.scene,
@@ -80,7 +88,7 @@ async function boot(saved, preferences) {
     const choose = (select, value) => { select.value = String(value); select.dispatchEvent(new window.Event('change', { bubbles: true })); };
     const inspect = id => {
         if ($('reader').open) $('reader-close').click();
-        if (scene.inspectionReturn) $({ water: 'water-leave', portrait: 'portrait-leave' }[scene.inspectionKind] || 'lock-leave').click();
+        if (scene.inspectionReturn) $({ water: 'water-leave', portrait: 'portrait-leave', phone: 'phone-leave' }[scene.inspectionKind] || 'lock-leave').click();
         const item = scene.map.interactables.find(item => item.id === id); assert.ok(item);
         for (let x = item.position.x - item.radius; x <= item.position.x + item.radius; x += 0.2) {
             for (let z = item.position.z - item.radius; z <= item.position.z + item.radius; z += 0.2) {
@@ -313,7 +321,25 @@ try {
     for (const id of ['hospital', 'crash']) {
         ui.inspect('memory_album'); ui.click(`翻入记忆 · ${ui.window.Huisha3D.MEMORIES[id].title}`);
         const definition = ui.window.Huisha3D.MEMORY_CASES[id];
-        for (const record of definition.records) ui.inspect(record);
+        for (const record of definition.records) {
+            ui.inspect(record);
+            if (record !== 'crash_phone') continue;
+            const phonePose = { ...ui.scene.playerSnapshot() };
+            assert.equal(ui.$('phone-inspector').hidden, false); assert.equal(ui.$('phone-read').disabled, true);
+            assert.equal(ui.scene.story.state.records.includes('crash_phone'), false);
+            ui.document.querySelector('[data-phone-page="calls"]').click(); assert.equal(ui.scene.story.state.phoneViews.length, 0);
+            ui.$('phone-read').click(); assert.equal(ui.$('reader-title').textContent, '手机 · 通话记录');
+            ui.click('整理这段记忆'); const partialFields = [...ui.document.querySelectorAll('.memory-draft select')];
+            ui.choose(partialFields[0], 'crash_report'); ui.choose(partialFields[1], 'crash_phone');
+            assert.ok(ui.document.querySelector('[data-fact="call"]')); assert.equal(ui.document.querySelector('[data-fact="voice"]'), null);
+            ui.click('提交推理'); assert.match(ui.document.querySelector('.memory-feedback').textContent, /没有记下的页面/);
+            ui.click('回查手记'); assert.doesNotMatch(ui.$('reader-body').textContent, /二〇一六/);
+            ui.click('回到手机'); assert.equal(ui.scene.phone.page, 'calls', 'journal return keeps the selected phone page');
+            ui.key('Digit2'); assert.equal(ui.scene.phone.page, 'recording');
+            assert.deepEqual([...ui.scene.story.state.phoneViews], ['calls']); ui.$('phone-read').click();
+            assert.deepEqual([...ui.scene.story.state.phoneViews], ['calls', 'recording']);
+            assert.deepEqual({ ...ui.scene.playerSnapshot() }, phonePose);
+        }
         ui.click('整理这段记忆'); fields = [...ui.document.querySelectorAll('.memory-draft select')];
         ui.choose(fields[0], definition.records[0]); ui.choose(fields[1], definition.records[1]); ui.choose(fields[2], definition.answer);
         if (id === 'hospital') { editFact('plan'); editFact('diagnosis'); editFact('diagnosis', 'up'); }

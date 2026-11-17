@@ -13,8 +13,8 @@
         }
         refresh() {
             if (!this.root) return;
-            this.root.replaceChildren(); const known = this.story.state.records, evidence = this.getEvidence();
-            const facts = this.definition.facts.filter(fact => known.includes(fact.record));
+            this.root.replaceChildren(); const evidence = this.getEvidence();
+            const facts = this.definition.facts.filter(fact => this.story.knowsFact(fact));
             const order = this.story.state.drafts[this.id]?.timeline || [];
             const heading = document.createElement('h3'); heading.textContent = '把时间放回原处'; heading.tabIndex = -1;
             const help = document.createElement('p'); help.className = 'memory-timeline-help';

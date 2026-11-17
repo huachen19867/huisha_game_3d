@@ -62,8 +62,7 @@
             }
             const bent = h.box('bent-guardrail', [0.08, 0.22, 2], [-3.5, 0.65, 0], m.ash, undefined, root); bent.rotation.y = 0.5;
             h.box('phone-stone', [0.55, 0.65, 0.55], [-1.65, 0.32, 1.2], m.stone, 'crash_phone', root);
-            h.box('crash-phone', [0.17, 0.035, 0.3], [-1.65, 0.68, 1.2], m.darkWood, 'crash_phone', root);
-            h.label('phone-screen', '语音\n2016', [0.14, 0.25], [-1.65, 0.702, 1.2], [-Math.PI / 2, 0, 0], 'crash_phone', root, '#1d3c44', '#d5e3db');
+            h.phone = new game.ThreePhone(h); h.phone.build(root);
             h.box('emergency-case', [0.8, 1, 0.65], [1.7, 0.5, -4.5], m.red, 'crash_report', root);
             h.label('handover-sheet', '救护交接\n呼吸存在', [0.64, 0.42], [1.7, 1.012, -4.5], [-Math.PI / 2, 0, 0], 'crash_report', root);
             for (const side of [-1, 1]) {

@@ -3,7 +3,7 @@ import { GLTFLoader } from '../vendor/GLTFLoader.mjs';
 import { mergeGeometries } from '../vendor/BufferGeometryUtils.mjs';
 window.THREE = THREE;
 window.Huisha3D = { GLTFLoader, mergeGeometries };
-for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeSettings', 'ThreeControls', 'ThreeInteraction', 'ThreeWindowWall', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreeMemoryTimeline', 'ThreeMemoryJournal', 'ThreeEvidenceJournal', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeHouseScene', 'ThreeAudio']) {
+for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeSettings', 'ThreeControls', 'ThreeInteraction', 'ThreeWindowWall', 'ThreeCourtyard', 'ThreePhone', 'ThreeMemoryScenes', 'ThreeMemoryTimeline', 'ThreeMemoryJournal', 'ThreeEvidenceJournal', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeHouseScene', 'ThreeAudio']) {
     await import(`./3d/${name}.js`);
 }
 const $ = id => document.getElementById(id);
@@ -84,6 +84,7 @@ function knownRecords() {
         : game.WORLD_MAP.interactables.find(item => item.id === id)).filter(Boolean).map(presentRecord);
 }
 function presentRecord(item) {
+    if (item.id === 'crash_phone') return { ...item, text: story.phoneText() };
     return item.id === 'yard_gate' && story.state.waterSolved ? { ...item,
         text: '铜索的绳头垂在门框旁，门闩已经退开。\n\n从厨房压平旧秤后，抽屉与院门接连松了。门外是一条逐渐亮起来的山路。' } : item;
 }
@@ -120,6 +121,7 @@ function enterMemory(id) {
     if (reader.open) reader.close(); save(); $('journal').focus();
 }
 function returnMemory() {
+    leaveInspection(false);
     const pose = story.leaveMemory(); if (!pose) return;
     scene.controls.teleport(pose); scene.syncState(true); audio.resetPosition();
     if (reader.open) reader.close(); save(); $('journal').focus();
@@ -130,8 +132,27 @@ function guidance(stage = 0, backToLock = !!scene?.inspectionReturn) {
     if (hint.next) actions.push([hint.next, () => guidance(stage + 1, backToLock)]);
     open('一点头绪', hint.text, actions, stage >= 2 ? '解谜答案 · 按需查看' : '探索提示 · 按需查看');
 }
-function inspectionLabel() { return { water: '回到量水桌', portrait: '回到相框' }[scene.inspectionKind] || '回到字轮'; }
-function resumeInspection() { ({ water, portrait, lock }[scene.inspectionKind] || lock)(); }
+function inspectionLabel() { return { water: '回到量水桌', portrait: '回到相框', phone: '回到手机' }[scene.inspectionKind] || '回到字轮'; }
+function resumeInspection() { ({ water, portrait, phone, lock }[scene.inspectionKind] || lock)(); }
+function updatePhone() {
+    const page = scene.phone.page;
+    document.querySelectorAll('[data-phone-page]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.phonePage === page)));
+    $('phone-read').disabled = !Object.hasOwn(game.PHONE_PAGES, page);
+    $('phone-status').textContent = page === 'home' ? '分别查看通话与本地录音资料，再把当前页记入手记。'
+        : `${game.PHONE_PAGES[page].title}${story.state.phoneViews.includes(page) ? ' · 已记入手记' : ' · 尚未记下'}。切换页面不会自动记入或提交推理。`;
+}
+function phone() {
+    if (story.state.memory !== 'crash') return;
+    if (!scene.inspectionReturn) lockFocus = document.activeElement;
+    if (reader.open) reader.close(); if (document.pointerLockElement) document.exitPointerLock();
+    touches.clear(); updateTouch(); scene.beginPhoneInspection();
+    $('phone-inspector').hidden = false; $('hud').classList.add('inspecting'); updatePhone();
+    document.querySelector('[data-phone-page]').focus();
+}
+function phonePage(page) {
+    if (reader.open || scene.inspectionKind !== 'phone' || !scene.phone.selectPage(page)) return;
+    updatePhone();
+}
 function updatePortrait(message) {
     const uncovered = story.state.portrait, back = scene.portrait.backVisible, targetBack = Math.cos(scene.portrait.angle) < 0;
     const state = `${uncovered}:${back}:${targetBack}:${story.state.portraitBackRead}`;
@@ -160,7 +181,7 @@ function updateLock(message) {
 }
 function leaveInspection(restoreFocus = true) {
     if (!scene?.inspectionReturn) return;
-    scene.endInspection(); $('lock-inspector').hidden = true; $('water-inspector').hidden = true; $('portrait-inspector').hidden = true; $('hud').classList.remove('inspecting');
+    scene.endInspection(); $('lock-inspector').hidden = true; $('water-inspector').hidden = true; $('portrait-inspector').hidden = true; $('phone-inspector').hidden = true; $('hud').classList.remove('inspecting');
     touches.clear(); updateTouch();
     if (restoreFocus && lockFocus?.isConnected) lockFocus.focus?.({ preventScroll: true });
     save();
@@ -240,6 +261,7 @@ function inspect(item) {
     if (item.id === 'lock') { lock(); return; }
     if (item.id === 'water_station') { water(); return; }
     if (item.id === 'memory_album') { album(); return; }
+    if (item.id === 'crash_phone') { phone(); return; }
     if (item.returnMemory) { open(item.title, item.text, [['继续观察', close], ['回到厨房', returnMemory]]); return; }
     if (item.finalChoice) {
         open(item.title, item.text, [['先不决定，继续观察', close], ['回应救护灯，醒来', () => ending('wake')],
@@ -328,11 +350,22 @@ $('portrait-read').addEventListener('click', () => {
     if (scene.inspectionKind !== 'portrait' || reader.open || !scene.portrait.backVisible || !story.readPortraitBack()) return;
     audio.paper(); readRecord(game.PORTRAIT_BACK_RECORD, [['回到相框', portrait]]);
 });
+document.querySelectorAll('[data-phone-page]').forEach(button => button.addEventListener('click', () => phonePage(button.dataset.phonePage)));
+$('phone-leave').addEventListener('click', () => leaveInspection());
+$('phone-records').addEventListener('click', () => journal(true));
+$('phone-read').addEventListener('click', () => {
+    if (reader.open || scene.inspectionKind !== 'phone' || !story.readPhonePage(scene.phone.page)) return;
+    const page = game.PHONE_PAGES[scene.phone.page]; audio.paper(); updatePhone();
+    readRecord({ id: 'crash_phone', title: `手机 · ${page.title}`, text: page.text },
+        [['回到手机', phone], ['整理这段记忆', () => memoryJournal.show('crash')], ['回到厨房', returnMemory]]);
+});
 evidenceJournal.mountInspector($('lock-inspector'));
 evidenceJournal.mountInspector($('water-inspector'));
 window.addEventListener('keydown', event => {
     if (event.defaultPrevented || event.isComposing || event.repeat || reader.open || mode !== 'game') return;
-    if (scene.inspectionKind === 'water' && /^(Digit|Numpad)[12]$/.test(event.code)) {
+    if (scene.inspectionKind === 'phone' && /^(Digit|Numpad)[12]$/.test(event.code)) {
+        event.preventDefault(); phonePage(Number(event.code.slice(-1)) === 1 ? 'calls' : 'recording');
+    } else if (scene.inspectionKind === 'water' && /^(Digit|Numpad)[12]$/.test(event.code)) {
         event.preventDefault(); waterAction(`bucket${Number(event.code.slice(-1)) - 1}`);
     } else if (scene.inspectionKind === 'water' && ['KeyF', 'KeyX', 'KeyP'].includes(event.code)) {
         event.preventDefault(); waterAction({ KeyF: 'fill', KeyX: 'empty', KeyP: 'pour' }[event.code]);
@@ -411,7 +444,9 @@ try {
         const press = wheelPress; wheelPress = null;
         if (!press || press.id !== event.pointerId || Math.hypot(event.clientX - press.x, event.clientY - press.y) > 8) return;
         if (scene.inspectionKind === 'portrait') return;
-        if (scene.inspectionKind === 'water') {
+        if (scene.inspectionKind === 'phone') {
+            const page = scene.phone.pick(event.clientX, event.clientY); if (page) phonePage(page);
+        } else if (scene.inspectionKind === 'water') {
             const action = scene.courtyard.pick(event.clientX, event.clientY); if (action) waterAction(action);
         } else {
             const index = scene.pickWheel(event.clientX, event.clientY);

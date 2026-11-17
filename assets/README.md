@@ -21,6 +21,8 @@ Poly Haven 对其资产的 [CC0 许可说明](https://polyhaven.com/license) 已
 
 0.11.0 的窗洞、墙体窗台、木格/金属窗框、玻璃与老宅侧院由 `ThreeWindowWall` / `ThreeHouseScene` 自建几何，继续使用原木材、灰墙和石材。未新增第三方图片/模型或改变 36 份下载原件；玻璃使用标准透明材质，不是房间照片或窗外风景贴片。
 
+0.12.0 的手机由 ThreePhone 以倒角实体、独立屏幕、听筒和侧键组成，无品牌标识；屏幕文字从本项目通话/录音原文绘制，不使用手机照片或商业产品界面。录音资料显示文字转录，没有新下载的声音或生成配音；原素材来源索引不变。
+
 2026-11-16 记忆扩展从 Poly Haven 官方 files API 下载 SchoolDesk_01、SchoolChair_01、wheelchair_01 的 1K glTF、二进制和各三张贴图，新增 15 份原始文件。`sources.json` 记录全部 36 份下载文件的 URL、MD5 和本地路径，检查脚本读取原始字节核对。三个目录的 source.json 保留当次完整 files API 返回。事故现场的护栏、路面、手机和救护物件为自建几何，不使用未经授权的车辆照片或收费模型。
 
 2026-11-17 从 [Kenney Impact Sounds 1.0](https://kenney.nl/assets/impact-sounds) 官方下载包导入九份原始 Ogg Vorbis 音效：木地板/硬地面脚步各三份，轻金属碰撞两份，轻木碰撞一份。位于 `audio/kenney-impact/`，合计约 57 KB，逐文件 SHA-256、包 SHA-256、官方入口和原包路径见 `audio/sources.json`；CC0 原文在 `audio/kenney-impact/License.txt`。没有修改或重新编码原文件。完整下载包和页面留在本地忽略的 `audio/.source/`，只随游戏分发实际使用的九份音效和许可。

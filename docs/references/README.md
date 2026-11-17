@@ -12,6 +12,8 @@
 
 0.11.0 的实际窗洞和分段墙沿用本地 Three.js r160 的 BoxGeometry/PlaneGeometry/Group，复用已下载 `vendor/BufferGeometryUtils.mjs` 的 mergeGeometries 合并同材质静态墙段和窗条，许可同 Three.js MIT。没有重复下载引擎或新增库；窗洞验证继续用本目录 Raycaster 同版参考。玻璃为现有引擎的透明标准材质，没有透射后处理、反射探针或新的贴图资产。
 
+0.12.0 的实体手机沿用现有 Three.js r160 的 Shape/ExtrudeGeometry/CanvasTexture 与 Raycaster UV 交点，近看沿用 ThreePortrait / ThreeHouseScene 的真实站位和横竖屏取景方法。阅读仍使用原生按钮/dialog 与既有 W3C APG 参考，页面开关与已知事实继续参考已下载 Ink 条件选项资料；没有重复下载框架或引入新的叙事/手机 UI 库。屏幕仅在换页时重画，文字来自本项目原事故记录，不新增第三方图像、品牌界面或语音。
+
 2026-11-16 为界面事件验证安装 [jsdom 26.1.0](https://github.com/jsdom/jsdom/tree/26.1.0)，MIT。源码与 LICENSE.txt 位于工作区开发依赖 node_modules/jsdom，npm 的 39 份包及完整性摘要通过 package-lock.json 锁定，来源为 registry.npmjs.org；不把 node_modules 或 jsdom 加入游戏运行模块。`tools/verify_ui.mjs` 复用它的 DOM 与事件实现，渲染边界和 dialog 开合另行模拟，不能据此宣称浏览器默认行为、布局或 WebGL 已验收。
 
 2026-11-17 的手记对照与机关旁摘记复用已下载的 W3C 对话框研究、原生 details/select 控件及现有 jsdom。没有重新下载相同参考、引入界面框架或新运行依赖；新模块只呈现真实已读原文，不生成替代线索。
