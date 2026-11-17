@@ -359,8 +359,16 @@
             const entering = this.inspectionKind !== 'phone'; this.inspectionKind = 'phone'; this.controls.clear();
             if (entering) this.phone.begin(); else this.phone.frame();
         }
+        beginDocumentInspection(id) {
+            if (!this.documents.papers.has(id)) return;
+            if (!this.inspectionReturn) { this.inspectionReturn = this.controls.snapshot(); this.inspectionFov = this.camera.fov; }
+            const entering = this.inspectionKind !== 'document' || this.documents.activeId !== id;
+            this.inspectionKind = 'document'; this.controls.clear();
+            if (entering) this.documents.begin(id); else this.documents.frame();
+        }
         frameInspection() {
-            if (this.inspectionKind === 'phone') this.phone.frame();
+            if (this.inspectionKind === 'document') this.documents.frame();
+            else if (this.inspectionKind === 'phone') this.phone.frame();
             else if (this.inspectionKind === 'portrait') this.portrait.frame();
             else if (this.inspectionKind === 'water') this.courtyard.frame(); else this.frameLock();
         }
@@ -369,6 +377,7 @@
             if (!pose) return;
             if (this.inspectionKind === 'portrait') this.portrait.end();
             if (this.inspectionKind === 'phone') this.phone.end();
+            if (this.inspectionKind === 'document') this.documents.end();
             if (this.inspectionKind === 'water') this.courtyard.cancelWeigh();
             this.camera.position.set(pose.x, this.map.playerStart.y, pose.z);
             this.camera.fov = this.inspectionFov; this.camera.clearViewOffset(); this.camera.updateProjectionMatrix();
@@ -380,6 +389,7 @@
             const delta = Math.min(this.clock.getDelta(), 0.05);
             this.controls.update(delta); this.syncState(); this.moveWheels(delta);
             this.portrait.update(delta);
+            this.documents?.update(delta);
             this.moveDoor(delta);
             this.courtyard?.update(delta);
             this.scene.updateMatrixWorld(true); this.camera.updateMatrixWorld(true);

@@ -31,8 +31,7 @@
             const chalk = new THREE.MeshStandardMaterial({ color: 0x253933, roughness: 1 });
             h.box('school-blackboard', [5.6, 1.45, 0.08], [0, 1.9, -4.7], chalk, 'school_rules', root);
             h.label('school-board-writing', '二〇一四年　七月\n你的志愿，由谁决定', [3.5, 0.9], [0, 1.95, -4.65], [0, 0, 0], 'school_rules', root, '#253933', '#c9cdb8');
-            h.label('admission-notice', '录取通知\n2014.07.10', [0.65, 0.42], [-2, 0.963, 1], [-Math.PI / 2, 0, 0], 'school_notice', root);
-            h.label('parent-receipt', '家长回执\n2014.07.20', [0.65, 0.42], [2, 0.963, -1.5], [-Math.PI / 2, 0, 0], 'school_receipt', root);
+            h.documents = new game.ThreeDocument(h); h.documents.build(root);
         }
         hospital() {
             const h = this.house, m = h.materials, root = this.rooms.hospital;

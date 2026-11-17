@@ -1,0 +1,7 @@
+.document-inspector { width: min(560px, calc(100vw - 30px)); max-height: 40vh; overflow-y: auto; }
+.document-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.document-actions button { padding: 9px 14px; font-size: 13px; }
+.document-actions button:disabled { opacity: .45; cursor: default; }
+#document-status { font-size: 12px; color: var(--muted); line-height: 1.7; margin: 10px 0; }
+@media (max-height: 520px) and (min-width: 681px) { .document-inspector { width: 310px; max-height: none; } }
+@media (max-width: 680px) { .document-actions { gap: 6px; margin: 8px 0; } .document-actions button { flex: 1; padding: 8px; font-size: 12px; } }

@@ -43,6 +43,11 @@ async function boot(saved, preferences) {
                     return new THREE.MeshBasicMaterial({ map: this.texture }); // Text pixels remain outside this DOM check.
                 };
             }
+            if (identifier.endsWith(`${path.sep}ThreeDocument.js`)) {
+                window.Huisha3D.ThreeDocument.prototype.createFaceMaterial = function (_, face) {
+                    return new THREE.MeshStandardMaterial({ side: face === 'front' ? THREE.FrontSide : THREE.BackSide }); // No font pixels in this DOM boundary.
+                };
+            }
             if (identifier.endsWith(`${path.sep}ThreeHouseScene.js`)) {
                 const game = window.Huisha3D;
                 game.ThreeHouseScene = class extends game.ThreeHouseScene {
@@ -57,6 +62,8 @@ async function boot(saved, preferences) {
                         this.courtyard = new game.ThreeCourtyard(this); this.courtyard.build(); this.wheels = [];
                         const crash = new THREE.Group(); crash.position.set(...[game.MEMORIES.crash.center[0], 0, game.MEMORIES.crash.center[1]]);
                         crash.userData.memorySpace = 'crash'; this.scene.add(crash); this.phone = new game.ThreePhone(this); this.phone.build(crash);
+                        const school = new THREE.Group(); school.position.x = game.MEMORIES.school.center[0]; school.userData.memorySpace = 'school'; this.scene.add(school);
+                        this.documents = new game.ThreeDocument(this); this.documents.build(school);
                         this.controls = new game.ThreeControls({ camera: this.camera, domElement: canvas, map: this.map,
                             story: this.story, isPaused: this.isPaused, getPreferences: this.getPreferences });
                         this.interaction = new game.ThreeInteraction({ camera: this.camera, map: this.map, scene: this.scene,
@@ -88,7 +95,7 @@ async function boot(saved, preferences) {
     const choose = (select, value) => { select.value = String(value); select.dispatchEvent(new window.Event('change', { bubbles: true })); };
     const inspect = id => {
         if ($('reader').open) $('reader-close').click();
-        if (scene.inspectionReturn) $({ water: 'water-leave', portrait: 'portrait-leave', phone: 'phone-leave' }[scene.inspectionKind] || 'lock-leave').click();
+        if (scene.inspectionReturn) $({ water: 'water-leave', portrait: 'portrait-leave', phone: 'phone-leave', document: 'document-leave' }[scene.inspectionKind] || 'lock-leave').click();
         const item = scene.map.interactables.find(item => item.id === id); assert.ok(item);
         for (let x = item.position.x - item.radius; x <= item.position.x + item.radius; x += 0.2) {
             for (let z = item.position.z - item.radius; z <= item.position.z + item.radius; z += 0.2) {
@@ -263,7 +270,16 @@ try {
     assert.equal(ui.document.querySelector('[data-map-player="current"]'), null); assert.ok(ui.document.querySelector('[data-map-player="return"]'));
     assert.equal(ui.scene.story.state.memory, 'school'); assert.deepEqual({ ...ui.scene.controls.snapshot() }, beforeMemoryMap);
     ui.document.querySelector('[data-map-space="school"]').click(); ui.click('继续探索');
-    ui.inspect('school_notice'); ui.click('整理这段记忆');
+    ui.inspect('school_notice'); assert.equal(ui.scene.story.state.records.includes('school_notice'), false);
+    ui.$('document-read').click(); assert.doesNotMatch(ui.$('reader-body').textContent, /第一次/);
+    ui.click('打开手记'); assert.doesNotMatch(ui.$('reader-body').textContent, /第一次/);
+    ui.click('回到纸张'); ui.$('document-flip').click(); ui.scene.documents.update(0.02); ui.scene.onFrame(ui.scene.camera.position, true);
+    assert.equal(ui.$('document-read').disabled, true); ui.$('document-read').click(); assert.equal(ui.scene.story.hasDocumentFace('school_notice', 'back'), false);
+    ui.$('document-records').click(); const paperAngle = ui.scene.documents.papers.get('school_notice').root.rotation.y;
+    ui.scene.documents.update(1); assert.equal(ui.scene.documents.papers.get('school_notice').root.rotation.y, paperAngle);
+    ui.click('回到纸张'); assert.equal(ui.document.activeElement, ui.$('document-flip'), 'returning mid-turn focuses an enabled document control');
+    ui.scene.documents.update(1); ui.scene.onFrame(ui.scene.camera.position, true);
+    assert.equal(ui.$('document-read').disabled, false); ui.$('document-read').click(); ui.click('整理这段记忆');
     assert.equal(ui.document.querySelector('.memory-draft option[value="school_receipt"]'), null, 'unread evidence is not offered in the DOM');
     assert.equal(ui.document.querySelector('.memory-timeline-board [data-fact="receipt"]'), null, 'unread facts never appear as cards');
     ui.click('提交推理'); assert.match(ui.document.querySelector('.memory-feedback').textContent, /两份不同/);
@@ -280,7 +296,12 @@ try {
     ui.document.querySelector('[data-record="school_notice"] [data-pin-record]').click();
     const scope = ui.document.querySelector('.evidence-filter select'); ui.choose(scope, 'all');
     assert.ok(ui.document.querySelector('.evidence-records [data-record="coffin"]'), 'other observed records remain available through the explicit filter');
-    ui.inspect('school_receipt'); ui.click('放入摘记'); ui.click('整理这段记忆'); ui.click('把两份摘记放入草稿');
+    ui.inspect('school_receipt'); ui.$('document-read').click(); ui.click('整理这段记忆');
+    const frontFields = [...ui.document.querySelectorAll('.memory-draft select')];
+    ui.choose(frontFields[0], 'school_notice'); ui.choose(frontFields[1], 'school_receipt'); ui.click('提交推理');
+    assert.match(ui.document.querySelector('.memory-feedback').textContent, /没有读过的一面/);
+    ui.click('回查手记'); ui.click('回到纸张'); ui.$('document-flip').click(); ui.scene.documents.update(1); ui.scene.onFrame(ui.scene.camera.position, true);
+    ui.$('document-read').click(); ui.click('放入摘记'); ui.click('整理这段记忆'); ui.click('把两份摘记放入草稿');
     let fields = [...ui.document.querySelectorAll('.memory-draft select')];
     assert.deepEqual(fields.map(field => field.value), ['school_notice', 'school_receipt', '']);
     ui.choose(fields[0], 'school_notice'); ui.choose(fields[1], 'school_receipt'); ui.choose(fields[2], 0);
@@ -300,7 +321,7 @@ try {
     ui.click('提交推理'); assert.match(ui.document.querySelector('.memory-feedback').textContent, /不能相互支持/);
     assert.equal(ui.scene.story.state.deductions.school, false);
     editFact('receipt', 'up');
-    const recordReadingPose = { ...ui.scene.controls.snapshot() };
+    const recordReadingPose = { ...ui.scene.playerSnapshot() };
     assert.deepEqual(JSON.parse(ui.window.localStorage.getItem(saveKey)).position, recordReadingPose, 'entering a reader saves the evidence location before the page is closed');
     ui.$('reader-close').click();
     const saved = ui.window.localStorage.getItem(saveKey);

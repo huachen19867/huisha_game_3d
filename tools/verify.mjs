@@ -19,7 +19,7 @@ const canvasContext = { fillRect() {}, strokeRect() {}, fillText() {} };
 const document = { ...eventTarget, createElement() { return { getContext() { return canvasContext; } }; }, hidden: false };
 const window = { ...eventTarget, THREE, Huisha3D: {} };
 const context = vm.createContext({ window, document, console });
-for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeAudio', 'ThreeControls', 'ThreeInteraction', 'ThreeWindowWall', 'ThreeCourtyard', 'ThreePhone', 'ThreeMemoryScenes', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeHouseScene']) {
+for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeAudio', 'ThreeControls', 'ThreeInteraction', 'ThreeWindowWall', 'ThreeCourtyard', 'ThreePhone', 'ThreeDocument', 'ThreeMemoryScenes', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeHouseScene']) {
     vm.runInContext(await text(`src/3d/${name}.js`), context, { filename: `${name}.js` });
 }
 const game = window.Huisha3D;
@@ -194,6 +194,11 @@ assert.equal(house.scene.getObjectByName('chinese_cabinet').isGroup, true);
 const phoneBottom = new THREE.Box3().setFromObject(house.scene.getObjectByName('phone-body')).min.y;
 const phoneStoneTop = new THREE.Box3().setFromObject(house.scene.getObjectByName('phone-stone')).max.y;
 assert.ok(phoneBottom >= phoneStoneTop && phoneBottom - phoneStoneTop < 0.01, 'the phone rests on its stone rather than floating above it');
+for (const paper of house.documents.papers.values()) {
+    const desk = house.memories.rooms.school.children.find(object => object.name === 'SchoolDesk_01' && Math.abs(object.position.x - paper.home.x) < 0.01 && Math.abs(object.position.z - paper.home.z) < 0.01);
+    const gap = new THREE.Box3().setFromObject(paper.root).min.y - new THREE.Box3().setFromObject(desk).max.y;
+    assert.ok(gap >= 0 && gap < 0.01, 'paper rests just above the actual imported desk surface');
+}
 console.log('Assets: all six real glTF models, binary buffers, texture dependencies and scene placement passed.');
 for (const prefix of ['hall', 'school', 'hospital']) for (const side of [-1, 1]) {
     const name = `${prefix}-window-wall-${side}`, wall = house.scene.getObjectByName(name), opening = wall.userData.windowOpening;
@@ -557,6 +562,35 @@ for (const [id, definition] of Object.entries(game.MEMORY_CASES)) {
         const point = verifyReachable(item, points);
         camera.position.set(point.x, 1.6, point.z); camera.lookAt(item.position.x, item.position.y, item.position.z); camera.updateMatrixWorld(true);
         interaction.activate();
+        if (Object.hasOwn(game.DOCUMENTS, record)) {
+            assert.equal(story.state.records.includes(record), false, 'picking up a document does not read its back');
+            house.beginDocumentInspection(record); const paperPose = { ...house.playerSnapshot() }, paper = house.documents.papers.get(record);
+            assert.equal(house.documents.visibleFace, 'front'); story.readDocumentFace(record, 'front');
+            assert.equal(new game.ThreeStory(adapter).hasDocumentFace(record, 'back'), false, 'an unread back stays unread after restoring');
+            assert.doesNotMatch(story.documentText(record), /我把担心|第一次/);
+            for (const face of ['front', 'back']) {
+                if (face === 'back') {
+                    house.documents.flip(); house.documents.update(0.02); assert.equal(house.documents.visibleFace, null);
+                    readingPortrait = true; const rotation = paper.root.rotation.y; house.documents.update(1);
+                    assert.equal(paper.root.rotation.y, rotation, 'reading pauses document rotation'); readingPortrait = false;
+                    house.documents.update(1); assert.equal(house.documents.visibleFace, 'back'); story.readDocumentFace(record, 'back');
+                }
+                for (const [width, height] of [[1280, 720], [390, 844], [844, 390], [390, 640], [680, 720], [667, 375]]) {
+                    house.root.clientWidth = width; house.root.clientHeight = height; camera.aspect = width / height; house.frameInspection(); house.scene.updateMatrixWorld(true);
+                    const target = paper.root.getWorldPosition(new THREE.Vector3());
+                    const hits = new THREE.Raycaster(camera.position, target.sub(camera.position).normalize()).intersectObject(paper.root, true);
+                    assert.equal(hits[0]?.object, paper[face], 'the actual visible geometry matches the readable face');
+                    for (const x of [-0.19, 0.19]) for (const y of [-0.27, 0.27]) {
+                        const point = paper.root.localToWorld(new THREE.Vector3(x, y, 0.004)).project(camera);
+                        assert.ok(Math.abs(point.x) < 0.98 && Math.abs(point.y) < 0.98 && point.z < 1);
+                        if (height <= 520 && width > 680) assert.ok((point.x + 1) * width / 2 < width - 338);
+                        else assert.ok((1 - point.y) * height / 2 < height * 0.6);
+                    }
+                    assert.deepEqual({ ...house.playerSnapshot() }, paperPose);
+                }
+            }
+            house.endInspection(); assert.ok(paper.root.position.equals(paper.home)); assert.deepEqual({ ...controls.snapshot() }, paperPose);
+        }
         if (record === 'crash_phone') {
             assert.equal(story.state.records.includes(record), false, 'picking up a phone does not observe both pages');
             house.beginPhoneInspection(); const phonePose = { ...house.playerSnapshot() };
@@ -630,6 +664,11 @@ const legacyMemory = new game.ThreeStory({ getItem: () => JSON.stringify({ versi
     deductions: { school: true, hospital: true, crash: true }, memory: 'crash', departure: 'wake' }), setItem() {} });
 assert.equal(legacyMemory.truthSolved(), true); assert.equal(legacyMemory.state.departure, 'wake', 'completed legacy deductions/endings do not require replaying new timeline controls');
 assert.deepEqual([...legacyMemory.state.phoneViews], ['calls', 'recording'], 'legacy phone observations retain both previously visible pages');
+assert.deepEqual([...legacyMemory.state.documentViews.school_notice], ['front', 'back'], 'legacy school records retain both already-read sides');
+const malformedDocument = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, opened: true, waterSolved: true,
+    documentViews: { school_notice: ['front', 'front', '__proto__', {}], school_receipt: [] }, records: ['school_notice', 'school_receipt'] }), setItem() {} });
+assert.deepEqual([...malformedDocument.state.documentViews.school_notice], ['front']); assert.equal(malformedDocument.state.records.includes('school_receipt'), false);
+assert.equal(malformedDocument.readDocumentFace('school_notice', 'back'), false, 'paper reading requires its actual memory space');
 const malformedPhone = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, opened: true, waterSolved: true,
     phoneViews: ['calls', 'calls', '__proto__', {}], records: ['crash_phone'] }), setItem() {} });
 assert.deepEqual([...malformedPhone.state.phoneViews], ['calls']);

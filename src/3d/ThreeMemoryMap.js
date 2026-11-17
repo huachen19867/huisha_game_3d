@@ -14,12 +14,25 @@
         recording: { title: '本地录音资料', lines: ['本地录音', '母亲', '2016.07.14', '录音文字', '别赶夜路，慢一点。', '灯会给你留着。'],
             text: '屏幕停在本地录音：「母亲，二〇一六年七月十四日。」\n\n录音文字：「别赶夜路，慢一点。灯会给你留着。」' }
     };
+    game.DOCUMENTS = {
+        school_notice: { title: '录取通知', space: 'school', position: [-2, 0.954, 1], faces: {
+            front: { title: '正面 · 录取日期', lines: ['录取通知', '二〇一四年', '七月十日'], text: '二〇一四年七月十日。' },
+            back: { title: '背面 · 写给自己的话', lines: ['九月去外地。', '第一次，', '我想自己选。'],
+                text: '录取通知背面是你写给自己的话：「九月去外地。第一次，我想自己选。」\n\n你把它藏进课桌，仿佛一个属于自己的决定也需要被藏起来。' }
+        } },
+        school_receipt: { title: '家长回执', space: 'school', position: [2, 0.954, -1.5], faces: {
+            front: { title: '正面 · 日期与签名', lines: ['家长回执', '二〇一四年', '七月二十日', '家长签字'], signature: '父',
+                text: '二〇一四年七月二十日，家长回执上是父亲的签名。' },
+            back: { title: '背面 · 父亲的留言', lines: ['我把担心说成了命令。', '那些话伤了你，', '不能算作是为你好。', '你去读书，', '钱的事我再想办法。'],
+                text: '背面写着：「我把担心说成了命令。那些话伤了你，不能算作是为你好。你去读书，钱的事我再想办法。」\n\n这张纸后来夹在母亲的相册里。' }
+        } }
+    };
     game.MEMORY_CASES = {
-        school: { title: '离家意味着什么', records: ['school_notice', 'school_receipt'],
+        school: { title: '离家意味着什么', records: ['school_notice', 'school_receipt'], documents: ['school_notice', 'school_receipt'],
             choices: ['留下才算尽孝，离家就是背叛', '离家读书不等于遗弃，父亲也承认了自己的控制', '父亲签过字，过去的伤害就不存在了'], answer: 1,
             facts: [
-                { id: 'notice', record: 'school_notice', title: '收到录取通知', quote: '二〇一四年七月十日。' },
-                { id: 'receipt', record: 'school_receipt', title: '父亲签下回执', quote: '二〇一四年七月二十日，家长回执上是父亲的签名。' },
+                { id: 'notice', record: 'school_notice', documentFace: 'front', title: '收到录取通知', quote: '二〇一四年七月十日。' },
+                { id: 'receipt', record: 'school_receipt', documentFace: 'front', title: '父亲签下回执', quote: '二〇一四年七月二十日，家长回执上是父亲的签名。' },
                 { id: 'rules', record: 'school_rules', title: '记忆里的家规', quote: '黑板上的日期停在你拿到录取通知的那一年。', dated: false }
             ], timelineOrder: ['notice', 'receipt'],
             conclusion: '录取通知和父亲回执上的签名属于同一年。你有权离开，父亲也曾承认把担心说成了命令。这份迟来的承认不能抹掉伤害，但离家读书不是你的罪。' },
@@ -64,9 +77,9 @@
     for (const side of [-1, 1]) obstacles.push({ id: `rescue-post-${side}`, space: 'crash',
         xMin: side * 0.9 - 0.08, xMax: side * 0.9 + 0.08, zMin: -63.08, zMax: -62.92 });
     add('school', 'school_notice', '课桌上的录取通知', -2, 0.96, 1,
-        '二〇一四年七月十日。\n\n录取通知背面是你写给自己的话：「九月去外地。第一次，我想自己选。」\n\n你把它藏进课桌，仿佛一个属于自己的决定也需要被藏起来。', { deduction: 'school' });
-    add('school', 'school_receipt', '家长回执的背面', 2, 0.96, -1.5,
-        '二〇一四年七月二十日，家长回执上是父亲的签名。\n\n背面写着：「我把担心说成了命令。那些话伤了你，不能算作是为你好。你去读书，钱的事我再想办法。」\n\n这张纸后来夹在母亲的相册里。', { deduction: 'school' });
+        '二〇一四年七月十日。\n\n录取通知背面是你写给自己的话：「九月去外地。第一次，我想自己选。」\n\n你把它藏进课桌，仿佛一个属于自己的决定也需要被藏起来。', { deduction: 'school', journal: false });
+    add('school', 'school_receipt', '课桌上的家长回执', 2, 0.96, -1.5,
+        '二〇一四年七月二十日，家长回执上是父亲的签名。\n\n背面写着：「我把担心说成了命令。那些话伤了你，不能算作是为你好。你去读书，钱的事我再想办法。」\n\n这张纸后来夹在母亲的相册里。', { deduction: 'school', journal: false });
     add('school', 'school_rules', '黑板旁的旧家规', 0, 1.7, -4.45,
         '六点前回家，不许顶嘴，志愿由父亲决定。\n\n背过的句子仍在，但黑板上的日期停在你拿到录取通知的那一年。记忆没有替谁把这些命令擦掉。', { deduction: 'school' });
     add('hospital', 'hospital_record', '初诊病历', 2.3, 1.02, -2.85,

@@ -14,6 +14,8 @@
 
 0.12.0 的实体手机沿用现有 Three.js r160 的 Shape/ExtrudeGeometry/CanvasTexture 与 Raycaster UV 交点，近看沿用 ThreePortrait / ThreeHouseScene 的真实站位和横竖屏取景方法。阅读仍使用原生按钮/dialog 与既有 W3C APG 参考，页面开关与已知事实继续参考已下载 Ink 条件选项资料；没有重复下载框架或引入新的叙事/手机 UI 库。屏幕仅在换页时重画，文字来自本项目原事故记录，不新增第三方图像、品牌界面或语音。
 
+0.13.0 的正反面纸张复用现有 ThreePortrait 的翻面/拖动、ThreeHouseScene 的取景/归位和 Three.js r160 PlaneGeometry/CanvasTexture/FrontSide/BackSide。曲面顶点沿用现有相框布的顶点调整方法，背面反转 UV 以保持字迹方向，不引入新运行库；阅读和已知事实继续沿用已下载 W3C/Ink 资料。文字取自本项目学校原文，不下载伪造文书或扫描照片。
+
 2026-11-16 为界面事件验证安装 [jsdom 26.1.0](https://github.com/jsdom/jsdom/tree/26.1.0)，MIT。源码与 LICENSE.txt 位于工作区开发依赖 node_modules/jsdom，npm 的 39 份包及完整性摘要通过 package-lock.json 锁定，来源为 registry.npmjs.org；不把 node_modules 或 jsdom 加入游戏运行模块。`tools/verify_ui.mjs` 复用它的 DOM 与事件实现，渲染边界和 dialog 开合另行模拟，不能据此宣称浏览器默认行为、布局或 WebGL 已验收。
 
 2026-11-17 的手记对照与机关旁摘记复用已下载的 W3C 对话框研究、原生 details/select 控件及现有 jsdom。没有重新下载相同参考、引入界面框架或新运行依赖；新模块只呈现真实已读原文，不生成替代线索。

@@ -4,7 +4,7 @@
     const symbols = ['雨', '门', '人', '灯'];
     const freshState = () => ({ records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
         courtyard: false, buckets: [0, 0], waterSolved: false, departure: null, position: null,
-        memory: null, memoryReturn: null, phoneViews: [], deductions: { school: false, hospital: false, crash: false }, drafts: {} });
+        memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
     class ThreeStory {
         constructor(storage) {
@@ -39,12 +39,20 @@
                             .filter(page => typeof page === 'string' && Object.hasOwn(game.PHONE_PAGES, page)))];
                     if (!this.state.phoneViews.length) this.state.records = this.state.records.filter(id => id !== 'crash_phone');
                     else if (!this.state.records.includes('crash_phone')) this.state.records.push('crash_phone');
+                    for (const [id, document] of Object.entries(game.DOCUMENTS)) {
+                        this.state.documentViews[id] = !this.state.waterSolved ? [] : !Object.hasOwn(saved, 'documentViews') && this.state.records.includes(id)
+                            ? Object.keys(document.faces) : [...new Set((Array.isArray(saved.documentViews?.[id]) ? saved.documentViews[id] : [])
+                                .filter(face => typeof face === 'string' && Object.hasOwn(document.faces, face)))];
+                        if (!this.state.documentViews[id].length) this.state.records = this.state.records.filter(record => record !== id);
+                        else if (!this.state.records.includes(id)) this.state.records.push(id);
+                    }
                     this.state.pinnedRecords = [...new Set((Array.isArray(saved.pinnedRecords) ? saved.pinnedRecords : [])
                         .filter(id => this.state.records.includes(id)))].slice(0, 2);
                     for (const [id, definition] of Object.entries(game.MEMORY_CASES || {})) {
                         this.state.deductions[id] = this.state.waterSolved && saved.deductions?.[id] === true
                             && definition.records.every(record => this.state.records.includes(record))
-                            && definition.facts.every(fact => !fact.phonePage || this.knowsFact(fact));
+                            && definition.facts.every(fact => (!fact.phonePage && !fact.documentFace) || this.knowsFact(fact))
+                            && (definition.documents || []).every(record => this.documentComplete(record));
                         const draft = saved.drafts?.[id];
                         this.state.drafts[id] = this.cleanDraft(id, draft?.evidence, draft?.interpretation, draft?.timeline);
                     }
@@ -73,7 +81,17 @@
             this.record('crash_phone'); return true;
         }
         phoneText() { return this.state.phoneViews.map(page => `${game.PHONE_PAGES[page].title}\n\n${game.PHONE_PAGES[page].text}`).join('\n\n'); }
-        knowsFact(fact) { return this.state.records.includes(fact.record) && (!fact.phonePage || this.state.phoneViews.includes(fact.phonePage)); }
+        hasDocumentFace(id, face) { return this.state.documentViews[id]?.includes(face) === true; }
+        documentComplete(id) { return Object.keys(game.DOCUMENTS[id].faces).every(face => this.hasDocumentFace(id, face)); }
+        readDocumentFace(id, face) {
+            const definition = typeof id === 'string' && Object.hasOwn(game.DOCUMENTS, id) ? game.DOCUMENTS[id] : null;
+            if (!definition || !this.state.waterSolved || this.state.memory !== definition.space || typeof face !== 'string' || !Object.hasOwn(definition.faces, face)) return false;
+            const views = this.state.documentViews[id] ||= []; if (!views.includes(face)) views.push(face);
+            this.record(id); return true;
+        }
+        documentText(id) { return (this.state.documentViews[id] || []).map(face => `${game.DOCUMENTS[id].faces[face].title}\n\n${game.DOCUMENTS[id].faces[face].text}`).join('\n\n'); }
+        knowsFact(fact) { return this.state.records.includes(fact.record) && (!fact.phonePage || this.state.phoneViews.includes(fact.phonePage))
+            && (!fact.documentFace || this.hasDocumentFace(fact.record, fact.documentFace)); }
         recordArea(id) {
             return id === 'portrait_back' ? 'hall' : (game.WORLD_MAP || game.MAIN_HALL_MAP).interactables.find(item => item.id === id)?.area;
         }
@@ -186,6 +204,9 @@
                 return { success: false, message: '时间线里有缺少明确日期的片段，暂时不能据此确定先后。可以先把它放回旁边。草稿还在。' };
             }
             if (!definition.records.every(record => evidence.includes(record))) return mismatch;
+            if ((definition.documents || []).some(record => !this.documentComplete(record))) {
+                return { success: false, message: '这两张纸还有没有读过的一面。日期在正面，背面的留言也需要翻到眼前核对；草稿仍保留着。' };
+            }
             if (definition.facts.some(fact => fact.phonePage && !this.knowsFact(fact))) {
                 return { success: false, message: '手机还有没有记下的页面。把通话记录与本地录音资料分别阅读，再回到这份草稿。' };
             }
