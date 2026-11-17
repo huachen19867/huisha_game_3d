@@ -123,8 +123,6 @@
             const m = this.materials;
             this.box('hall-floor', [10, 0.15, 8.7], [0, -0.1, 0], m.floor);
             this.box('hall-ceiling', [10, 0.15, 8.7], [0, 3.35, 0], m.darkWood);
-            this.box('left-wall', [0.2, 3.4, 8.7], [-5, 1.6, 0], m.plaster);
-            this.box('right-wall', [0.2, 3.4, 8.7], [5, 1.6, 0], m.plaster);
             this.box('entrance-wall', [10, 3.4, 0.2], [0, 1.6, 4.45], m.plaster);
             this.box('entrance-door', [1.9, 2.7, 0.12], [0, 1.35, 4.3], m.darkWood);
             for (const side of [-1, 1]) {
@@ -135,10 +133,12 @@
                 this.box(`hall-footboard-${side}`, [0.08, 0.22, 8.5], [side * 4.85, 0.1, 0], m.darkWood);
                 this.box(`wainscot-${side}`, [0.08, 0.85, 8.5], [side * 4.88, 0.55, 0], m.wall);
                 this.box(`chair-rail-${side}`, [0.1, 0.065, 8.5], [side * 4.8, 0.99, 0], m.wood);
-                // Open lattice windows catch cool exterior light instead of a scene photograph.
-                this.box(`window-recess-${side}`, [0.03, 1.35, 1.9], [side * 4.88, 1.85, -0.3], m.darkWood);
-                for (let i = 0; i < 6; i++) this.box(`window-bar-${side}-${i}`, [0.08, 1.45, 0.045], [side * 4.82, 1.85, -1.15 + i * 0.34], m.wood);
-                for (let i = 0; i < 3; i++) this.box(`window-cross-${side}-${i}`, [0.08, 0.045, 1.95], [side * 4.81, 1.28 + i * 0.58, -0.3], m.wood);
+                game.ThreeWindowWall.build(this, { name: `hall-window-wall-${side}`, side, x: 5, length: 8.7, top: 3.3 });
+                this.box(`side-court-ground-${side}`, [2.8, 0.12, 9.2], [side * 6.4, -0.1, 0], m.stone);
+                this.box(`side-court-wall-${side}`, [0.18, 1.65, 9.2], [side * 7.75, 0.75, 0], m.plaster);
+                this.box(`side-court-wall-cap-${side}`, [0.28, 0.08, 9.2], [side * 7.75, 1.61, 0], m.stone);
+                this.box(`side-court-eave-${side}`, [1.05, 0.14, 9], [side * 5.32, 3.38, 0], m.darkWood);
+                for (const end of [-1, 1]) this.box(`side-court-end-${side}-${end}`, [2.8, 1.65, 0.18], [side * 6.4, 0.75, end * 4.5], m.plaster);
             }
             this.box('crossbeam', [9.5, 0.25, 0.3], [0, 2.95, -1.5], m.wood);
             for (let i = -3; i <= 3; i++) this.box(`ceiling-rafter-${i}`, [0.12, 0.18, 8.5], [i * 1.3, 3.16, 0], m.wood);
@@ -398,6 +398,7 @@
             this.controls?.dispose(); this.interaction?.dispose();
             const geometries = new Set(), materials = new Set(this.labelCache.values());
             Object.values(this.materials || {}).forEach(m => materials.add(m));
+            Object.values(this.windowMaterials || {}).forEach(m => materials.add(m));
             this.scene?.traverse(obj => {
                 if (obj.geometry) geometries.add(obj.geometry);
                 if (obj.material) (Array.isArray(obj.material) ? obj.material : [obj.material]).forEach(m => materials.add(m));

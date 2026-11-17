@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import * as THREE from '../vendor/three.module.mjs';
 import { GLTFLoader } from '../vendor/GLTFLoader.mjs';
+import { mergeGeometries } from '../vendor/BufferGeometryUtils.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const text = relative => readFile(path.join(root, relative), 'utf8');
@@ -18,10 +19,11 @@ const canvasContext = { fillRect() {}, strokeRect() {}, fillText() {} };
 const document = { ...eventTarget, createElement() { return { getContext() { return canvasContext; } }; }, hidden: false };
 const window = { ...eventTarget, THREE, Huisha3D: {} };
 const context = vm.createContext({ window, document, console });
-for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeAudio', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeHouseScene']) {
+for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeAudio', 'ThreeControls', 'ThreeInteraction', 'ThreeWindowWall', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeHouseScene']) {
     vm.runInContext(await text(`src/3d/${name}.js`), context, { filename: `${name}.js` });
 }
 const game = window.Huisha3D;
+game.mergeGeometries = mergeGeometries;
 let mapWrites = 0; const mapStorage = new Map(), mapAdapter = { getItem: key => mapStorage.get(key), setItem: (key, value) => { mapStorage.set(key, value); mapWrites++; } };
 const mapStory = new game.ThreeStory(mapAdapter);
 assert.equal(mapStory.visitPosition(game.WORLD_MAP.playerStart), true); assert.deepEqual([...mapStory.state.visitedAreas], ['hall']);
@@ -190,6 +192,31 @@ assert.equal(house.scene.getObjectByName('chinese_armchair').isGroup, true);
 assert.equal(house.scene.getObjectByName('chinese_console_table').isGroup, true);
 assert.equal(house.scene.getObjectByName('chinese_cabinet').isGroup, true);
 console.log('Assets: all six real glTF models, binary buffers, texture dependencies and scene placement passed.');
+for (const prefix of ['hall', 'school', 'hospital']) for (const side of [-1, 1]) {
+    const name = `${prefix}-window-wall-${side}`, wall = house.scene.getObjectByName(name), opening = wall.userData.windowOpening;
+    const pointX = opening.left + (opening.right - opening.left) / (prefix === 'hall' ? 12 : 6);
+    const rayAt = (x, y) => {
+        const origin = wall.localToWorld(new THREE.Vector3(x, y, 0.6));
+        const direction = new THREE.Vector3(0, 0, -1).transformDirection(wall.matrixWorld);
+        return new THREE.Raycaster(origin, direction, 0, 1.2).intersectObject(wall, true);
+    };
+    const through = rayAt(pointX, opening.sill + 0.23);
+    assert.deepEqual(through.map(hit => hit.object.name), prefix === 'hall' ? [] : [`${name}-glass`], `${name} has an actual opening, not a continuous wall behind the grille`);
+    assert.equal(rayAt(pointX, opening.sill - 0.2)[0]?.object.name, `${name}-wall`);
+    assert.equal(rayAt(pointX, opening.head + 0.2)[0]?.object.name, `${name}-wall`);
+    assert.equal(rayAt(opening.left - 0.2, opening.sill + 0.23)[0]?.object.name, `${name}-wall`);
+    assert.equal(wall.children.filter(object => object.isMesh).length, prefix === 'hall' ? 2 : 3, 'wall pieces and bars are merged per material, not per small detail');
+    if (prefix !== 'hall') {
+        const pane = house.scene.getObjectByName(`${name}-glass`);
+        assert.ok(pane.material.transparent && !pane.material.depthWrite && !pane.castShadow);
+    }
+}
+for (const side of [-1, 1]) {
+    const ray = new THREE.Raycaster(new THREE.Vector3(side * 5.25, 1.35, -0.95), new THREE.Vector3(side, 0, 0), 0, 3);
+    const court = house.scene.getObjectByName(`side-court-wall-${side}`);
+    assert.ok(ray.intersectObject(court).length, 'the old-house window has a real side-court wall beyond it');
+}
+console.log('Architecture: six real window openings, solid reveals, distinct panes and actual side-court depth passed. No WebGL appearance was checked.');
 
 let paused = false;
 const camera = new THREE.PerspectiveCamera(66, 1, 0.06, 60);
@@ -206,6 +233,7 @@ for (const [opened, waterSolved, z, expectedZ] of [[false, false, -20, 3.4], [tr
 }
 house.camera = camera; house.controls = controls;
 house.isPaused = () => paused;
+for (const side of [-1, 1]) assert.equal(controls.canOccupy(side * 5, -0.3), false, 'a window opening does not let players walk outside the room bounds');
 house.root = { clientWidth: 1280, clientHeight: 720 };
 house.renderer = { domElement: { getBoundingClientRect: () => ({ left: 0, top: 0, width: house.root.clientWidth, height: house.root.clientHeight }) } };
 const playerBeforeInspection = controls.snapshot();

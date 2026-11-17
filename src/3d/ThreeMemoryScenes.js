@@ -13,10 +13,9 @@
                 h.box(`${id}-roof`, [10.5, 0.16, 10], [0, 3.25, 0], m.darkWood, undefined, root);
                 h.box(`${id}-back-wall`, [10.5, 3.3, 0.18], [0, 1.55, -4.85], m.plaster, undefined, root);
                 for (const side of [-1, 1]) {
-                    h.box(`${id}-side-${side}`, [0.18, 3.3, 10], [side * 5.15, 1.55, 0], m.plaster, undefined, root);
+                    game.ThreeWindowWall.build(h, { name: `${id}-window-wall-${side}`, side, x: 5.15, length: 10, top: 3.2,
+                        sill: 1.08, width: 3.1, height: 1.45, thickness: 0.18, center: 0, style: id, parent: root });
                     h.box(`${id}-front-${side}`, [4.2, 3.3, 0.18], [side * 3.15, 1.55, 4.85], m.plaster, undefined, root);
-                    for (let i = 0; i < 4; i++) h.box(`${id}-window-${side}-${i}`, [0.035, 1.2, 0.05],
-                        [side * 5.03, 1.8, -1.1 + i * 0.55], m.wood, undefined, root);
                 }
                 h.box(`${id}-return-door`, [1.9, 2.75, 0.12], [0, 1.35, 4.5], m.wood, `${id}_return`, root);
                 h.label(`${id}-return-sign`, '回到厨房', [1.15, 0.32], [0, 1.7, 4.42], [0, Math.PI, 0], `${id}_return`, root);
@@ -34,7 +33,6 @@
             h.label('school-board-writing', '二〇一四年　七月\n你的志愿，由谁决定', [3.5, 0.9], [0, 1.95, -4.65], [0, 0, 0], 'school_rules', root, '#253933', '#c9cdb8');
             h.label('admission-notice', '录取通知\n2014.07.10', [0.65, 0.42], [-2, 0.963, 1], [-Math.PI / 2, 0, 0], 'school_notice', root);
             h.label('parent-receipt', '家长回执\n2014.07.20', [0.65, 0.42], [2, 0.963, -1.5], [-Math.PI / 2, 0, 0], 'school_receipt', root);
-            h.box('school-sill', [0.3, 0.08, 3.5], [-4.95, 1.08, 0], m.wood, undefined, root);
         }
         hospital() {
             const h = this.house, m = h.materials, root = this.rooms.hospital;
