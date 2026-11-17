@@ -2,7 +2,7 @@
     const game = global.Huisha3D || (global.Huisha3D = {});
     const SAVE_KEY = 'huisha.3d.homecoming.v1';
     const symbols = ['雨', '门', '人', '灯'];
-    const freshState = () => ({ records: [], pinnedRecords: [], wheels: [0, 0, 0], opened: false, portrait: false, ending: false,
+    const freshState = () => ({ records: [], pinnedRecords: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
         courtyard: false, buckets: [0, 0], waterSolved: false, departure: null, position: null,
         memory: null, memoryReturn: null, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
@@ -21,8 +21,9 @@
                     }
                     this.state.opened = saved.opened === true;
                     this.state.portrait = saved.portrait === true;
-                    if (this.state.portrait && !this.state.records.includes('portrait_back')) this.state.records.push('portrait_back');
-                    if (!this.state.portrait) this.state.records = this.state.records.filter(id => id !== 'portrait_back');
+                    this.state.portraitBackRead = this.state.portrait && (saved.portraitBackRead === true || !Object.hasOwn(saved, 'portraitBackRead'));
+                    if (this.state.portraitBackRead && !this.state.records.includes('portrait_back')) this.state.records.push('portrait_back');
+                    if (!this.state.portraitBackRead) this.state.records = this.state.records.filter(id => id !== 'portrait_back');
                     this.state.ending = saved.ending === true && this.state.opened;
                     this.state.courtyard = saved.courtyard === true && this.state.opened;
                     if (Array.isArray(saved.buckets) && saved.buckets.length === 2) {
@@ -65,7 +66,11 @@
             }
             this.save(); return true;
         }
-        revealPortrait() { this.state.portrait = true; this.record('portrait_back'); }
+        revealPortrait() { if (this.state.portrait) return false; this.state.portrait = true; this.save(); return true; }
+        readPortraitBack() {
+            if (!this.state.portrait) return false;
+            this.state.portraitBackRead = true; this.record('portrait_back'); return true;
+        }
         rotate(index) {
             if (this.state.opened || !Number.isInteger(index) || index < 0 || index > 2) return;
             this.state.wheels[index] = (this.state.wheels[index] + 1) % symbols.length;

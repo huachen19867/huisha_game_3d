@@ -71,7 +71,8 @@
             const hidden = !this.current;
             if (this.prompt.hidden !== hidden) this.prompt.hidden = hidden;
             if (this.current) {
-                const label = `E · ${this.current.title}${this.story.state.records.includes(this.current.id) ? ' · 已观察' : ''}`;
+                const title = this.current.id === 'portrait' && this.story.state.portrait ? '母亲的旧相框' : this.current.title;
+                const label = `E · ${title}${this.story.state.records.includes(this.current.id) ? ' · 已观察' : ''}`;
                 if (this.prompt.textContent !== label) this.prompt.textContent = label;
             }
             this.updateMarker();

@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="src/evidence.css">
     <link rel="stylesheet" href="src/exploration.css">
     <link rel="stylesheet" href="src/settings.css">
+    <link rel="stylesheet" href="src/portrait.css">
     <title>回煞 3D · 归门与余温</title>
 </head>
 <body>
@@ -65,6 +66,12 @@
         </div>
         <p id="water-status" role="status"></p>
         <div class="lock-actions"><button id="water-records" type="button">回查手记 <kbd>J</kbd></button><button id="water-hint" type="button">需要提示</button><button id="water-leave" type="button">退回桌前 <kbd>Esc</kbd></button></div>
+    </section>
+    <section id="portrait-inspector" class="lock-inspector portrait-inspector" hidden aria-labelledby="portrait-title">
+        <div class="lock-heading"><h2 id="portrait-title">母亲的旧相框</h2><span>揭开黑布 · 拿近 · 翻到背面</span></div>
+        <p id="portrait-status" role="status"></p>
+        <div class="portrait-actions"><button id="portrait-reveal" type="button">揭开黑布</button><button id="portrait-flip" type="button">翻到背面</button><button id="portrait-read" type="button" disabled>阅读背字</button></div>
+        <div class="lock-actions"><button id="portrait-records" type="button">回查手记 <kbd>J</kbd></button><button id="portrait-leave" type="button">放回原处 <kbd>Esc</kbd></button></div>
     </section>
     <dialog id="reader" aria-labelledby="reader-title">
         <div class="reader-heading"><p id="reader-eyebrow" class="eyebrow">旧宅 · 观察记录</p><button id="reader-close" class="close" aria-label="合上">合上 <kbd>Esc</kbd></button></div>

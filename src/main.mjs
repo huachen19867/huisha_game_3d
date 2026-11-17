@@ -2,7 +2,7 @@ import * as THREE from '../vendor/three.module.mjs';
 import { GLTFLoader } from '../vendor/GLTFLoader.mjs';
 window.THREE = THREE;
 window.Huisha3D = { GLTFLoader };
-for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeStory', 'ThreePreferences', 'ThreeSettings', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreeMemoryJournal', 'ThreeEvidenceJournal', 'ThreeHouseScene', 'ThreeAudio']) {
+for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeStory', 'ThreePreferences', 'ThreeSettings', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreeMemoryJournal', 'ThreeEvidenceJournal', 'ThreePortrait', 'ThreeHouseScene', 'ThreeAudio']) {
     await import(`./3d/${name}.js`);
 }
 const $ = id => document.getElementById(id);
@@ -17,7 +17,7 @@ const evidenceJournal = new game.ThreeEvidenceJournal({ story, knownRecords });
 const memoryJournal = new game.ThreeMemoryJournal({ story, open, close, knownRecords,
     journal: () => journal(!!scene?.inspectionReturn), onReturn: returnMemory,
     onSolved: () => { audio.chime(); scene.syncState(); updateStatus(); } });
-let mode = 'title', scene, lastFocus, saveTimer, lockFocus;
+let mode = 'title', scene, lastFocus, saveTimer, lockFocus, portraitUiState;
 const isPaused = () => mode !== 'game' || reader.open || document.hidden || !!scene?.inspectionReturn;
 function updateLoadStatus() {
     $('load-status').textContent = assetErrors.size
@@ -72,7 +72,7 @@ function close() {
 }
 function knownRecords() {
     return story.state.records.map(id => id === 'portrait_back'
-        ? { id, title: '相框背字', text: '照片里是母亲，背面写着：\n\n「留一盏灯，是怕你看不见路，不是要你留下。」\n\n那块黑布是你离家时盖上去的。' }
+        ? game.PORTRAIT_BACK_RECORD
         : game.WORLD_MAP.interactables.find(item => item.id === id)).filter(Boolean);
 }
 function journal(backToLock = false) {
@@ -85,7 +85,7 @@ function journal(backToLock = false) {
 }
 function readRecord(item, actions) {
     const choices = [...actions];
-    if (!choices.some(([label]) => label === '打开手记')) choices.push(['打开手记', () => journal()]);
+    if (!choices.some(([label]) => label === '打开手记')) choices.push(['打开手记', () => journal(!!scene?.inspectionReturn)]);
     open(item.title, item.text, choices);
     evidenceJournal.appendPinAction($('reader-actions'), item.id);
 }
@@ -112,8 +112,26 @@ function guidance(stage = 0, backToLock = !!scene?.inspectionReturn) {
     if (hint.next) actions.push([hint.next, () => guidance(stage + 1, backToLock)]);
     open('一点头绪', hint.text, actions, stage >= 2 ? '解谜答案 · 按需查看' : '探索提示 · 按需查看');
 }
-function inspectionLabel() { return scene.inspectionKind === 'water' ? '回到量水桌' : '回到字轮'; }
-function resumeInspection() { scene.inspectionKind === 'water' ? water() : lock(); }
+function inspectionLabel() { return { water: '回到量水桌', portrait: '回到相框' }[scene.inspectionKind] || '回到字轮'; }
+function resumeInspection() { ({ water, portrait, lock }[scene.inspectionKind] || lock)(); }
+function updatePortrait(message) {
+    const uncovered = story.state.portrait, back = scene.portrait.backVisible, targetBack = Math.cos(scene.portrait.angle) < 0;
+    const state = `${uncovered}:${back}:${targetBack}:${story.state.portraitBackRead}`;
+    if (message) $('portrait-status').textContent = message;
+    if (portraitUiState === state) return;
+    portraitUiState = state;
+    $('portrait-reveal').hidden = uncovered; $('portrait-flip').disabled = !uncovered; $('portrait-read').disabled = !back;
+    $('portrait-flip').textContent = targetBack ? '转回正面' : '翻到背面';
+    if (!message) $('portrait-status').textContent = !uncovered ? '黑布搭在上沿。可以先揭开，再拿近看看。'
+        : back ? '背面的字迹转到了眼前。可以主动阅读并记入手记。' : '正面是母亲的旧照片。按住画面拖动，或翻到背面查看。';
+}
+function portrait() {
+    if (!scene.inspectionReturn) lockFocus = document.activeElement;
+    if (reader.open) reader.close(); if (document.pointerLockElement) document.exitPointerLock();
+    touches.clear(); updateTouch(); scene.beginPortraitInspection();
+    $('portrait-inspector').hidden = false; $('hud').classList.add('inspecting'); portraitUiState = null; updatePortrait();
+    (story.state.portrait ? $('portrait-flip') : $('portrait-reveal')).focus();
+}
 function updateLock(message) {
     if (message) $('lock-status').textContent = message;
     document.querySelectorAll('[data-wheel]').forEach((button, index) => {
@@ -124,7 +142,7 @@ function updateLock(message) {
 }
 function leaveInspection(restoreFocus = true) {
     if (!scene?.inspectionReturn) return;
-    scene.endInspection(); $('lock-inspector').hidden = true; $('water-inspector').hidden = true; $('hud').classList.remove('inspecting');
+    scene.endInspection(); $('lock-inspector').hidden = true; $('water-inspector').hidden = true; $('portrait-inspector').hidden = true; $('hud').classList.remove('inspecting');
     touches.clear(); updateTouch();
     if (restoreFocus && lockFocus?.isConnected) lockFocus.focus?.({ preventScroll: true });
     save();
@@ -218,15 +236,7 @@ function inspect(item) {
     if (item.id === 'road_exit') {
         open(item.title, item.text, [['再看看旧宅', close], ['走向天光', () => ending('leave')]]); return;
     }
-    if (item.id === 'portrait') {
-        if (story.state.portrait) {
-            const record = knownRecords().find(record => record.id === 'portrait_back');
-            readRecord(record, [['继续观察', close]]);
-        } else open(item.title, item.text, [['先不揭开', close], ['揭开黑布，查看背字', () => {
-            story.revealPortrait(); scene.syncState(); inspect(item);
-        }]]);
-        return;
-    }
+    if (item.id === 'portrait') { portrait(); return; }
     if (item.id === 'threshold') {
         open(item.title, item.text, [['再看看旧宅', close], ['走过门槛', () => {
             if (!story.finish()) return;
@@ -285,6 +295,20 @@ for (const action of ['fill', 'empty', 'pour', 'weigh']) $(`water-${action}`).ad
 $('water-leave').addEventListener('click', () => leaveInspection());
 $('water-records').addEventListener('click', () => journal(true));
 $('water-hint').addEventListener('click', () => guidance(0, true));
+$('portrait-leave').addEventListener('click', () => leaveInspection());
+$('portrait-records').addEventListener('click', () => journal(true));
+$('portrait-reveal').addEventListener('click', () => {
+    if (scene.inspectionKind !== 'portrait' || reader.open || !story.revealPortrait()) return;
+    audio.paper(); scene.syncState(); updatePortrait('黑布被提起来了。照片背后的话还要翻过去才看得见。');
+});
+$('portrait-flip').addEventListener('click', () => {
+    if (scene.inspectionKind !== 'portrait' || reader.open) return;
+    scene.portrait.flip(); audio.paper(); updatePortrait();
+});
+$('portrait-read').addEventListener('click', () => {
+    if (scene.inspectionKind !== 'portrait' || reader.open || !scene.portrait.backVisible || !story.readPortraitBack()) return;
+    audio.paper(); readRecord(game.PORTRAIT_BACK_RECORD, [['回到相框', portrait]]);
+});
 evidenceJournal.mountInspector($('lock-inspector'));
 evidenceJournal.mountInspector($('water-inspector'));
 window.addEventListener('keydown', event => {
@@ -324,20 +348,34 @@ window.addEventListener('pageshow', event => { if (event.persisted && mode === '
 try {
     scene = new game.ThreeHouseScene({ root: $('world'), prompt: $('prompt'), focusMarker: $('focus-marker'), story, isPaused, onInspect: inspect,
         getPreferences: () => preferences.values,
+        isReading: () => reader.open || document.hidden || mode !== 'game',
         onAssetError: name => { assetErrors.add(name); updateLoadStatus(); },
         onFrame: (position, paused) => {
             audio.update(position, paused, story.state.memory || 'house');
+            if (scene.inspectionKind === 'portrait' && !reader.open) updatePortrait();
             if (!paused && !story.state.memory && story.state.opened && position.z < -15.2 && story.enterCourtyard()) updateStatus();
         } });
     await scene.start();
     applyPreferences();
     let wheelPress;
     scene.renderer.domElement.addEventListener('pointerdown', event => {
+        if (wheelPress && wheelPress.id !== event.pointerId) return;
+        if (event.pointerType === 'mouse' && event.button !== 0) return;
         wheelPress = scene.inspectionReturn && !reader.open ? { x: event.clientX, y: event.clientY, id: event.pointerId } : null;
+        if (wheelPress && scene.inspectionKind === 'portrait') {
+            try { scene.renderer.domElement.setPointerCapture?.(event.pointerId); } catch (_) { /* release is also handled on the canvas */ }
+        }
+    });
+    scene.renderer.domElement.addEventListener('pointermove', event => {
+        if (scene.inspectionKind !== 'portrait' || reader.open || wheelPress?.id !== event.pointerId) return;
+        if (event.pointerType === 'mouse' && event.buttons === 0) { wheelPress = null; return; }
+        scene.portrait.drag(event.clientX - wheelPress.x, event.clientY - wheelPress.y);
+        wheelPress.x = event.clientX; wheelPress.y = event.clientY; updatePortrait();
     });
     scene.renderer.domElement.addEventListener('pointerup', event => {
         const press = wheelPress; wheelPress = null;
         if (!press || press.id !== event.pointerId || Math.hypot(event.clientX - press.x, event.clientY - press.y) > 8) return;
+        if (scene.inspectionKind === 'portrait') return;
         if (scene.inspectionKind === 'water') {
             const action = scene.courtyard.pick(event.clientX, event.clientY); if (action) waterAction(action);
         } else {
@@ -346,6 +384,7 @@ try {
         }
     });
     scene.renderer.domElement.addEventListener('pointercancel', () => { wheelPress = null; });
+    scene.renderer.domElement.addEventListener('lostpointercapture', () => { wheelPress = null; });
     updateStatus(); $('begin').disabled = false; $('title-settings').disabled = false;
     updateLoadStatus();
     saveTimer = setInterval(() => { if (mode === 'game' && !reader.open) save(); }, 5000);

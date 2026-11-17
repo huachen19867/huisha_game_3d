@@ -11,3 +11,5 @@
 2026-11-17 的手记对照与机关旁摘记复用已下载的 W3C 对话框研究、原生 details/select 控件及现有 jsdom。没有重新下载相同参考、引入界面框架或新运行依赖；新模块只呈现真实已读原文，不生成替代线索。
 
 0.5.0 的视角设置继续参考本目录已下载的 Three.js r160 PointerLockControls 的 pointerSpeed 和俯仰限制。新增声音从 [Kenney 官方](https://kenney.nl/assets/impact-sounds) 下载 CC0 Impact Sounds 1.0，原包留本地 `assets/audio/.source/`，实际使用的九份文件、原许可和来源校验随游戏分发，见 `assets/audio/README.md`。没有引入音频框架或商业游戏素材。
+
+0.6.0 的相框复用现有 Three.js 分组变换、射线与相机投影、已下载参考和现有近看生命周期，不引入新的三维引擎。图片通过 imagegen 技能的内置 image_gen 路径生成并复制入库；完整生产提示词见 `assets/art/mother-portrait.source.json`，原始输出保留在 Codex generated_images 目录，不借用商业游戏人物照片。

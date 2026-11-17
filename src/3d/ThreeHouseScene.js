@@ -2,8 +2,8 @@
     const game = global.Huisha3D || (global.Huisha3D = {});
     const THREE = global.THREE;
     class ThreeHouseScene {
-        constructor({ root, prompt, focusMarker, story, isPaused, onInspect, onAssetError, onFrame, getPreferences }) {
-            Object.assign(this, { root, prompt, focusMarker, story, isPaused, onInspect, onAssetError, onFrame, getPreferences });
+        constructor({ root, prompt, focusMarker, story, isPaused, isReading, onInspect, onAssetError, onFrame, getPreferences }) {
+            Object.assign(this, { root, prompt, focusMarker, story, isPaused, isReading, onInspect, onAssetError, onFrame, getPreferences });
             this.map = game.WORLD_MAP || game.MAIN_HALL_MAP;
             this.clock = new THREE.Clock();
             this.textures = [];
@@ -67,7 +67,10 @@
         }
         createMaterials() {
             const mat = (color, map) => new THREE.MeshStandardMaterial({ color, map, roughness: 0.88 });
+            const portrait = new THREE.TextureLoader().load('assets/art/mother-portrait.png', undefined, () => this.onAssetError?.('mother-portrait'));
+            portrait.colorSpace = THREE.SRGBColorSpace; this.textures.push(portrait);
             this.materials = {
+                portrait: new THREE.MeshStandardMaterial({ map: portrait, roughness: 0.85 }),
                 wall: mat(0x9b8d7c, this.texture('木墙', [2.5, 1])),
                 floor: this.pbr('wood', [3, 3], 0xb0a99b),
                 plaster: this.pbr('plaster', [2.5, 1.2], 0xa7a69a),
@@ -191,9 +194,7 @@
             this.cylinder('incense-ash', 0.24, 0.24, 0.02, [0, 1.29, -0.18], m.ash, 'altar', altar);
             for (let i = -1; i <= 1; i++) this.cylinder(`incense-${i}`, 0.008, 0.009, 0.33, [i * 0.06, 1.45, -0.18], m.darkWood, 'altar', altar);
             for (const x of [-1, 1]) this.createCandle(x, altar);
-            this.box('portrait-frame', [1.15, 1.35, 0.12], [-2.75, 1.94, -3.96], m.brass, 'portrait');
-            this.label('portrait-face', '母亲\n一九六八 — 二〇一六', [1.02, 1.2], [-2.75, 1.94, -3.886], [0, 0, 0], 'portrait', undefined, '#514b44', '#ccc2ac');
-            this.portraitCloth = this.box('portrait-cloth', [1.1, 1.3, 0.025], [-2.75, 1.94, -3.86], m.cloth, 'portrait');
+            this.portrait = new game.ThreePortrait(this); this.portrait.build();
             // A tapered solid coffin, with bevels and separate lid, can be viewed from either side.
             const outline = new THREE.Shape();
             outline.moveTo(-1.3, -0.55); outline.lineTo(0.95, -0.55); outline.lineTo(1.3, -0.32);
@@ -301,7 +302,7 @@
         }
         syncState(immediate = false) {
             const s = this.story.state;
-            this.portraitCloth.visible = !s.portrait;
+            this.portrait.sync(immediate);
             this.wheels.forEach((wheel, i) => {
                 if (immediate) this.wheelTargets[i] = s.wheels[i] * Math.PI / 2;
                 else this.wheelTargets[i] += ((s.wheels[i] - this.wheelSymbols[i] + 4) % 4) * Math.PI / 2;
@@ -355,10 +356,19 @@
             if (!this.inspectionReturn) { this.inspectionReturn = this.controls.snapshot(); this.inspectionFov = this.camera.fov; }
             this.inspectionKind = 'water'; this.controls.clear(); this.courtyard.frame(); this.syncState();
         }
-        frameInspection() { this.inspectionKind === 'water' ? this.courtyard.frame() : this.frameLock(); }
+        beginPortraitInspection() {
+            if (!this.inspectionReturn) { this.inspectionReturn = this.controls.snapshot(); this.inspectionFov = this.camera.fov; }
+            const entering = this.inspectionKind !== 'portrait'; this.inspectionKind = 'portrait'; this.controls.clear();
+            if (entering) this.portrait.begin(); else this.portrait.frame();
+        }
+        frameInspection() {
+            if (this.inspectionKind === 'portrait') this.portrait.frame();
+            else if (this.inspectionKind === 'water') this.courtyard.frame(); else this.frameLock();
+        }
         endInspection() {
             const pose = this.inspectionReturn;
             if (!pose) return;
+            if (this.inspectionKind === 'portrait') this.portrait.end();
             this.camera.position.set(pose.x, this.map.playerStart.y, pose.z);
             this.camera.fov = this.inspectionFov; this.camera.clearViewOffset(); this.camera.updateProjectionMatrix();
             this.controls.yaw = pose.yaw; this.controls.pitch = pose.pitch;
@@ -368,6 +378,7 @@
             this.animationId = global.requestAnimationFrame(() => this.animate());
             const delta = Math.min(this.clock.getDelta(), 0.05);
             this.controls.update(delta); this.syncState(); this.moveWheels(delta);
+            this.portrait.update(delta);
             this.moveDoor(delta);
             this.courtyard?.update(delta);
             this.scene.updateMatrixWorld(true); this.camera.updateMatrixWorld(true);

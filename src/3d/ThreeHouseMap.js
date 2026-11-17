@@ -1,5 +1,7 @@
 (function (global) {
     const game = global.Huisha3D || (global.Huisha3D = {});
+    game.PORTRAIT_BACK_RECORD = { id: 'portrait_back', title: '相框背字', location: '正厅',
+        text: '照片里是母亲，背面写着：\n\n「留一盏灯，是怕你看不见路，不是要你留下。」\n\n那块黑布是你离家时盖上去的。' };
     game.MAIN_HALL_MAP = {
         id: 'homecoming',
         playerStart: { x: 0, y: 1.6, z: 3.4, yaw: Math.PI },

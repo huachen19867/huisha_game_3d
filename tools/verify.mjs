@@ -18,7 +18,7 @@ const canvasContext = { fillRect() {}, strokeRect() {}, fillText() {} };
 const document = { ...eventTarget, createElement() { return { getContext() { return canvasContext; } }; }, hidden: false };
 const window = { ...eventTarget, THREE, Huisha3D: {} };
 const context = vm.createContext({ window, document, console });
-for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeStory', 'ThreePreferences', 'ThreeAudio', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreeHouseScene']) {
+for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeStory', 'ThreePreferences', 'ThreeAudio', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreePortrait', 'ThreeHouseScene']) {
     vm.runInContext(await text(`src/3d/${name}.js`), context, { filename: `${name}.js` });
 }
 const game = window.Huisha3D;
@@ -81,8 +81,11 @@ story.state.wheels = [3, 2, 1];
 assert.equal(story.unlock(), true, 'actual three-symbol combination opens the lock');
 assert.equal(story.finish(), true);
 story.revealPortrait(); story.save({ x: 0, z: -12.3, yaw: Math.PI, pitch: 0 });
+assert.equal(story.state.records.includes('portrait_back'), false, 'lifting the cloth does not read the hidden inscription');
 const restored = new game.ThreeStory(adapter);
 assert.equal(restored.state.ending, true); assert.equal(restored.state.portrait, true);
+assert.equal(restored.state.portraitBackRead, false); assert.equal(restored.state.records.includes('portrait_back'), false);
+assert.equal(story.readPortraitBack(), true); assert.equal(new game.ThreeStory(adapter).state.portraitBackRead, true);
 assert.equal(restored.state.position.z, -12.3);
 assert.match(restored.guidance().text, /门闩已经松开/);
 assert.deepEqual([...restored.state.wheels], [3, 2, 1]);
@@ -104,9 +107,12 @@ assert.equal(unavailable.saveAvailable, false); unavailable.record('letter'); as
 storage.set('huisha.3d.homecoming.v1', '{broken');
 assert.equal(new game.ThreeStory(adapter).state.opened, false, 'corrupt save falls back to new chapter');
 storage.set('huisha.3d.homecoming.v1', JSON.stringify({ version: 1, portrait: true, records: [] }));
-assert.ok(new game.ThreeStory(adapter).state.records.includes('portrait_back'), 'a revealed portrait always has its readable record after restoring');
+assert.ok(new game.ThreeStory(adapter).state.records.includes('portrait_back'), 'legacy revealed portraits preserve the previously available record');
 storage.set('huisha.3d.homecoming.v1', JSON.stringify({ version: 1, portrait: false, records: ['portrait_back'] }));
 assert.ok(!new game.ThreeStory(adapter).state.records.includes('portrait_back'), 'a covered portrait must not leak its hidden inscription into the journal');
+storage.set('huisha.3d.homecoming.v1', JSON.stringify({ version: 1, portrait: true, portraitBackRead: false,
+    records: ['portrait_back'], pinnedRecords: ['portrait_back'] }));
+assert.equal(new game.ThreeStory(adapter).state.pinnedRecords.length, 0, 'a new unread portrait cannot leak its back into pinned evidence');
 storage.set('huisha.3d.homecoming.v1', JSON.stringify({ version: 1, opened: true, ending: true, records: ['letter', 'lock'] }));
 const legacy = new game.ThreeStory(adapter);
 assert.equal(legacy.state.ending, true); assert.equal(legacy.state.waterSolved, false);
@@ -148,7 +154,7 @@ for (const id of ['chinese_armchair', 'chinese_console_table', 'chinese_cabinet'
 game.GLTFLoader = class { async loadAsync(url) { return parsedModels.get(url.split('/')[2]); } };
 const house = new game.ThreeHouseScene({ story });
 house.scene = new THREE.Scene();
-house.materials = Object.fromEntries(['wall', 'floor', 'wood', 'darkWood', 'brass', 'red', 'cloth', 'paper', 'stone', 'wax', 'ash', 'plaster'].map(key => [key, new THREE.MeshStandardMaterial()]));
+house.materials = Object.fromEntries(['wall', 'floor', 'wood', 'darkWood', 'brass', 'red', 'cloth', 'paper', 'portrait', 'stone', 'wax', 'ash', 'plaster'].map(key => [key, new THREE.MeshStandardMaterial()]));
 house.createArchitecture(); house.createProps(); await house.loadModels();
 house.outsideLight = { intensity: 0 }; house.syncState(true); house.scene.updateMatrixWorld(true);
 assert.equal(house.scene.getObjectByName('chinese_armchair').isGroup, true);
@@ -208,6 +214,37 @@ assert.equal(camera.view?.enabled, false, 'leaving restores ordinary projection'
 assert.equal(house.pickWheel(100, 100), null, 'world exploration must not turn the lock remotely');
 story.reset(); house.syncState(true); camera.aspect = 16 / 9; camera.updateProjectionMatrix();
 console.log('Mechanism: actual drum faces, pointer picks, portrait/landscape framing, animation and player-pose restoration passed.');
+const beforePortrait = controls.snapshot(), beforePortraitFov = camera.fov;
+house.beginPortraitInspection(); assert.equal(story.readPortraitBack(), false, 'covered portraits cannot add hidden writing');
+house.portrait.flip(); assert.equal(house.portrait.angle, 0);
+story.revealPortrait(); house.syncState(); house.portrait.update(0.016);
+assert.ok(house.portrait.lift > 0 && house.portrait.lift < 1, 'the real cloth lifts through geometry');
+let readingPortrait = true; house.isReading = () => readingPortrait;
+const pausedLift = house.portrait.lift; house.portrait.update(1); assert.equal(house.portrait.lift, pausedLift);
+readingPortrait = false; house.portrait.update(1); assert.equal(house.portrait.cloth.visible, false);
+for (const [width, height] of [[1280, 720], [390, 844], [844, 390], [360, 640], [640, 360], [768, 1024]]) {
+    house.root.clientWidth = width; house.root.clientHeight = height; camera.aspect = width / height; house.frameInspection();
+    house.scene.updateMatrixWorld(true);
+    for (const x of [-0.575, 0.575]) for (const y of [-0.675, 0.675]) {
+        const projected = new THREE.Vector3(x, y, 0).applyMatrix4(house.portrait.root.matrixWorld).project(camera);
+        assert.ok(Math.abs(projected.x) < 0.96 && Math.abs(projected.y) < 0.96 && projected.z < 1, `${width}x${height}: the full frame fits in view`);
+        if (height <= 520 && width > 680) assert.ok((projected.x + 1) / 2 < 0.64, 'short landscape leaves room for side controls');
+        else assert.ok((1 - projected.y) / 2 < 0.57, 'portrait view leaves the bottom control area clear');
+    }
+}
+house.portrait.flip(); house.portrait.update(0.016); assert.equal(house.portrait.backVisible, false);
+house.portrait.update(1); assert.equal(house.portrait.backVisible, true);
+house.scene.updateMatrixWorld(true);
+const backPoint = house.portrait.back.getWorldPosition(new THREE.Vector3());
+const portraitRay = new THREE.Raycaster(camera.position, backPoint.clone().sub(camera.position).normalize());
+assert.equal(portraitRay.intersectObject(house.portrait.root, true)[0].object.name, 'portrait-back-inscription', 'the turned backside is the actual visible surface');
+assert.equal(story.state.records.includes('portrait_back'), false, 'turning the object does not automatically read it');
+story.readPortraitBack(); house.endInspection();
+assert.deepEqual({ ...controls.snapshot() }, { ...beforePortrait }); assert.equal(camera.fov, beforePortraitFov);
+assert.ok(house.portrait.root.position.equals(house.portrait.home)); assert.equal(house.portrait.root.rotation.y, 0);
+story.reset(); house.syncState(true); assert.equal(house.portrait.cloth.visible, true); assert.equal(house.portrait.back.visible, false);
+house.root.clientWidth = 1280; house.root.clientHeight = 720; camera.aspect = 16 / 9; camera.updateProjectionMatrix();
+console.log('Portrait: actual two-sided geometry, cloth lift/pause, six-view framing, explicit backside reading, legacy saves and player-pose restoration passed.');
 const prompt = { hidden: true, textContent: '' };
 const interaction = new game.ThreeInteraction({ camera, map: game.WORLD_MAP, scene: house.scene, prompt, story,
     isPaused: () => paused, onInspect(item) { assert.ok(item.id); } });
@@ -494,6 +531,10 @@ for (const asset of sources.files) {
     assert.equal(createHash('md5').update(bytes).digest('hex'), asset.md5, `${asset.path} must match its recorded original source`);
 }
 for (const art of ['木墙', '木梁']) await access(path.join(root, `assets/art/${art}.png`));
+const portraitSource = JSON.parse(await text('assets/art/mother-portrait.source.json'));
+const portraitBytes = await readFile(path.join(root, 'assets/art', portraitSource.file));
+assert.equal(createHash('sha256').update(portraitBytes).digest('hex'), portraitSource.sha256);
+assert.equal(portraitBytes.subarray(1, 4).toString(), 'PNG'); assert.ok(portraitBytes.readUInt32BE(16) >= 512 && portraitBytes.readUInt32BE(20) >= 512);
 console.log(`Sources: ${sources.files.length} downloaded asset checksums match the recorded Poly Haven originals.`);
 const audioSources = JSON.parse((await text('assets/audio/sources.json')).replace(/^\uFEFF/, ''));
 for (const asset of audioSources.files) {

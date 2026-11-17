@@ -44,6 +44,8 @@ async function boot(saved, preferences) {
                         scene = this; this.scene = new THREE.Scene(); this.camera = new THREE.PerspectiveCamera(66, 16 / 9, 0.06, 60);
                         const canvas = document.createElement('canvas'); this.root.append(canvas);
                         this.renderer = { domElement: canvas, toneMappingExposure: 1.28, dispose() {} };
+                        this.materials = Object.fromEntries(['wood', 'darkWood', 'brass', 'portrait', 'paper', 'cloth'].map(name => [name, new THREE.MeshStandardMaterial()]));
+                        this.portrait = new game.ThreePortrait(this); this.portrait.build();
                         this.courtyard = { selected: 0, frame() {}, pick() { return null; } }; this.wheels = [];
                         this.controls = new game.ThreeControls({ camera: this.camera, domElement: canvas, map: this.map,
                             story: this.story, isPaused: this.isPaused, getPreferences: this.getPreferences });
@@ -51,7 +53,8 @@ async function boot(saved, preferences) {
                             prompt: this.prompt, focusMarker: this.focusMarker, story: this.story, isPaused: this.isPaused, onInspect: this.onInspect });
                         this.onAssetError('wood-color'); // Verify that an early error survives the ready message.
                     }
-                    syncState() {} // Geometry, materials, animations and projection have their own verifier.
+                    labelMaterial() { return new THREE.MeshBasicMaterial(); } // No real canvas text or photo decoding in jsdom.
+                    syncState(immediate) { this.portrait?.sync(immediate); } // Other scene geometry remains outside this DOM check.
                 };
             }
             return module;
@@ -70,7 +73,7 @@ async function boot(saved, preferences) {
     const choose = (select, value) => { select.value = String(value); select.dispatchEvent(new window.Event('change', { bubbles: true })); };
     const inspect = id => {
         if ($('reader').open) $('reader-close').click();
-        if (scene.inspectionReturn) $(scene.inspectionKind === 'water' ? 'water-leave' : 'lock-leave').click();
+        if (scene.inspectionReturn) $({ water: 'water-leave', portrait: 'portrait-leave' }[scene.inspectionKind] || 'lock-leave').click();
         const item = scene.map.interactables.find(item => item.id === id); assert.ok(item);
         for (let x = item.position.x - item.radius; x <= item.position.x + item.radius; x += 0.2) {
             for (let z = item.position.z - item.radius; z <= item.position.z + item.radius; z += 0.2) {
@@ -135,6 +138,30 @@ try {
     pointer('pointermove', ui.window, { x: 150 }); pointer('pointerup', ui.window);
     assert.ok(controls.yaw < releasedYaw, 'the drag fallback still works when pointer lock is unavailable');
     ui.$('pause').click(); ui.document.querySelector('[data-setting="pointerLock"]').click(); ui.click('继续探索');
+    ui.inspect('portrait');
+    const portraitPose = { ...ui.scene.playerSnapshot() };
+    assert.equal(ui.$('portrait-inspector').hidden, false); assert.equal(ui.$('portrait-read').disabled, true);
+    assert.equal(ui.$('portrait-flip').disabled, true);
+    ui.$('portrait-reveal').click(); assert.equal(ui.scene.story.state.portrait, true);
+    assert.equal(ui.scene.story.state.records.includes('portrait_back'), false);
+    const liftedSave = new ui.window.Huisha3D.ThreeStory(ui.window.localStorage);
+    assert.equal(liftedSave.state.portrait, true); assert.equal(liftedSave.state.portraitBackRead, false, 'uncovered-but-unread progress survives saving');
+    ui.scene.portrait.update(1); ui.$('portrait-leave').click();
+    assert.deepEqual({ ...ui.scene.controls.snapshot() }, portraitPose);
+    ui.inspect('portrait');
+    const heldPose = { ...ui.scene.playerSnapshot() };
+    pointer('pointerdown', ui.scene.renderer.domElement);
+    pointer('pointermove', ui.scene.renderer.domElement, { x: 120 }); pointer('pointerup', ui.scene.renderer.domElement, { x: 120 });
+    assert.ok(ui.scene.portrait.angle > 0, 'canvas dragging rotates the real object rather than the player');
+    ui.$('portrait-flip').click(); ui.scene.portrait.update(0.016);
+    ui.scene.onFrame(ui.scene.camera.position, true); assert.equal(ui.$('portrait-read').disabled, true);
+    ui.scene.portrait.update(1); ui.scene.onFrame(ui.scene.camera.position, true);
+    assert.equal(ui.$('portrait-read').disabled, false); assert.equal(ui.scene.story.state.portraitBackRead, false);
+    ui.$('portrait-read').click(); assert.equal(ui.$('reader-title').textContent, '相框背字');
+    assert.equal(ui.scene.story.state.portraitBackRead, true);
+    ui.click('打开手记'); ui.click('回到相框'); assert.equal(ui.scene.portrait.backVisible, true, 'returning from the journal keeps the object orientation');
+    ui.$('portrait-leave').click(); assert.deepEqual({ ...ui.scene.controls.snapshot() }, heldPose);
+    assert.ok(ui.scene.portrait.root.position.equals(ui.scene.portrait.home));
     ui.inspect('letter'); assert.equal(ui.$('reader').open, true);
     ui.scene.interaction.update(); assert.equal(ui.$('focus-marker').hidden, true, 'reading hides the focus marker');
     ui.click('放入摘记');
@@ -220,6 +247,7 @@ try {
     assert.equal(ui.scene.story.state.memory, null); assert.equal(ui.scene.story.state.opened, false); assert.equal(ui.scene.story.state.departure, null);
     assert.equal(ui.scene.story.state.records.length, 0); assert.deepEqual([...ui.scene.story.state.buckets], [0, 0]);
     assert.equal(ui.scene.story.state.pinnedRecords.length, 0);
+    assert.equal(ui.scene.story.state.portraitBackRead, false); assert.equal(ui.scene.portrait.cloth.visible, true);
     assert.equal(ui.document.querySelectorAll('.inspection-notes [data-pinned-record]').length, 0, 'restarting clears stale originals from both inspectors');
     assert.equal(ui.window.localStorage.getItem('huisha.3d.preferences.v1'), savedPreferences, 'restarting the story keeps device preferences');
     ui.$('title-settings').click(); assert.equal(ui.document.querySelector('[data-setting="volume"]').value, '0.4');
@@ -227,6 +255,6 @@ try {
     assert.equal(ui.scene.controls.getPreferences().invertY, false); assert.equal(ui.scene.story.state.records.length, 0);
     ui.click('返回标题');
     assert.equal(ui.errors.length, 0, ui.errors.map(error => error.message).join('\n'));
-    console.log('UI: production boot, persistent title/pause settings, separate mouse/touch look, inversion, pointer-lock fallback, grouped evidence/inspector notes, explicit drafts, memory return, four endings and restart passed.');
+    console.log('UI: production boot/settings, separate mouse/touch look, physical portrait reveal/drag/turn/read, journal orientation return, grouped evidence/inspector notes, explicit drafts, memory return, four endings and restart passed.');
     console.log('Scope: jsdom DOM events with a rendering stub and dialog shim; no browser, native dialog/select behavior, layout, WebGL, pointer lock, audio or real-device acceptance.');
 } finally { ui?.destroy(); }

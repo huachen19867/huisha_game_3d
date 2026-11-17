@@ -1,0 +1,7 @@
+.portrait-inspector { width: min(560px, calc(100vw - 30px)); }
+.portrait-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.portrait-actions button { padding: 9px 14px; font-size: 13px; }
+.portrait-actions button:disabled { opacity: .45; cursor: default; }
+#portrait-status { font-size: 13px; color: var(--muted); line-height: 1.8; margin: 12px 0; }
+@media (max-height: 520px) and (min-width: 681px) { .portrait-inspector { width: 310px; } }
+@media (max-width: 680px) { .portrait-actions { gap: 6px; } .portrait-actions button { flex: 1; padding: 8px; font-size: 12px; } #portrait-status { font-size: 12px; } }
