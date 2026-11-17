@@ -2,7 +2,7 @@ import * as THREE from '../vendor/three.module.mjs';
 import { GLTFLoader } from '../vendor/GLTFLoader.mjs';
 window.THREE = THREE;
 window.Huisha3D = { GLTFLoader };
-for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeSettings', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreeMemoryJournal', 'ThreeEvidenceJournal', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeHouseScene', 'ThreeAudio']) {
+for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeSettings', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreeMemoryTimeline', 'ThreeMemoryJournal', 'ThreeEvidenceJournal', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeHouseScene', 'ThreeAudio']) {
     await import(`./3d/${name}.js`);
 }
 const $ = id => document.getElementById(id);
@@ -51,7 +51,10 @@ function titleSettings() {
     settings.append($('reader-body'));
 }
 function open(title, text, actions = [], eyebrow = '旧宅 · 观察记录') {
-    if (!reader.open) lastFocus = document.activeElement;
+    if (!reader.open) {
+        lastFocus = document.activeElement;
+        if (mode === 'game' && scene?.controls) story.save(scene.playerSnapshot());
+    }
     scene?.controls?.clear();
     touches.clear(); updateTouch();
     if (document.pointerLockElement) document.exitPointerLock();
@@ -269,7 +272,6 @@ function title() {
     audio.pause(); updateStatus(); $('begin').focus();
 }
 function pause() {
-    save();
     open('暂歇', '合上这页，就能继续观察。当前进度只保存在这台设备的浏览器中。', [
         ['继续探索', close], ['回查手记', () => journal(!!scene.inspectionReturn)], ['查看地图', () => showMap()],
         ...(story.state.memory ? [['回到厨房', returnMemory]] : []), ['返回标题', title]

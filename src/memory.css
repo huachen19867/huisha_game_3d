@@ -8,3 +8,19 @@
 .memory-quote { font-size: 13px; line-height: 1.8; white-space: pre-line; border-left: 2px solid var(--line); padding: 5px 12px; color: #c4c5b6; }
 .memory-feedback { font-size: 13px; line-height: 1.8; color: #dbc18e; }
 .memory-use-pins { margin-top: 14px; font-size: 13px; }
+.memory-timeline-board { margin: 22px 0; padding-top: 16px; border-top: 1px solid var(--line); }
+.memory-timeline-board h3 { font-size: 16px; font-weight: normal; letter-spacing: 2px; margin: 0 0 10px; }
+.memory-timeline-help, .memory-timeline-empty { font-size: 12px; line-height: 1.8; color: var(--muted); }
+.memory-timeline { padding-left: 28px; margin: 16px 0; border-left: 1px solid #b19a6b80; }
+.memory-timeline li { padding: 0 0 12px 4px; color: #dfc58e; }
+.memory-fact-card { border: 1px solid var(--line); background: #a4977010; padding: 12px; color: var(--paper); }
+.memory-fact-card h4 { margin: 0; font-weight: normal; font-size: 14px; line-height: 1.8; }
+.memory-fact-card small { font-size: 11px; color: var(--muted); }
+.memory-fact-warning { font-size: 12px; line-height: 1.8; color: #dbc18e; }
+.memory-fact-card blockquote { font-size: 13px; white-space: pre-line; line-height: 1.9; margin: 10px 0; padding: 0 0 0 10px; border-left: 2px solid #b19a6b50; }
+.memory-fact-pool { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.memory-fact-pool > p { grid-column: 1 / -1; }
+.memory-fact-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.memory-fact-actions button { font-size: 12px; padding: 6px 10px; }
+.memory-fact-actions button:disabled { cursor: default; opacity: .4; }
+@media (max-width: 540px) { .memory-fact-pool { grid-template-columns: 1fr; } .memory-timeline { padding-left: 19px; } }

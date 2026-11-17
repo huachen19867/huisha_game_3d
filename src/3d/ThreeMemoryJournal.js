@@ -31,10 +31,10 @@
                 return;
             }
             let submit;
-            this.open(definition.title, '把两份已经观察过的原文放在一起，再选出你认为成立的解释。错误尝试不会清空草稿。',
+            this.open(definition.title, '对照两份已读原文，把有明确日期的片段放上时间线，再提交解释。错误尝试不会清空草稿。',
                 [['提交推理', () => submit()], ...actions], '只用你亲眼见到的记录');
             const container = document.getElementById('reader-body'), form = document.createElement('div'); form.className = 'memory-draft';
-            const draft = this.story.state.drafts[id] || { evidence: ['', ''], interpretation: null };
+            const draft = this.story.state.drafts[id] || { evidence: ['', ''], interpretation: null, timeline: [] };
             const records = this.knownRecords(), selectors = [], quotes = [];
             const option = (value, label) => { const element = document.createElement('option'); element.value = value; element.textContent = label; return element; };
             for (let index = 0; index < 2; index++) {
@@ -54,14 +54,22 @@
             interpretation.value = draft.interpretation === null ? '' : String(draft.interpretation);
             label.append(interpretation); form.append(label);
             const status = document.createElement('p'); status.className = 'memory-feedback'; status.setAttribute('role', 'status'); form.append(status);
-            const saveDraft = () => this.story.setMemoryDraft(id, selectors.map(select => select.value), interpretation.value === '' ? null : Number(interpretation.value));
+            let timeline;
+            const saveDraft = order => {
+                this.story.setMemoryDraft(id, selectors.map(select => select.value), interpretation.value === '' ? null : Number(interpretation.value),
+                    Array.isArray(order) ? order : this.story.state.drafts[id]?.timeline);
+                timeline?.refresh();
+            };
+            timeline = new game.ThreeMemoryTimeline({ id, definition, story: this.story, records,
+                getEvidence: () => selectors.map(select => select.value), onChange: saveDraft, onFeedback: message => { status.textContent = message; } });
+            timeline.mount(form, label);
             const pins = this.story.state.pinnedRecords;
             if (pins.length === 2 && pins.every(pin => records.some(record => record.id === pin))) {
                 const usePins = document.createElement('button'); usePins.type = 'button'; usePins.className = 'memory-use-pins';
                 usePins.textContent = '把两份摘记放入草稿';
                 usePins.addEventListener('click', () => {
                     selectors.forEach((select, index) => { select.value = pins[index]; quotes[index](); });
-                    saveDraft(); status.textContent = '已放入原文。还要由你选择解释，并主动提交。';
+                    saveDraft(); status.textContent = '已放入原文。还要排列时间线、选择解释，再主动提交。';
                 });
                 form.prepend(usePins);
             }

@@ -101,6 +101,10 @@ async function boot(saved, preferences) {
 let ui;
 try {
     ui = await boot();
+    const editFact = (id, action = 'add') => {
+        const button = ui.document.querySelector(`.memory-timeline-board button[data-fact="${id}"][data-action="${action}"]`);
+        assert.ok(button && !button.disabled, `missing available timeline action: ${id}/${action}`); button.click();
+    };
     assert.equal(ui.$('begin').disabled, false);
     assert.match(ui.$('load-status').textContent, /wood-color/, 'early material errors remain visible after readiness');
     ui.$('title-settings').click();
@@ -235,10 +239,12 @@ try {
     ui.document.querySelector('[data-map-space="school"]').click(); ui.click('继续探索');
     ui.inspect('school_notice'); ui.click('整理这段记忆');
     assert.equal(ui.document.querySelector('.memory-draft option[value="school_receipt"]'), null, 'unread evidence is not offered in the DOM');
+    assert.equal(ui.document.querySelector('.memory-timeline-board [data-fact="receipt"]'), null, 'unread facts never appear as cards');
     ui.click('提交推理'); assert.match(ui.document.querySelector('.memory-feedback').textContent, /两份不同/);
     ui.click('把两份摘记放入草稿');
     assert.deepEqual([...ui.scene.story.state.drafts.school.evidence], ['coffin', 'wall_marks']);
     assert.equal(ui.scene.story.state.drafts.school.interpretation, null, 'copying pins never chooses an explanation');
+    assert.equal(ui.scene.story.state.drafts.school.timeline.length, 0, 'copying pins never arranges events');
     assert.equal(ui.scene.story.state.deductions.school, false);
     ui.click('回查手记');
     assert.equal(ui.document.querySelector('.evidence-filter select').value, 'school', 'the journal opens on the current memory');
@@ -252,20 +258,37 @@ try {
     let fields = [...ui.document.querySelectorAll('.memory-draft select')];
     assert.deepEqual(fields.map(field => field.value), ['school_notice', 'school_receipt', '']);
     ui.choose(fields[0], 'school_notice'); ui.choose(fields[1], 'school_receipt'); ui.choose(fields[2], 0);
+    ui.click('提交推理'); assert.match(ui.document.querySelector('.memory-feedback').textContent, /时间线/);
+    editFact('receipt'); editFact('notice');
+    ui.click('提交推理'); assert.match(ui.document.querySelector('.memory-feedback').textContent, /先后/);
+    assert.deepEqual([...ui.scene.story.state.drafts.school.timeline], ['receipt', 'notice']);
+    editFact('notice', 'up');
+    assert.ok(ui.document.querySelector('.memory-timeline-board').contains(ui.document.activeElement), 'reordering keeps keyboard focus inside the timeline');
+    assert.equal(ui.scene.story.state.deductions.school, false, 'a correct timeline still waits for explicit submission');
+    ui.choose(fields[1], 'school_notice'); assert.ok(ui.document.querySelector('.memory-fact-warning'));
+    assert.deepEqual([...ui.scene.story.state.drafts.school.timeline], ['notice', 'receipt'], 'changing source selection preserves the arranged facts');
+    ui.choose(fields[1], 'school_receipt'); assert.equal(ui.document.querySelector('.memory-fact-warning'), null);
     assert.match(ui.document.querySelector('.memory-quote').textContent, /二〇一四/);
     fields[0].focus(); const typing = ui.key('KeyW', fields[0]);
     assert.equal(typing.defaultPrevented, false); assert.equal(ui.scene.controls.keys.size, 0, 'game movement does not capture keys from the open form');
     ui.click('提交推理'); assert.match(ui.document.querySelector('.memory-feedback').textContent, /不能相互支持/);
     assert.equal(ui.scene.story.state.deductions.school, false);
+    editFact('receipt', 'up');
+    const recordReadingPose = { ...ui.scene.controls.snapshot() };
+    assert.deepEqual(JSON.parse(ui.window.localStorage.getItem(saveKey)).position, recordReadingPose, 'entering a reader saves the evidence location before the page is closed');
     ui.$('reader-close').click();
     const saved = ui.window.localStorage.getItem(saveKey);
     assert.deepEqual(JSON.parse(saved).drafts.school.evidence, ['school_notice', 'school_receipt']);
+    assert.deepEqual(JSON.parse(saved).drafts.school.timeline, ['receipt', 'notice']);
+    assert.deepEqual(JSON.parse(saved).position, recordReadingPose, 'reading saves the actual evidence location');
     assert.equal(ui.errors.length, 0, ui.errors.map(error => error.message).join('\n'));
     ui.destroy(); ui = await boot(saved, savedPreferences); ui.$('begin').click(); ui.key('KeyJ');
     assert.deepEqual([...ui.scene.story.state.pinnedRecords], ['school_notice', 'school_receipt'], 'pinned originals survive production startup');
     assert.equal(ui.document.querySelectorAll('.evidence-journal [data-pinned-record]').length, 2);
     ui.click('整理 · 录取那年'); fields = [...ui.document.querySelectorAll('.memory-draft select')];
     assert.deepEqual(fields.map(field => field.value), ['school_notice', 'school_receipt', '0'], 'production startup restores the actual DOM draft');
+    assert.deepEqual([...ui.document.querySelectorAll('[data-timeline-event]')].map(item => item.dataset.timelineEvent), ['receipt', 'notice'], 'production startup preserves an incorrect order without silently sorting it');
+    editFact('notice', 'up');
     ui.choose(fields[2], 1); ui.click('提交推理');
     assert.equal(ui.scene.story.state.deductions.school, true); assert.equal(ui.scene.story.state.memory, 'school');
     ui.click('回到厨房'); assert.deepEqual({ ...ui.scene.controls.snapshot() }, returnPose);
@@ -274,7 +297,15 @@ try {
         const definition = ui.window.Huisha3D.MEMORY_CASES[id];
         for (const record of definition.records) ui.inspect(record);
         ui.click('整理这段记忆'); fields = [...ui.document.querySelectorAll('.memory-draft select')];
-        ui.choose(fields[0], definition.records[0]); ui.choose(fields[1], definition.records[1]); ui.choose(fields[2], definition.answer); ui.click('提交推理');
+        ui.choose(fields[0], definition.records[0]); ui.choose(fields[1], definition.records[1]); ui.choose(fields[2], definition.answer);
+        if (id === 'hospital') { editFact('plan'); editFact('diagnosis'); editFact('diagnosis', 'up'); }
+        else {
+            editFact('handover'); editFact('call'); editFact('voice');
+            ui.click('提交推理'); assert.match(ui.document.querySelector('.memory-feedback').textContent, /先后/);
+            editFact('voice', 'up'); editFact('voice', 'up'); editFact('call', 'up');
+            editFact('call', 'remove'); editFact('call'); editFact('call', 'up');
+        }
+        assert.equal(ui.scene.story.state.deductions[id], false); ui.click('提交推理');
         assert.equal(ui.scene.story.state.memory, id, 'correct submission does not auto-return');
         if (id === 'hospital') ui.click('回到厨房');
     }

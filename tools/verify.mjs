@@ -473,6 +473,12 @@ assert.equal(story.enterMemory('school', { x: 0 }), false, 'entering a memory re
 assert.equal(story.enterMemory('__proto__', returnPose), false, 'unknown memory identifiers cannot become active spaces');
 assert.equal(story.depart('wake'), false, 'the deeper ending is not unlocked by the water puzzle');
 for (const [id, definition] of Object.entries(game.MEMORY_CASES)) {
+    assert.equal(new Set(definition.facts.map(fact => fact.id)).size, definition.facts.length);
+    for (const fact of definition.facts) {
+        const source = game.WORLD_MAP.interactables.find(item => item.id === fact.record);
+        assert.ok(source && source.space === id);
+        assert.ok(fact.quote.split('…').every(fragment => source.text.includes(fragment)), 'timeline fragments must come from their actual source record');
+    }
     assert.equal(story.enterMemory(id, controls.snapshot()), true);
     controls.teleport(story.state.position); house.syncState(true);
     assert.equal(house.homeRoot.visible, false);
@@ -480,8 +486,9 @@ for (const [id, definition] of Object.entries(game.MEMORY_CASES)) {
     assert.equal(controls.canOccupy(returnPose.x, returnPose.z), false, 'movement is confined to the current memory, not the house');
     const points = flood();
     for (const item of game.WORLD_MAP.interactables.filter(item => item.space === id && !item.requiresTruth)) verifyReachable(item, points);
-    story.setMemoryDraft(id, [...definition.records], definition.answer);
+    story.setMemoryDraft(id, [...definition.records], definition.answer, definition.timelineOrder);
     assert.equal(story.deduce(id).success, false, 'unobserved records cannot be submitted as evidence');
+    assert.equal(story.state.drafts[id].timeline.length, 0, 'unread records cannot create timeline fragments');
     for (const record of definition.records) {
         const item = game.WORLD_MAP.interactables.find(item => item.id === record);
         const point = verifyReachable(item, points);
@@ -489,9 +496,19 @@ for (const [id, definition] of Object.entries(game.MEMORY_CASES)) {
         interaction.activate(); assert.ok(story.state.records.includes(record));
     }
     assert.equal(story.state.deductions[id], false, 'reading both records does not automatically complete deduction');
-    story.setMemoryDraft(id, [...definition.records], (definition.answer + 1) % definition.choices.length);
+    story.setMemoryDraft(id, [...definition.records], definition.answer, []);
+    assert.match(story.deduce(id).message, /时间线/, 'the obvious explanation alone cannot solve a memory');
+    const undated = definition.facts.find(fact => fact.dated === false);
+    if (undated) {
+        story.record(undated.record); story.setMemoryDraft(id, [...definition.records], definition.answer, [...definition.timelineOrder, undated.id]);
+        assert.match(story.deduce(id).message, /缺少明确日期/);
+        story.setMemoryDraft(id, [definition.records[0], undated.record], definition.answer, [definition.timelineOrder[0], undated.id]);
+        assert.match(story.deduce(id).message, /缺少明确日期/, 'uncertain fragments get actionable feedback even when an evidence source needs replacing');
+    }
+    story.setMemoryDraft(id, [...definition.records], (definition.answer + 1) % definition.choices.length, [...definition.timelineOrder].reverse());
     const draftBeforeWrong = JSON.stringify(story.state.drafts[id]);
     assert.equal(story.deduce(id).success, false); assert.equal(JSON.stringify(story.state.drafts[id]), draftBeforeWrong, 'wrong submissions keep the draft');
+    assert.match(story.deduce(id).message, /先后/);
     story.save(controls.snapshot());
     const memoryRestored = new game.ThreeStory(adapter);
     assert.equal(memoryRestored.state.memory, id); assert.equal(JSON.stringify(memoryRestored.state.drafts[id]), draftBeforeWrong);
@@ -500,7 +517,10 @@ for (const [id, definition] of Object.entries(game.MEMORY_CASES)) {
         story: memoryRestored, isPaused: () => false });
     assert.equal(resumeCamera.position.x, memoryRestored.state.position.x); assert.equal(resumeCamera.position.z, memoryRestored.state.position.z);
     resumeControls.dispose();
+    story.setMemoryDraft(id, [...definition.records], (definition.answer + 1) % definition.choices.length, definition.timelineOrder);
+    assert.match(story.deduce(id).message, /解释还不能/);
     story.setMemoryDraft(id, [...definition.records], definition.answer);
+    assert.deepEqual([...story.state.drafts[id].timeline], [...definition.timelineOrder], 'changing an explanation preserves the explicit timeline');
     assert.equal(story.deduce(id).success, true); assert.equal(story.state.memory, id, 'correct deduction keeps the player in the memory');
     if (id === 'crash') {
         assert.equal(story.truthSolved(), true);
@@ -513,6 +533,20 @@ for (const [id, definition] of Object.entries(game.MEMORY_CASES)) {
     assert.equal(house.homeRoot.visible, true); assert.equal(story.state.memory, null);
 }
 console.log('Memories: real classroom/hospital/road reachability, space isolation, explicit observation and deduction, persistent drafts, return poses and four ending choices passed.');
+const legacyMemory = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, opened: true, waterSolved: true,
+    records: Object.values(game.MEMORY_CASES).flatMap(definition => definition.records),
+    deductions: { school: true, hospital: true, crash: true }, memory: 'crash', departure: 'wake' }), setItem() {} });
+assert.equal(legacyMemory.truthSolved(), true); assert.equal(legacyMemory.state.departure, 'wake', 'completed legacy deductions/endings do not require replaying new timeline controls');
+const legacyPartialMemory = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, opened: true, waterSolved: true,
+    records: ['school_notice', 'school_receipt'], drafts: { school: { evidence: ['school_notice', 'school_receipt'], interpretation: 1 } } }), setItem() {} });
+assert.deepEqual([...legacyPartialMemory.state.drafts.school.evidence], ['school_notice', 'school_receipt']);
+assert.equal(legacyPartialMemory.state.drafts.school.interpretation, 1); assert.equal(legacyPartialMemory.state.drafts.school.timeline.length, 0);
+assert.match(legacyPartialMemory.deduce('school').message, /时间线/);
+const partialTimeline = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, opened: true, waterSolved: true, records: ['school_notice'],
+    drafts: { school: { evidence: ['school_notice', 'school_receipt'], interpretation: 1, timeline: ['notice', 'notice', 'receipt', '__proto__'] } } }), setItem() {} });
+assert.deepEqual([...partialTimeline.state.drafts.school.timeline], ['notice']);
+assert.equal(partialTimeline.state.deductions.school, false);
+console.log('Chronology: original-source fragments, observed-only events, incomplete/undated/wrong-order rejection, persistent wrong drafts and completed legacy compatibility passed.');
 for (const memory of ['__proto__', ['school'], 'missing']) {
     const invalid = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, opened: true, waterSolved: true, memory }), setItem() {} });
     assert.equal(invalid.state.memory, null, 'malformed active-memory values cannot create an unwalkable space');

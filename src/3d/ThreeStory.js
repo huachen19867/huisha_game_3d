@@ -40,7 +40,7 @@
                         this.state.deductions[id] = this.state.waterSolved && saved.deductions?.[id] === true
                             && definition.records.every(record => this.state.records.includes(record));
                         const draft = saved.drafts?.[id];
-                        this.state.drafts[id] = this.cleanDraft(id, draft?.evidence, draft?.interpretation);
+                        this.state.drafts[id] = this.cleanDraft(id, draft?.evidence, draft?.interpretation, draft?.timeline);
                     }
                     if (this.state.waterSolved && typeof saved.memory === 'string' && Object.hasOwn(game.MEMORIES || {}, saved.memory)) {
                         this.state.memory = saved.memory;
@@ -148,13 +148,17 @@
             const pose = this.state.memoryReturn || { x: 8.5, z: -20.4, yaw: Math.PI, pitch: 0 };
             this.state.memory = null; this.state.memoryReturn = null; this.state.position = { ...pose }; this.save(); return pose;
         }
-        cleanDraft(id, evidence, interpretation) {
+        cleanDraft(id, evidence, interpretation, timeline) {
             return { evidence: [0, 1].map(index => Array.isArray(evidence) && this.state.records.includes(evidence[index]) ? evidence[index] : ''),
-                interpretation: Number.isInteger(interpretation) && interpretation >= 0 && interpretation < (game.MEMORY_CASES?.[id]?.choices.length || 0) ? interpretation : null };
+                interpretation: Number.isInteger(interpretation) && interpretation >= 0 && interpretation < (game.MEMORY_CASES?.[id]?.choices.length || 0) ? interpretation : null,
+                timeline: [...new Set((Array.isArray(timeline) ? timeline : []).filter(event => {
+                    const fact = game.MEMORY_CASES?.[id]?.facts.find(fact => fact.id === event);
+                    return fact && this.state.records.includes(fact.record);
+                }))] };
         }
-        setMemoryDraft(id, evidence, interpretation) {
+        setMemoryDraft(id, evidence, interpretation, timeline) {
             if (typeof id !== 'string' || !Object.hasOwn(game.MEMORY_CASES || {}, id)) return;
-            this.state.drafts[id] = this.cleanDraft(id, evidence, interpretation); this.save();
+            this.state.drafts[id] = this.cleanDraft(id, evidence, interpretation, timeline === undefined ? this.state.drafts[id]?.timeline : timeline); this.save();
         }
         deduce(id) {
             const definition = typeof id === 'string' && Object.hasOwn(game.MEMORY_CASES || {}, id) ? game.MEMORY_CASES[id] : null, draft = this.state.drafts[id];
@@ -162,10 +166,19 @@
             if (this.state.deductions[id]) return { success: true, message: definition.conclusion };
             const evidence = draft.evidence;
             if (!evidence[0] || !evidence[1] || evidence[0] === evidence[1]) return { success: false, message: '需要两份不同的已读记录。草稿仍保留着。' };
-            if (!this.state.waterSolved || !evidence.every(record => this.state.records.includes(record))
-                || !definition.records.every(record => evidence.includes(record)) || draft.interpretation !== definition.answer) {
-                return { success: false, message: '这两份记录与解释还不能相互支持。留意日期、签字和原文；可以保留草稿，回去再看。' };
+            const mismatch = { success: false, message: '这两份记录与解释还不能相互支持。留意日期、签字和原文；可以保留草稿，回去再看。' };
+            if (!this.state.waterSolved || !evidence.every(record => this.state.records.includes(record))) return mismatch;
+            const timeline = draft.timeline || [];
+            if (timeline.some(event => definition.facts.find(fact => fact.id === event)?.dated === false)) {
+                return { success: false, message: '时间线里有缺少明确日期的片段，暂时不能据此确定先后。可以先把它放回旁边。草稿还在。' };
             }
+            if (!definition.records.every(record => evidence.includes(record))) return mismatch;
+            if (!timeline.length) return { success: false, message: '先把能确定时间的原文片段放上时间线，按从早到晚排列。选好解释后还要主动提交。' };
+            if (timeline.length !== definition.timelineOrder.length || !definition.timelineOrder.every((event, index) => event === timeline[index])) {
+                return { success: false, message: '时间线的先后还对不上。回看原文里的年份、日期和时刻。'
+                    + (id === 'crash' ? '文件保存的旧语音与今夜拨出的电话也要分开。' : '') + '草稿仍保留着。' };
+            }
+            if (draft.interpretation !== definition.answer) return { success: false, message: '时间已经排好，但这两份原文与解释还不能相互支持。留意签字和原话，不把猜想当成已经发生的事实。' };
             this.state.deductions[id] = true; this.save(); return { success: true, message: definition.conclusion };
         }
         truthSolved() { return ['school', 'hospital', 'crash'].every(id => this.state.deductions[id]); }
@@ -174,7 +187,7 @@
             if (this.state.memory) {
                 if (this.state.memory === 'crash' && this.truthSolved()) return '救护灯另一边还有人在叫你 · 靠近灯，主动决定去向';
                 return this.state.deductions[this.state.memory] ? '这段记忆已核对 · 可以继续观察，或从门边 / 暂停回到厨房'
-                    : `${game.MEMORIES[this.state.memory].title} · 观察记录，选出原文和解释，再主动提交推理`;
+                    : `${game.MEMORIES[this.state.memory].title} · 对照原文，排列时间线，再主动提交解释`;
             }
             if (this.state.departure) return { leave: '归路 · 你已走出旧宅，可以继续回看', stay: '余温 · 今晚留下是你的选择，可以继续回看',
                 wake: '破茧 · 你回应了救护灯，可以继续回看', remember: '回煞 · 你选择留在记忆，可以继续回看' }[this.state.departure];
@@ -225,9 +238,10 @@
             if (stage === 0) return { text: { school: '近处左侧课桌留着录取通知，远处右侧课桌有家长回执。先分别看原文，再用“整理记忆”核对。',
                 hospital: '看看右前方桌上的初诊病历，再去左侧轮椅旁查看签字的复诊安排。比较记录与离家的日期。',
                 crash: '来路左侧石块上有手机，前方右侧放着救护交接单。注意一个是旧录音，一个是今夜的记录。' }[id], next: '再想一想原文' };
-            if (stage === 1) return { text: '选两份不同的已读原文，留意日期和是谁签了字。不要把“如果当时”当成已经发生的事实。选好解释后仍需主动提交。', next: '直接查看这段推理做法' };
+            if (stage === 1) return { text: '选两份不同的已读原文，把有明确日期的片段从早到晚放上时间线，再选择解释。没有具体日期的描述或猜想，可以先留在旁边。选好后仍需主动提交。', next: '直接查看这段推理做法' };
             const titles = definition.records.map(record => game.WORLD_MAP.interactables.find(item => item.id === record).title);
-            return { text: `对照「${titles[0]}」和「${titles[1]}」，选择解释：\n\n${definition.choices[definition.answer]}\n\n没有观察过的记录仍须回到场景中调查，提示不会替你加入手记或完成推理。` };
+            const sequence = definition.timelineOrder.map(event => { const fact = definition.facts.find(fact => fact.id === event); return `${fact.title}：${fact.quote}`; });
+            return { text: `对照「${titles[0]}」和「${titles[1]}」，从早到晚排列：\n\n${sequence.join('\n\n')}\n\n再选择解释：\n\n${definition.choices[definition.answer]}\n\n没有观察过的记录仍须回到场景中调查，提示不会替你加入手记、排列时间线或完成推理。` };
         }
         save(position) {
             if (position) this.state.position = position;

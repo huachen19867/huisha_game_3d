@@ -11,12 +11,27 @@
     game.MEMORY_CASES = {
         school: { title: '离家意味着什么', records: ['school_notice', 'school_receipt'],
             choices: ['留下才算尽孝，离家就是背叛', '离家读书不等于遗弃，父亲也承认了自己的控制', '父亲签过字，过去的伤害就不存在了'], answer: 1,
+            facts: [
+                { id: 'notice', record: 'school_notice', title: '收到录取通知', quote: '二〇一四年七月十日。' },
+                { id: 'receipt', record: 'school_receipt', title: '父亲签下回执', quote: '二〇一四年七月二十日，家长回执上是父亲的签名。' },
+                { id: 'rules', record: 'school_rules', title: '记忆里的家规', quote: '黑板上的日期停在你拿到录取通知的那一年。', dated: false }
+            ], timelineOrder: ['notice', 'receipt'],
             conclusion: '录取通知和父亲回执上的签名属于同一年。你有权离开，父亲也曾承认把担心说成了命令。这份迟来的承认不能抹掉伤害，但离家读书不是你的罪。' },
         hospital: { title: '病情始于哪一天', records: ['hospital_record', 'hospital_plan'],
             choices: ['你离家后，母亲才第一次生病', '病情早于离家，母亲知情安排过后续治疗', '只要你没有离开，病就一定能治好'], answer: 1,
+            facts: [
+                { id: 'diagnosis', record: 'hospital_record', title: '初诊记录', quote: '初诊日期：二〇一二年八月二十三日。' },
+                { id: 'plan', record: 'hospital_plan', title: '母亲签字安排复诊', quote: '二〇一四年八月二十日。…患者签字是母亲的名字。' },
+                { id: 'clock', record: 'hospital_clock', title: '如果早一点回来', quote: '你曾反复想象：如果再早一点回来，会不会不一样。', dated: false }
+            ], timelineOrder: ['diagnosis', 'plan'],
             conclusion: '初诊是二〇一二年，离家是二〇一四年。复诊安排上有母亲自己的签字。疾病并不由你的离家开始，也没有一份记录能证明留下就一定能救回她。' },
         crash: { title: '今夜谁还在等你', records: ['crash_report', 'crash_phone'],
             choices: ['你在事故后仍有生命体征，老宅在重复旧记忆', '母亲打来电话，把你带来陪葬', '已经宣告死亡，只能留在旧宅'], answer: 0,
+            facts: [
+                { id: 'handover', record: 'crash_report', title: '今夜的救护交接', quote: '二〇二六年七月十四日，二十一时十八分。' },
+                { id: 'call', record: 'crash_phone', title: '给旧宅拨出的电话', quote: '二十一时十二分，你给旧宅拨过电话，没有人接。' },
+                { id: 'voice', record: 'crash_phone', title: '手机保存的母亲语音', quote: '屏幕停在本地录音：「母亲，二〇一六年七月十四日。」' }
+            ], timelineOrder: ['voice', 'call', 'handover'],
             conclusion: '手机播放的是十年前保存的语音，救护交接单却写着今夜、你的名字和“仍有呼吸”。这座宅子把旧日的声音接在了一起。救护灯的另一边，还有人正在叫你。' }
     };
     const regions = [], obstacles = [], items = [];
