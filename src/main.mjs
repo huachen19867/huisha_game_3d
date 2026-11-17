@@ -314,7 +314,7 @@ window.addEventListener('pagehide', event => {
 });
 window.addEventListener('pageshow', event => { if (event.persisted && mode === 'game') audio.start(); });
 try {
-    scene = new game.ThreeHouseScene({ root: $('world'), prompt: $('prompt'), story, isPaused, onInspect: inspect,
+    scene = new game.ThreeHouseScene({ root: $('world'), prompt: $('prompt'), focusMarker: $('focus-marker'), story, isPaused, onInspect: inspect,
         onAssetError: name => { assetErrors.add(name); updateLoadStatus(); },
         onFrame: (position, paused) => {
             audio.update(position, paused);

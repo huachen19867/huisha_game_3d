@@ -2,8 +2,8 @@
     const game = global.Huisha3D || (global.Huisha3D = {});
     const THREE = global.THREE;
     class ThreeHouseScene {
-        constructor({ root, prompt, story, isPaused, onInspect, onAssetError, onFrame }) {
-            Object.assign(this, { root, prompt, story, isPaused, onInspect, onAssetError, onFrame });
+        constructor({ root, prompt, focusMarker, story, isPaused, onInspect, onAssetError, onFrame }) {
+            Object.assign(this, { root, prompt, focusMarker, story, isPaused, onInspect, onAssetError, onFrame });
             this.map = game.WORLD_MAP || game.MAIN_HALL_MAP;
             this.clock = new THREE.Clock();
             this.textures = [];
@@ -34,7 +34,7 @@
                 map: this.map, story: this.story, isPaused: this.isPaused,
                 getDoorAngle: id => id === 'yard' ? this.courtyard.gate.rotation.y : this.door.rotation.y });
             this.interaction = new game.ThreeInteraction({ camera: this.camera, map: this.map, scene: this.scene,
-                prompt: this.prompt, story: this.story, isPaused: this.isPaused, onInspect: this.onInspect });
+                prompt: this.prompt, focusMarker: this.focusMarker, story: this.story, isPaused: this.isPaused, onInspect: this.onInspect });
             this.onResize = () => {
                 this.camera.aspect = this.root.clientWidth / Math.max(1, this.root.clientHeight);
                 this.camera.updateProjectionMatrix();

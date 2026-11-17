@@ -1,0 +1,23 @@
+.focus-marker {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    transform: translate(-50%, -50%);
+    border: 1px solid #e5c786;
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px #1b221977, 0 0 12px #0008;
+    pointer-events: none;
+}
+.focus-marker::after {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 8px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #f5dfa8;
+}
+.focus-marker[data-observed="true"] { border-color: #c3c5b799; box-shadow: 0 0 0 2px #1b221966; }
+.focus-marker[data-observed="true"]::after { background: #c3c5b7; }
+.inspecting .focus-marker { display: none; }

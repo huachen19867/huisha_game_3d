@@ -388,9 +388,11 @@ queryScene.updateMatrixWorld(true);
 let queryPaused = false, activated = 0;
 const queryStory = { state: { records: [], memory: null }, record(id) { this.state.records.push(id); } };
 const queryPrompt = { hidden: true, textContent: '' };
+const queryMarker = { hidden: true, style: {}, dataset: {} };
 const query = new game.ThreeInteraction({ camera: queryCamera, map: { interactables: queryItems }, scene: queryScene,
-    prompt: queryPrompt, story: queryStory, isPaused: () => queryPaused, onInspect() { activated++; } });
+    prompt: queryPrompt, focusMarker: queryMarker, story: queryStory, isPaused: () => queryPaused, onInspect() { activated++; } });
 query.update(); assert.equal(query.current?.id, 'near');
+assert.equal(queryMarker.hidden, false); assert.equal(queryMarker.style.left, '50%'); assert.equal(queryMarker.style.top, '50%');
 assert.deepEqual(queryCounts, { self: 0, hidden: 0, otherSpace: 0, decoration: 0 }, 'self, hidden branches, other spaces and decorations never enter narrow-phase raycasting');
 obstruction.visible = true; query.update(); assert.equal(query.current?.id, 'far', 'a blocked best candidate must fall back to the next visible candidate');
 obstruction.visible = false; hiddenRoot.visible = true; query.update(); assert.equal(query.current, null, 'a newly visible blocking ancestor takes effect without rebuilding the cache');
@@ -405,9 +407,31 @@ queryCamera.lookAt(0, 1.6, 6); queryCamera.updateMatrixWorld(true); query.activa
 assert.equal(activated, 0, 'activation rechecks the current direction instead of using a stale prompt');
 queryCamera.lookAt(0, 1.6, 0); queryCamera.updateMatrixWorld(true); query.activate(); assert.equal(activated, 1);
 queryPaused = true; query.update(0); assert.equal(queryPrompt.hidden, true, 'pause hides prompts immediately despite the query interval');
+assert.equal(queryMarker.hidden, true, 'pause also hides the in-world focus marker');
 queryPaused = false; query.update(0); assert.equal(query.current?.id, 'near');
 queryStory.state.memory = 'school'; query.update(0); assert.equal(query.current?.id, 'school_clue', 'space changes refresh prompts immediately');
 query.dispose();
+for (const [width, height] of [[1440, 900], [390, 844], [844, 390], [360, 640], [640, 360], [768, 1024]]) {
+    const focusCamera = new THREE.PerspectiveCamera(66, width / height, 0.06, 10);
+    focusCamera.position.set(0, 1.6, 0); focusCamera.lookAt(0, 1.6, -2); focusCamera.updateMatrixWorld(true);
+    const focusPrompt = { hidden: true, textContent: '' }, marker = { hidden: true, style: {}, dataset: {} };
+    const focusStory = { state: { records: [] }, record(id) { this.state.records.push(id); } };
+    const focusQuery = new game.ThreeInteraction({ camera: focusCamera, scene: new THREE.Scene(), story: focusStory,
+        map: { interactables: [{ id: 'side-clue', title: '侧面字迹', position: { x: 1.2, y: 1.6, z: -2 }, radius: 3 }] },
+        prompt: focusPrompt, focusMarker: marker, isPaused: () => false, onInspect() {} });
+    focusQuery.update();
+    assert.equal(focusQuery.current?.id || null, width > height ? 'side-clue' : null,
+        `${width}x${height}: an object outside the visible screen cannot be offered merely because it is within the old facing cone`);
+    assert.equal(marker.hidden, width < height);
+    focusCamera.lookAt(1.2, 1.6, -2); focusQuery.update(); assert.equal(focusQuery.current.id, 'side-clue');
+    assert.ok(Math.abs(parseFloat(marker.style.left) - 50) < 1e-8, 'the marker follows the actual projected object, not a fixed HUD point');
+    focusQuery.activate(); assert.equal(marker.dataset.observed, 'false');
+    focusQuery.update(); assert.equal(marker.dataset.observed, 'true');
+    focusCamera.lookAt(-2, 1.6, 0); focusQuery.update(1 / 120);
+    assert.equal(marker.hidden, true, 'turning away hides the marker between scheduled occlusion queries');
+    focusQuery.activate(); assert.equal(focusQuery.current, null, 'activation immediately rejects the old offscreen target');
+    focusQuery.dispose();
+}
 console.log('Queries: current-space visibility, self/decorative geometry exclusion, blocked-candidate fallback, 20Hz prompt scans and fresh activation passed. This is a CPU query check, not a WebGL frame-rate measurement.');
 controls.dispose(); interaction.dispose();
 assert.ok([...listeners.values()].every(set => set.size === 0), 'controls must release all event listeners');

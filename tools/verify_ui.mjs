@@ -47,7 +47,7 @@ async function boot(saved) {
                         this.controls = new game.ThreeControls({ camera: this.camera, domElement: canvas, map: this.map,
                             story: this.story, isPaused: this.isPaused });
                         this.interaction = new game.ThreeInteraction({ camera: this.camera, map: this.map, scene: this.scene,
-                            prompt: this.prompt, story: this.story, isPaused: this.isPaused, onInspect: this.onInspect });
+                            prompt: this.prompt, focusMarker: this.focusMarker, story: this.story, isPaused: this.isPaused, onInspect: this.onInspect });
                         this.onAssetError('wood-color'); // Verify that an early error survives the ready message.
                     }
                     syncState() {} // Geometry, materials, animations and projection have their own verifier.
@@ -94,7 +94,9 @@ try {
     assert.equal(ui.$('begin').disabled, false);
     assert.match(ui.$('load-status').textContent, /wood-color/, 'early material errors remain visible after readiness');
     ui.$('begin').click();
-    ui.inspect('letter'); assert.equal(ui.$('reader').open, true); ui.click('放入摘记');
+    ui.inspect('letter'); assert.equal(ui.$('reader').open, true);
+    ui.scene.interaction.update(); assert.equal(ui.$('focus-marker').hidden, true, 'reading hides the focus marker');
+    ui.click('放入摘记');
     ui.inspect('coffin'); ui.click('放入摘记');
     ui.inspect('wall_marks');
     assert.equal(ui.document.querySelector('#reader-actions [data-pin-record]').disabled, true, 'a full comparison requires an explicit removal');
