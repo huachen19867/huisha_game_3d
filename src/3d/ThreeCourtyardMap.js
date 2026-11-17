@@ -9,7 +9,7 @@
             { xMin: -2, xMax: 2, zMin: -33, zMax: -27.5, audio: { surface: 'concrete', rain: 0.1, cutoff: 4500 } }
         ],
         extraDoors: [{ id: 'yard', stateField: 'waterSolved', hingeX: -1, hingeZ: -27.5, width: 2,
-            thickness: 0.16, frontDepth: 0.12, openAngle: Math.PI / 2 }],
+            thickness: 0.16, frontDepth: 0.25, openAngle: Math.PI / 2 }],
         walkable: [...hall.walkable,
             { xMin: -5.8, xMax: 5.8, zMin: -27.2, zMax: -13.8, requiresState: 'opened' },
             { xMin: 5, xMax: 10.8, zMin: -24.7, zMax: -17.7, requiresState: 'opened' },
@@ -24,7 +24,7 @@
             { id: 'water-table', xMin: 7.1, xMax: 9.9, zMin: -23.3, zMax: -22 },
             { id: 'water-tank', xMin: 9.95, xMax: 10.65, zMin: -23.5, zMax: -22.5 },
             { id: 'water-sink', xMin: 6.47, xMax: 7.13, zMin: -22.77, zMax: -22.03 },
-            { id: 'open-drawer', xMin: 7.95, xMax: 9.05, zMin: -22.25, zMax: -21.5, requiresState: 'waterSolved' },
+            { id: 'open-drawer', xMin: 7.95, xMax: 9.05, zMin: -22.25, zMax: -21.5, requiresState: 'waterSolved', pushForward: true },
             { id: 'kitchen-cabinet', xMin: 7, xMax: 8.5, zMin: -24.65, zMax: -23.9 },
             { id: 'kitchen-stove', xMin: 9.3, xMax: 10.65, zMin: -19.3, zMax: -18 },
             ...[-1, 1].flatMap(side => Array.from({ length: 4 }, (_, i) => ({ id: `yard-post-${side}-${i}`,

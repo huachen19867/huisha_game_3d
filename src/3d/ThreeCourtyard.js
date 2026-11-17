@@ -2,7 +2,7 @@
     const game = global.Huisha3D;
     const THREE = global.THREE;
     class ThreeCourtyard {
-        constructor(house) { this.house = house; this.selected = 0; this.waterParts = []; this.targets = []; }
+        constructor(house) { this.house = house; this.selected = 0; this.waterParts = []; this.targets = []; this.releaseProgress = 0; }
         build() {
             const h = this.house, m = h.materials;
             h.box('yard-floor', [12, 0.12, 13.6], [0, -0.1, -20.6], m.stone);
@@ -38,7 +38,12 @@
             const door = h.map.extraDoors[0];
             this.gate = new THREE.Group(); this.gate.position.set(door.hingeX, 0, door.hingeZ); h.scene.add(this.gate);
             h.box('yard-gate', [door.width, 2.7, door.thickness], [door.width / 2, 1.35, 0], m.wood, 'yard_gate', this.gate);
-            h.box('yard-gate-latch', [1.4, 0.1, 0.1], [1, 1.3, 0.12], m.brass, 'yard_gate', this.gate);
+            this.gateBolt = h.box('yard-gate-latch', [1.2, 0.1, 0.1], [1.6, 1.3, 0.14], m.brass, 'yard_gate', this.gate);
+            for (const x of [0.45, 1.2]) for (const side of [-1, 1]) h.box(`yard-bolt-guide-${x}-${side}`, [0.1, 0.04, 0.16],
+                [x, 1.3 + side * 0.09, 0.15], m.brass, 'yard_gate', this.gate);
+            for (const side of [-1, 1]) h.box(`yard-bolt-receiver-${side}`, [0.14, 0.045, 0.17],
+                [door.hingeX + door.width + 0.16, 1.3 + side * 0.09, door.hingeZ + 0.15], m.brass, 'yard_gate');
+            this.buildLinkage();
             h.label('yard-gate-sign', '归　路', [1.1, 0.3], [1, 2, 0.1], [0, 0, 0], 'yard_gate', this.gate);
             h.box('road', [2.6, 0.16, 5], [0, -0.1, -30], m.stone, 'road_exit');
             for (const side of [-1, 1]) h.box(`road-edge-${side}`, [0.18, 0.25, 4.2], [side * 1.35, 0.05, -30], m.wood);
@@ -89,27 +94,60 @@
             h.box('drawer-front', [1.05, 0.22, 0.08], [0, 0, 0], m.wood, 'water_station', this.drawer);
             h.box('drawer-bottom', [1.05, 0.05, 0.6], [0, -0.09, -0.3], m.darkWood, 'water_station', this.drawer);
             h.box('drawer-handle', [0.19, 0.04, 0.06], [0, 0, 0.07], m.brass, 'water_station', this.drawer);
-            this.letter = h.label('unmailed-letter', '没有寄出的信', [0.73, 0.36], [8.5, 0.603, -21.9], [-Math.PI / 2, 0, 0], 'medicine_letter');
+            this.letter = h.label('unmailed-letter', '没有寄出的信', [0.73, 0.36], [0, -0.057, -0.33], [-Math.PI / 2, 0, 0], 'medicine_letter', this.drawer);
+            const letterRecord = h.map.interactables.find(item => item.id === 'medicine_letter');
+            letterRecord.targetObject = this.letter;
             this.marker = h.mesh('bucket-selection', new THREE.TorusGeometry(0.31, 0.012, 6, 32),
                 new THREE.MeshBasicMaterial({ color: 0xd7b875 }), [7.65, 1, -22.55], undefined, undefined, false);
             this.marker.rotation.x = Math.PI / 2;
         }
         target(object, action) { object.userData.waterAction = action; this.targets.push(object); }
+        buildLinkage() {
+            const h = this.house, m = h.materials;
+            const points = [[9.4, 0.72, -22.55], [10.75, 0.72, -22.7], [10.75, 2.65, -24.72], [6.2, 2.65, -24.72],
+                [5.8, 2.65, -24.72], [5.8, 2.65, -27.25], [1.2, 2.65, -27.25], [-1.15, 2.65, -27.25], [-1.15, 1.3, -27.25]]
+                .map(point => new THREE.Vector3(...point));
+            h.mesh('water-to-gate-copper-cable', new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points, false, 'centripetal'), 120, 0.012, 6, false),
+                m.brass, [0, 0, 0], undefined, undefined, false);
+            for (const [index, position] of [[10.75, 2.65, -24.72], [5.8, 2.65, -27.25], [-1.15, 2.65, -27.25], [-1.15, 1.3, -27.25]].entries()) {
+                h.mesh(`cable-pulley-${index}`, new THREE.TorusGeometry(0.075, 0.016, 6, 16), m.darkWood, position, undefined, undefined, false);
+            }
+            this.linkLead = h.cylinder('gate-cable-free-end', 0.012, 0.012, 1, [0, 1.3, -27.25], m.brass);
+            this.linkLead.userData.blocksSight = false;
+            this.linkStart = new THREE.Vector3(-1.15, 1.3, -27.25); this.linkEnd = new THREE.Vector3();
+            this.linkDirection = new THREE.Vector3(); this.linkUp = new THREE.Vector3(0, 1, 0);
+        }
+        updateLinkage() {
+            if (this.renderedRelease === this.releaseProgress) return;
+            const clamp = value => Math.max(0, Math.min(1, value)), ease = value => { const t = clamp(value); return t * t * (3 - 2 * t); };
+            const pull = ease(this.releaseProgress / 0.65), drop = ease((this.releaseProgress - 0.65) / 0.35);
+            this.gateBolt.position.x = 1.6 - 0.8 * pull;
+            this.linkEnd.set(0.6 - 0.8 * pull - 0.75 * drop, 1.3 - 1.27 * drop, -27.25);
+            this.linkLead.position.addVectors(this.linkStart, this.linkEnd).multiplyScalar(0.5);
+            this.linkDirection.subVectors(this.linkEnd, this.linkStart); this.linkLead.scale.y = this.linkDirection.length();
+            this.linkLead.quaternion.setFromUnitVectors(this.linkUp, this.linkDirection.normalize()); this.renderedRelease = this.releaseProgress;
+        }
         placeFurniture(place) {
             place('chinese_console_table', [2.75, 0.98, 1.05], [8.5, 0, -22.75], 0, 'water_station', true);
             place('chinese_cabinet', [1.45, 1.9, 0.7], [7.75, 0, -24.3], 0);
         }
         sync(immediate) {
             const s = this.house.story.state;
-            this.letter.visible = s.waterSolved;
+            this.letter.visible = s.waterSolved && this.drawer.position.z > -21.75;
             this.marker.visible = this.house.inspectionKind === 'water' && !s.waterSolved;
             if (immediate) {
+                this.releaseProgress = s.waterSolved ? 1 : 0;
                 this.gate.rotation.y = s.waterSolved ? this.house.map.extraDoors[0].openAngle : 0;
                 this.update(1, true);
             }
         }
         update(delta, immediate = false) {
+            if (!immediate && this.house.isReading?.()) return;
             const s = this.house.story.state;
+            this.releaseProgress = immediate || this.house.reducedMotion?.matches ? Number(s.waterSolved)
+                : Math.max(0, Math.min(1, this.releaseProgress + (s.waterSolved ? 1 : -1) * delta / 0.75));
+            if (Math.abs(Number(s.waterSolved) - this.releaseProgress) < 1e-8) this.releaseProgress = Number(s.waterSolved);
+            this.updateLinkage();
             const step = immediate || this.house.reducedMotion?.matches ? 1 : Math.min(1, delta * 8);
             this.buckets.forEach((bucket, i) => {
                 const targetX = s.waterSolved && i === 1 ? 9.4 : 7.65 + i * 0.8;
@@ -122,11 +160,17 @@
                 level.position.y = 0.035 + level.scale.y / 2; level.visible = s.buckets[i] > 0;
             });
             this.drawer.position.z += ((s.waterSolved ? -21.57 : -22.23) - this.drawer.position.z) * step;
+            this.letter.visible = s.waterSolved && this.drawer.position.z > -21.75;
+            const obstacle = this.house.map.obstacles.find(item => item.id === 'open-drawer');
+            obstacle.zMin = this.drawer.position.z - 0.68; obstacle.zMax = this.drawer.position.z + 0.11;
+            // The opening drawer may gently push the real player/return pose forward; it must not trap them on exit.
+            const h = this.house, pose = h.inspectionReturn || h.camera?.position;
+            if (pose && h.controls?.clearMovingObstacle(obstacle, pose) && !h.inspectionReturn) h.controls.applyLook();
             this.pan.position.y += ((s.waterSolved ? 0.1 : 0.16) - this.pan.position.y) * step;
             this.marker.position.x = this.buckets[this.selected].position.x;
         }
         moveGate(delta) {
-            const target = this.house.story.state.waterSolved ? this.house.map.extraDoors[0].openAngle : 0;
+            const target = this.house.story.state.waterSolved && this.releaseProgress >= 1 ? this.house.map.extraDoors[0].openAngle : 0;
             const remaining = target - this.gate.rotation.y;
             this.gate.rotation.y += this.house.reducedMotion?.matches || Math.abs(remaining) < 0.001 ? remaining : remaining * Math.min(1, delta * 4);
         }

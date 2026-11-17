@@ -13,3 +13,5 @@
 0.5.0 的视角设置继续参考本目录已下载的 Three.js r160 PointerLockControls 的 pointerSpeed 和俯仰限制。新增声音从 [Kenney 官方](https://kenney.nl/assets/impact-sounds) 下载 CC0 Impact Sounds 1.0，原包留本地 `assets/audio/.source/`，实际使用的九份文件、原许可和来源校验随游戏分发，见 `assets/audio/README.md`。没有引入音频框架或商业游戏素材。
 
 0.6.0 的相框复用现有 Three.js 分组变换、射线与相机投影、已下载参考和现有近看生命周期，不引入新的三维引擎。图片通过 imagegen 技能的内置 image_gen 路径生成并复制入库；完整生产提示词见 `assets/art/mother-portrait.source.json`，原始输出保留在 Codex generated_images 目录，不借用商业游戏人物照片。
+
+0.7.0 下载同版本官方 [InstancedMesh](https://github.com/mrdoob/three.js/blob/r160/src/objects/InstancedMesh.js) 到 `InstancedMesh-r160.js`，许可同 Three.js MIT，仅用来核对矩阵更新、包围球和实例缓冲释放。raw.githubusercontent.com 直取遇 EOF，随后通过 GitHub 连接器读取同一公开文件保存。归门绳段实际使用已有本地 Three.js 的 InstancedMesh，厨房固定铜索使用已有 TubeGeometry；不加载参考文件或引入物理引擎。静止绳段不重复上传矩阵，场景释放时同时释放实例缓冲。

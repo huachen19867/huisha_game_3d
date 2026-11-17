@@ -18,7 +18,7 @@ const canvasContext = { fillRect() {}, strokeRect() {}, fillText() {} };
 const document = { ...eventTarget, createElement() { return { getContext() { return canvasContext; } }; }, hidden: false };
 const window = { ...eventTarget, THREE, Huisha3D: {} };
 const context = vm.createContext({ window, document, console });
-for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeStory', 'ThreePreferences', 'ThreeAudio', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreePortrait', 'ThreeHouseScene']) {
+for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeStory', 'ThreePreferences', 'ThreeAudio', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeHouseScene']) {
     vm.runInContext(await text(`src/3d/${name}.js`), context, { filename: `${name}.js` });
 }
 const game = window.Huisha3D;
@@ -255,8 +255,34 @@ camera.position.set(0, 1.6, -10); controls.tryMove(new THREE.Vector3(0, 0, -4));
 assert.ok(camera.position.z > -11.1, 'closed gate must stop the player');
 story.state.opened = true;
 assert.equal(controls.canOccupy(0, -11.5), false, 'unlocking must not immediately remove a still-closed leaf collision');
+house.syncState(); assert.equal(house.outsideLight.intensity, 4, 'unlocking alone does not jump the exterior fill light');
+const releaseEvents = []; house.onMechanismEvent = event => releaseEvents.push(event);
+const closedCordEnds = house.doorMechanism.cords.map(cord => cord.points[9].clone());
 house.moveDoor(0.05);
+assert.equal(house.door.rotation.y, 0, 'the bolt must retract before the door starts swinging');
+assert.ok(house.doorMechanism.bolt.position.x < 1.85 && house.doorMechanism.bolt.position.x > 0.92);
+assert.equal(controls.canOccupy(0, -11.5), false, 'the still-closed door blocks movement throughout bolt release');
+house.moveDoor(0.15);
+assert.ok(house.doorMechanism.cords.every((cord, index) => cord.mesh.visible && cord.points[9].y < closedCordEnds[index].y), 'cord ends drop through geometry instead of disappearing');
+const pausedRelease = house.doorMechanism.progress; paused = true; house.moveDoor(1);
+assert.equal(house.doorMechanism.progress, pausedRelease, 'reading/pause freezes the release as well as the leaf'); paused = false;
+for (let frame = 0; frame < 11; frame++) house.moveDoor(0.05);
 assert.ok(house.door.rotation.y > 0 && house.door.rotation.y < Math.PI / 2, 'the door swings outward rather than through the player');
+assert.ok(house.outsideLight.intensity > 4 && house.outsideLight.intensity < 9, 'the outside fill follows the actual opening angle');
+assert.deepEqual(releaseEvents, ['door-release']);
+assert.ok(house.doorMechanism.cords.every(cord => cord.points[9].y < 0.04 && cord.mesh.visible));
+const settledCordVersions = house.doorMechanism.cords.map(cord => cord.mesh.instanceMatrix.version);
+for (let frame = 0; frame < 10; frame++) { house.syncState(); house.moveDoor(0.05); }
+assert.deepEqual(house.doorMechanism.cords.map(cord => cord.mesh.instanceMatrix.version), settledCordVersions, 'settled cords never rewrite GPU matrices each frame');
+assert.equal(releaseEvents.length, 1, 'remaining near the open door does not replay its release event');
+const sampleMatrix = new THREE.Matrix4(), segmentPoint = new THREE.Vector3();
+for (const cord of house.doorMechanism.cords) for (let index = 0; index < cord.mesh.count; index++) {
+    cord.mesh.getMatrixAt(index, sampleMatrix); segmentPoint.setFromMatrixPosition(sampleMatrix);
+    assert.ok(Number.isFinite(segmentPoint.x) && segmentPoint.y >= 0.023);
+    assert.ok(cord.mesh.boundingSphere.containsPoint(segmentPoint), 'the fixed culling bounds contain the entire released cord');
+}
+const beforeLoadEvents = releaseEvents.length; house.syncState(true); house.moveDoor(0.05);
+assert.equal(releaseEvents.length, beforeLoadEvents, 'restoring an unlocked state does not replay release audio');
 const leaf = house.scene.getObjectByName('sealed-door');
 for (const angle of [0, Math.PI / 6, Math.PI / 4, Math.PI / 3, Math.PI / 2]) {
     house.door.rotation.y = angle; house.scene.updateMatrixWorld(true);
@@ -273,6 +299,9 @@ assert.equal(house.door.rotation.y, 0, 'reading pauses the opening motion');
 paused = false; house.reducedMotion = { matches: true }; house.moveDoor(0.05);
 assert.equal(house.door.rotation.y, game.MAIN_HALL_MAP.door.openAngle, 'reduced motion opens the leaf without animation');
 house.reducedMotion = null; story.state.opened = false; house.syncState(true);
+assert.equal(house.doorMechanism.bolt.position.x, 1.85); assert.equal(house.doorMechanism.cords[0].points[9].y, 1.1);
+assert.equal(house.outsideLight.intensity, 4, 'restart restores the closed mechanism and lighting');
+console.log('Release: bolt-before-leaf timing, persistent falling/slack cords, paused animation, actual-angle lighting, one-shot events, saved/reduced states and stable instanced buffers passed.');
 paused = true; const before = camera.position.clone(); controls.keys.add('KeyW'); controls.update(0.05);
 assert.equal(camera.position.distanceTo(before), 0); assert.equal(controls.keys.size, 0);
 interaction.update(); assert.equal(prompt.hidden, true); paused = false;
@@ -362,11 +391,46 @@ assert.equal(story.state.waterSolved, false, 'having the correct quantity does n
 assert.equal(story.weighWater(), true);
 assert.equal(story.fillBucket(1), false, 'the bucket placed on the scale is no longer refilled');
 assert.equal(controls.canOccupy(0, -27.5), false, 'the yard gate collision remains until its actual leaf rotates');
+camera.position.set(8.5, 1.6, -21.7); controls.applyLook();
+assert.equal(controls.canOccupy(8.5, -21.7), true, 'the closest legal pre-opening stance is initially clear');
+house.beginWaterInspection(); house.courtyard.sync(false);
+const beforeDrawerReturn = { ...house.playerSnapshot() };
+const letterItem = game.WORLD_MAP.interactables.find(item => item.id === 'medicine_letter');
+const letterCamera = new THREE.PerspectiveCamera(66, 1, 0.06, 60); letterCamera.position.set(8.5, 0.9, -20.7); letterCamera.lookAt(8.5, 0.63, -21.9);
+const letterInteraction = new game.ThreeInteraction({ camera: letterCamera, scene: new THREE.Scene(), map: { interactables: [letterItem] },
+    story, prompt: { hidden: true, textContent: '' }, isPaused: () => false, onInspect() {} });
+letterInteraction.activate(); assert.equal(letterInteraction.current, null, 'a solved state cannot expose a still-hidden drawer record');
+assert.equal(story.state.records.includes('medicine_letter'), false);
+house.courtyard.update(0.05); house.courtyard.moveGate(0.05);
+assert.equal(house.courtyard.gate.rotation.y, 0, 'the yard gate waits for its bolt/cable release');
+assert.ok(house.courtyard.gateBolt.position.x < 1.6 && house.courtyard.gateBolt.position.x > 0.8);
+const pausedDrawerZ = house.courtyard.drawer.position.z, pausedGateRelease = house.courtyard.releaseProgress;
+readingPortrait = true; house.courtyard.update(1); assert.equal(house.courtyard.drawer.position.z, pausedDrawerZ);
+assert.equal(house.courtyard.releaseProgress, pausedGateRelease, 'a document freezes kitchen props even while at the water inspector');
+readingPortrait = false;
+for (let frame = 0; frame < 15; frame++) { house.courtyard.update(0.05); house.courtyard.moveGate(0.05); }
+assert.ok(house.courtyard.gate.rotation.y > 0); assert.equal(house.courtyard.releaseProgress, 1);
+assert.ok(house.playerSnapshot().z > beforeDrawerReturn.z, 'the opening drawer clears the saved return stance instead of trapping the player');
+assert.equal(controls.canOccupy(house.playerSnapshot().x, house.playerSnapshot().z), true);
+house.scene.updateMatrixWorld(true); letterInteraction.update(); assert.equal(letterInteraction.current?.id, 'medicine_letter');
+const movingLetter = house.courtyard.letter.getWorldPosition(new THREE.Vector3());
+assert.ok(Math.abs(movingLetter.z - (house.courtyard.drawer.position.z - 0.33)) < 1e-9, 'the letter rides inside the physical drawer');
+house.endInspection(); assert.equal(controls.canOccupy(camera.position.x, camera.position.z), true);
+letterInteraction.dispose();
+assert.ok(house.scene.getObjectByName('water-to-gate-copper-cable'));
 house.syncState(true); house.scene.updateMatrixWorld(true);
 assert.equal(house.courtyard.waterParts[1].visible, true);
 assert.equal(house.courtyard.buckets[1].position.x, 9.4, 'the five-litre bucket physically moves onto the scale');
 assert.equal(house.courtyard.letter.visible, true, 'the released drawer reveals an actual letter in the scene');
 assert.ok(house.courtyard.drawer.position.z > -22, 'the drawer physically slides out');
+const drawerResumeStory = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, opened: true, waterSolved: true,
+    position: { x: 8.5, z: -21.7, yaw: Math.PI, pitch: -0.2 } }), setItem() {} });
+const drawerResumeCamera = new THREE.PerspectiveCamera(66, 1, 0.06, 60);
+const drawerResumeControls = new game.ThreeControls({ camera: drawerResumeCamera, domElement: eventTarget,
+    map: game.WORLD_MAP, story: drawerResumeStory, isPaused: () => false });
+assert.ok(drawerResumeCamera.position.z > -21.3 && drawerResumeCamera.position.z < -21, 'loading while a drawer was opening restores a nearby safe point instead of the hall spawn');
+assert.equal(drawerResumeControls.canOccupy(drawerResumeCamera.position.x, drawerResumeCamera.position.z), true);
+assert.equal(drawerResumeControls.yaw, Math.PI); assert.equal(drawerResumeControls.pitch, -0.2); drawerResumeControls.dispose();
 const roadPoints = flood();
 assert.ok(roadPoints.some(point => point.z < -30.5), 'operating the scale opens a walkable path to the mountain road');
 for (const item of game.WORLD_MAP.interactables.filter(item => !item.space && item.requiresWater)) verifyReachable(item, roadPoints);

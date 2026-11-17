@@ -2,8 +2,8 @@
     const game = global.Huisha3D || (global.Huisha3D = {});
     const THREE = global.THREE;
     class ThreeHouseScene {
-        constructor({ root, prompt, focusMarker, story, isPaused, isReading, onInspect, onAssetError, onFrame, getPreferences }) {
-            Object.assign(this, { root, prompt, focusMarker, story, isPaused, isReading, onInspect, onAssetError, onFrame, getPreferences });
+        constructor({ root, prompt, focusMarker, story, isPaused, isReading, onInspect, onAssetError, onFrame, getPreferences, onMechanismEvent }) {
+            Object.assign(this, { root, prompt, focusMarker, story, isPaused, isReading, onInspect, onAssetError, onFrame, getPreferences, onMechanismEvent });
             this.map = game.WORLD_MAP || game.MAIN_HALL_MAP;
             this.clock = new THREE.Clock();
             this.textures = [];
@@ -204,13 +204,6 @@
             this.mesh('coffin-body', body, m.darkWood, [0, 0.17, 0.65], 'coffin');
             this.box('coffin-lid', [2.72, 0.16, 1.35], [0, 0.81, 0.65], m.wood, 'coffin');
             this.label('coffin-inscription', '左位留灯　右位留门', [1.75, 0.33], [0, 0.899, 0.65], [-Math.PI / 2, 0, 0], 'coffin', undefined, '#5c3b2c', '#c5b38c');
-            this.cords = [];
-            for (let i = -1; i <= 1; i++) {
-                this.box(`coffin-cord-${i}`, [0.025, 0.025, 1.38], [i * 0.76, 0.905, 0.65], m.red, 'coffin', undefined, false);
-                const cord = this.box(`floor-cord-${i}`, [0.018, 0.014, 11.25], [i * 0.24, 0.015, -5.65], m.red, undefined, undefined, false);
-                cord.userData.cord = true;
-                this.cords.push(cord);
-            }
             this.box('letter-shelf', [0.95, 0.1, 0.35], [2.65, 0.95, 4.07], m.wood, 'letter');
             this.label('letter', '七月十四\n回来一趟', [0.6, 0.4], [2.65, 1.15, 3.98], [0, Math.PI, 0], 'letter');
             const door = this.map.door;
@@ -235,6 +228,7 @@
             }
             this.wheelTargets = [0, 0, 0]; this.wheelSymbols = [0, 0, 0];
             this.label('lock-heading', '归　门', [1.3, 0.4], [1.17, 2.2, 0.11], [0, 0, 0], 'lock', this.door, '#352321', '#c9b389');
+            this.doorMechanism = new game.ThreeDoorMechanism(this); this.doorMechanism.build();
             if (game.ThreeCourtyard) { this.courtyard = new game.ThreeCourtyard(this); this.courtyard.build(); }
             if (game.ThreeMemoryScenes) { this.memories = new game.ThreeMemoryScenes(this); this.memories.build(); }
         }
@@ -310,8 +304,7 @@
                 if (immediate) wheel.rotation.x = this.wheelTargets[i];
             });
             if (immediate) this.door.rotation.y = s.opened ? this.map.door.openAngle : 0;
-            this.cords.forEach(cord => { cord.visible = !s.opened; });
-            this.outsideLight.intensity = s.opened ? 9 : 4;
+            this.doorMechanism.sync(immediate);
             this.courtyard?.sync(immediate);
             this.memories?.sync();
         }
@@ -391,9 +384,11 @@
         }
         moveDoor(delta) {
             if (this.isPaused()) return;
-            const target = this.story.state.opened ? this.map.door.openAngle : 0;
+            this.doorMechanism.update(delta);
+            const target = this.story.state.opened && this.doorMechanism.ready ? this.map.door.openAngle : 0;
             const remaining = target - this.door.rotation.y;
             this.door.rotation.y += this.reducedMotion?.matches || Math.abs(remaining) < 0.001 ? remaining : remaining * Math.min(1, delta * 4);
+            this.doorMechanism.updateLight();
             this.courtyard?.moveGate(delta);
         }
         dispose() {
@@ -406,6 +401,7 @@
                 if (obj.geometry) geometries.add(obj.geometry);
                 if (obj.material) (Array.isArray(obj.material) ? obj.material : [obj.material]).forEach(m => materials.add(m));
                 if (obj.isLight) obj.dispose?.();
+                if (obj.isInstancedMesh) obj.dispose();
             });
             geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); this.textures.forEach(t => t.dispose());
             this.renderer?.dispose(); this.renderer?.domElement.remove();

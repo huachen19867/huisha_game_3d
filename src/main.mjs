@@ -2,7 +2,7 @@ import * as THREE from '../vendor/three.module.mjs';
 import { GLTFLoader } from '../vendor/GLTFLoader.mjs';
 window.THREE = THREE;
 window.Huisha3D = { GLTFLoader };
-for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeStory', 'ThreePreferences', 'ThreeSettings', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreeMemoryJournal', 'ThreeEvidenceJournal', 'ThreePortrait', 'ThreeHouseScene', 'ThreeAudio']) {
+for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeStory', 'ThreePreferences', 'ThreeSettings', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreeMemoryJournal', 'ThreeEvidenceJournal', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeHouseScene', 'ThreeAudio']) {
     await import(`./3d/${name}.js`);
 }
 const $ = id => document.getElementById(id);
@@ -73,7 +73,11 @@ function close() {
 function knownRecords() {
     return story.state.records.map(id => id === 'portrait_back'
         ? game.PORTRAIT_BACK_RECORD
-        : game.WORLD_MAP.interactables.find(item => item.id === id)).filter(Boolean);
+        : game.WORLD_MAP.interactables.find(item => item.id === id)).filter(Boolean).map(presentRecord);
+}
+function presentRecord(item) {
+    return item.id === 'yard_gate' && story.state.waterSolved ? { ...item,
+        text: '铜索的绳头垂在门框旁，门闩已经退开。\n\n从厨房压平旧秤后，抽屉与院门接连松了。门外是一条逐渐亮起来的山路。' } : item;
 }
 function journal(backToLock = false) {
     open('随身手记', '', [
@@ -218,6 +222,7 @@ function ending(choice) {
     open({ stay: '余温', leave: '归路', wake: '破茧', remember: '回煞' }[choice], text, [['留在现场回看', close], ['返回标题', title]], '回煞 · 你的选择');
 }
 function inspect(item) {
+    item = presentRecord(item);
     ['lock', 'water_station'].includes(item.id) ? audio.knock() : audio.paper();
     if (item.id === 'lock') { lock(); return; }
     if (item.id === 'water_station') { water(); return; }
@@ -286,7 +291,7 @@ $('lock-attempt').addEventListener('click', () => {
     if (reader.open || scene.inspectionKind !== 'lock') return;
     scene.syncState(true);
     if (!story.unlock()) { audio.knock(); updateLock('门闩又落了回去。可以继续调整字轮，或回查字迹。'); return; }
-    scene.syncState(); audio.release(); leaveInspection();
+    scene.syncState(); audio.latch(); leaveInspection();
     $('toast').textContent = '门闩松开了。你可以继续观察，也可以穿过门去。'; $('toast').hidden = false;
     setTimeout(() => { $('toast').hidden = true; }, 5000);
 });
@@ -349,6 +354,7 @@ try {
     scene = new game.ThreeHouseScene({ root: $('world'), prompt: $('prompt'), focusMarker: $('focus-marker'), story, isPaused, onInspect: inspect,
         getPreferences: () => preferences.values,
         isReading: () => reader.open || document.hidden || mode !== 'game',
+        onMechanismEvent: event => { if (event === 'door-release') audio.knock(); },
         onAssetError: name => { assetErrors.add(name); updateLoadStatus(); },
         onFrame: (position, paused) => {
             audio.update(position, paused, story.state.memory || 'house');

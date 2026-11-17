@@ -6,7 +6,7 @@
         id: 'homecoming',
         playerStart: { x: 0, y: 1.6, z: 3.4, yaw: Math.PI },
         playerRadius: 0.25,
-        door: { hingeX: -1.17, hingeZ: -11.5, width: 2.34, thickness: 0.18, frontDepth: 0.56, openAngle: Math.PI / 2 },
+        door: { hingeX: -1.17, hingeZ: -11.5, width: 2.34, thickness: 0.18, frontDepth: 0.6, openAngle: Math.PI / 2 },
         walkable: [
             { xMin: -4.8, xMax: 4.8, zMin: -4.1, zMax: 4.2 },
             { xMin: -1.25, xMax: 1.25, zMin: -11.5, zMax: -3.3 },

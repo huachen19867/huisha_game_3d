@@ -12,7 +12,8 @@
             this.playerRadius = map.playerRadius;
             this.handlers = [];
             camera.position.set(start.x, map.playerStart.y, start.z);
-            const saved = story.state.position;
+            const saved = story.state.position && { ...story.state.position };
+            if (saved) for (const obstacle of map.obstacles) if (obstacle.pushForward) this.clearMovingObstacle(obstacle, saved);
             if (saved && this.canOccupy(saved.x, saved.z)) {
                 camera.position.x = saved.x;
                 camera.position.z = saved.z;
@@ -93,6 +94,16 @@
                 if (this.canOccupy(p.x + dx, p.z)) p.x += dx;
                 if (this.canOccupy(p.x, p.z + dz)) p.z += dz;
             }
+        }
+        clearMovingObstacle(rect, pose) {
+            if ((rect.space || 'house') !== (this.story.state.memory || 'house') || (rect.requiresState && !this.story.state[rect.requiresState])) return false;
+            const radius = this.playerRadius;
+            const dx = pose.x - Math.max(rect.xMin, Math.min(rect.xMax, pose.x));
+            const dz = pose.z - Math.max(rect.zMin, Math.min(rect.zMax, pose.z));
+            if (dx * dx + dz * dz >= radius * radius) return false;
+            const clearZ = rect.zMax + radius + 0.01;
+            if (!this.canOccupy(pose.x, clearZ)) return false;
+            pose.z = clearZ; return true;
         }
         canOccupy(x, z) {
             const radius = this.playerRadius;

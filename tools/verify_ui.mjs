@@ -44,9 +44,11 @@ async function boot(saved, preferences) {
                         scene = this; this.scene = new THREE.Scene(); this.camera = new THREE.PerspectiveCamera(66, 16 / 9, 0.06, 60);
                         const canvas = document.createElement('canvas'); this.root.append(canvas);
                         this.renderer = { domElement: canvas, toneMappingExposure: 1.28, dispose() {} };
-                        this.materials = Object.fromEntries(['wood', 'darkWood', 'brass', 'portrait', 'paper', 'cloth'].map(name => [name, new THREE.MeshStandardMaterial()]));
+                        this.materials = Object.fromEntries(['wood', 'darkWood', 'brass', 'portrait', 'paper', 'cloth', 'red'].map(name => [name, new THREE.MeshStandardMaterial()]));
                         this.portrait = new game.ThreePortrait(this); this.portrait.build();
-                        this.courtyard = { selected: 0, frame() {}, pick() { return null; } }; this.wheels = [];
+                        this.door = new THREE.Group(); this.door.position.set(this.map.door.hingeX, 0, this.map.door.hingeZ); this.scene.add(this.door);
+                        this.outsideLight = { intensity: 4 }; this.doorMechanism = new game.ThreeDoorMechanism(this); this.doorMechanism.build();
+                        this.courtyard = { selected: 0, frame() {}, moveGate() {}, pick() { return null; } }; this.wheels = [];
                         this.controls = new game.ThreeControls({ camera: this.camera, domElement: canvas, map: this.map,
                             story: this.story, isPaused: this.isPaused, getPreferences: this.getPreferences });
                         this.interaction = new game.ThreeInteraction({ camera: this.camera, map: this.map, scene: this.scene,
@@ -54,7 +56,11 @@ async function boot(saved, preferences) {
                         this.onAssetError('wood-color'); // Verify that an early error survives the ready message.
                     }
                     labelMaterial() { return new THREE.MeshBasicMaterial(); } // No real canvas text or photo decoding in jsdom.
-                    syncState(immediate) { this.portrait?.sync(immediate); } // Other scene geometry remains outside this DOM check.
+                    syncState(immediate) {
+                        this.portrait?.sync(immediate);
+                        if (immediate) this.door.rotation.y = this.story.state.opened ? this.map.door.openAngle : 0;
+                        this.doorMechanism?.sync(immediate);
+                    } // Other scene geometry remains outside this DOM check.
                 };
             }
             return module;
@@ -179,10 +185,16 @@ try {
     assert.match(ui.document.querySelector('#lock-inspector .inspection-notes-body').textContent, /左位留灯/);
     assert.match(ui.document.querySelector('#lock-inspector .inspection-notes-body').textContent, /灯和门之间/);
     ui.$('lock-attempt').click(); assert.equal(ui.scene.story.state.opened, false);
+    assert.equal(ui.scene.doorMechanism.progress, 0, 'an incorrect UI attempt never starts a release');
     ui.key('KeyJ'); assert.equal(ui.$('reader-title').textContent, '随身手记');
     ui.click('回到字轮'); assert.equal(ui.$('reader').open, false); assert.equal(ui.scene.inspectionKind, 'lock');
     for (const [index, turns] of [[0, 3], [1, 2], [2, 1]]) for (let i = 0; i < turns; i++) ui.document.querySelector(`[data-wheel="${index}"]`).click();
     ui.$('lock-attempt').click(); assert.equal(ui.scene.story.state.opened, true); assert.equal(ui.$('lock-inspector').hidden, true);
+    assert.equal(ui.scene.doorMechanism.progress, 0, 'successful UI activation arms the animation without snapping to the open pose');
+    ui.scene.moveDoor(0.05); assert.equal(ui.scene.door.rotation.y, 0);
+    ui.$('pause').click(); const pausedReleaseProgress = ui.scene.doorMechanism.progress;
+    ui.scene.moveDoor(1); assert.equal(ui.scene.doorMechanism.progress, pausedReleaseProgress);
+    ui.click('继续探索'); ui.scene.moveDoor(1); assert.ok(ui.scene.door.rotation.y > 0);
     ui.inspect('water_station'); ui.$('water-weigh').click(); assert.equal(ui.scene.story.state.waterSolved, false);
     ui.document.querySelector('[data-bucket="1"]').click(); ui.$('water-fill').click(); ui.key('KeyP');
     ui.document.querySelector('[data-bucket="0"]').click(); ui.$('water-empty').click();
