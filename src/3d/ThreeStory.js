@@ -2,7 +2,7 @@
     const game = global.Huisha3D || (global.Huisha3D = {});
     const SAVE_KEY = 'huisha.3d.homecoming.v1';
     const symbols = ['雨', '门', '人', '灯'];
-    const freshState = () => ({ records: [], wheels: [0, 0, 0], opened: false, portrait: false, ending: false,
+    const freshState = () => ({ records: [], pinnedRecords: [], wheels: [0, 0, 0], opened: false, portrait: false, ending: false,
         courtyard: false, buckets: [0, 0], waterSolved: false, departure: null, position: null,
         memory: null, memoryReturn: null, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
@@ -33,6 +33,8 @@
                     if (this.state.waterSolved) this.state.buckets[1] = 4;
                     if (!this.state.waterSolved) this.state.records = this.state.records.filter(id =>
                         !(game.WORLD_MAP || game.MAIN_HALL_MAP).interactables.find(item => item.id === id)?.requiresWater);
+                    this.state.pinnedRecords = [...new Set((Array.isArray(saved.pinnedRecords) ? saved.pinnedRecords : [])
+                        .filter(id => this.state.records.includes(id)))].slice(0, 2);
                     for (const [id, definition] of Object.entries(game.MEMORY_CASES || {})) {
                         this.state.deductions[id] = this.state.waterSolved && saved.deductions?.[id] === true
                             && definition.records.every(record => this.state.records.includes(record));
@@ -53,6 +55,15 @@
         record(id) {
             if (!this.state.records.includes(id)) this.state.records.push(id);
             this.save();
+        }
+        togglePin(id) {
+            if (!this.state.records.includes(id)) return false;
+            if (this.state.pinnedRecords.includes(id)) this.state.pinnedRecords = this.state.pinnedRecords.filter(record => record !== id);
+            else {
+                if (this.state.pinnedRecords.length >= 2) return false;
+                this.state.pinnedRecords.push(id);
+            }
+            this.save(); return true;
         }
         revealPortrait() { this.state.portrait = true; this.record('portrait_back'); }
         rotate(index) {

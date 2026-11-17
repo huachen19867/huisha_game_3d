@@ -35,7 +35,7 @@
                 [['提交推理', () => submit()], ...actions], '只用你亲眼见到的记录');
             const container = document.getElementById('reader-body'), form = document.createElement('div'); form.className = 'memory-draft';
             const draft = this.story.state.drafts[id] || { evidence: ['', ''], interpretation: null };
-            const records = this.knownRecords(), selectors = [];
+            const records = this.knownRecords(), selectors = [], quotes = [];
             const option = (value, label) => { const element = document.createElement('option'); element.value = value; element.textContent = label; return element; };
             for (let index = 0; index < 2; index++) {
                 const label = document.createElement('label'); label.textContent = index ? '第二份原文' : '第一份原文';
@@ -44,6 +44,7 @@
                 select.value = draft.evidence[index]; selectors.push(select);
                 const quote = document.createElement('p'); quote.className = 'memory-quote';
                 const update = () => { quote.textContent = records.find(record => record.id === select.value)?.text || '尚未选择原文。可以先保留草稿，回现场观察。'; };
+                quotes.push(update);
                 select.addEventListener('change', () => { update(); saveDraft(); }); update();
                 label.append(select); form.append(label, quote);
             }
@@ -54,6 +55,16 @@
             label.append(interpretation); form.append(label);
             const status = document.createElement('p'); status.className = 'memory-feedback'; status.setAttribute('role', 'status'); form.append(status);
             const saveDraft = () => this.story.setMemoryDraft(id, selectors.map(select => select.value), interpretation.value === '' ? null : Number(interpretation.value));
+            const pins = this.story.state.pinnedRecords;
+            if (pins.length === 2 && pins.every(pin => records.some(record => record.id === pin))) {
+                const usePins = document.createElement('button'); usePins.type = 'button'; usePins.className = 'memory-use-pins';
+                usePins.textContent = '把两份摘记放入草稿';
+                usePins.addEventListener('click', () => {
+                    selectors.forEach((select, index) => { select.value = pins[index]; quotes[index](); });
+                    saveDraft(); status.textContent = '已放入原文。还要由你选择解释，并主动提交。';
+                });
+                form.prepend(usePins);
+            }
             interpretation.addEventListener('change', saveDraft);
             submit = () => {
                 saveDraft(); const result = this.story.deduce(id);

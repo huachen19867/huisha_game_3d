@@ -2,7 +2,7 @@ import * as THREE from '../vendor/three.module.mjs';
 import { GLTFLoader } from '../vendor/GLTFLoader.mjs';
 window.THREE = THREE;
 window.Huisha3D = { GLTFLoader };
-for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeStory', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreeMemoryJournal', 'ThreeHouseScene', 'ThreeAudio']) {
+for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeStory', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreeMemoryJournal', 'ThreeEvidenceJournal', 'ThreeHouseScene', 'ThreeAudio']) {
     await import(`./3d/${name}.js`);
 }
 const $ = id => document.getElementById(id);
@@ -11,6 +11,7 @@ const story = new game.ThreeStory();
 const reader = $('reader');
 const audio = new game.ThreeAudio();
 const assetErrors = new Set();
+const evidenceJournal = new game.ThreeEvidenceJournal({ story, knownRecords });
 const memoryJournal = new game.ThreeMemoryJournal({ story, open, close, knownRecords,
     journal: () => journal(!!scene?.inspectionReturn), onReturn: returnMemory,
     onSolved: () => { audio.chime(); scene.syncState(); updateStatus(); } });
@@ -62,25 +63,19 @@ function knownRecords() {
         ? { id, title: '相框背字', text: '照片里是母亲，背面写着：\n\n「留一盏灯，是怕你看不见路，不是要你留下。」\n\n那块黑布是你离家时盖上去的。' }
         : game.WORLD_MAP.interactables.find(item => item.id === id)).filter(Boolean);
 }
-function appendRecords() {
-    const records = knownRecords();
-    if (!records.length) { const p = document.createElement('p'); p.textContent = '尚未记下观察。看向旧宅中的器物，靠近后调查。'; $('reader-body').append(p); }
-    for (const record of records) {
-        const detail = document.createElement('details'); detail.className = 'record';
-        const summary = document.createElement('summary'); summary.textContent = record.title;
-        const location = document.createElement('small'); location.textContent = record.location || (['lock', 'wall_marks', 'threshold'].includes(record.id) ? '走廊' : '正厅');
-        summary.append(location);
-        const content = document.createElement('p'); content.textContent = record.text;
-        detail.append(summary, content); $('reader-body').append(detail);
-    }
-}
 function journal(backToLock = false) {
     open('随身手记', '', [
         [backToLock ? inspectionLabel() : '继续观察', backToLock ? resumeInspection : close],
         ['需要一点提示', () => guidance(0, backToLock)]
     ], '只收录你亲眼见到的内容');
     memoryJournal.appendLinks($('reader-body'));
-    appendRecords();
+    evidenceJournal.append($('reader-body'));
+}
+function readRecord(item, actions) {
+    const choices = [...actions];
+    if (!choices.some(([label]) => label === '打开手记')) choices.push(['打开手记', () => journal()]);
+    open(item.title, item.text, choices);
+    evidenceJournal.appendPinAction($('reader-actions'), item.id);
 }
 function album() {
     const item = game.WORLD_MAP.interactables.find(item => item.id === 'memory_album');
@@ -134,6 +129,7 @@ function lock() {
     touches.clear(); updateTouch(); scene.beginLockInspection();
     $('lock-inspector').hidden = false; $('hud').classList.add('inspecting');
     updateLock('每次转动一格。可以回查已读字迹，再压下门闩。');
+    evidenceJournal.sync();
     document.querySelector('[data-wheel]').focus();
 }
 function updateWater(message) {
@@ -155,6 +151,7 @@ function water() {
     $('water-inspector').hidden = false; $('hud').classList.add('inspecting');
     updateWater(story.state.waterSolved ? '秤盘已经压平，桌下的抽屉打开了。退回桌前，可以低头查看家书。'
         : '点桶选中，再点水缸添满、水槽倒空。两桶互倒也可用下方按钮；四升的五升桶才能压平秤盘。');
+    evidenceJournal.sync();
     (story.state.waterSolved ? $('water-leave') : document.querySelector('[data-bucket]')).focus();
 }
 function waterAction(action) {
@@ -201,10 +198,10 @@ function inspect(item) {
             ['留在母亲的记忆里', () => ending('remember')]]); return;
     }
     if (item.deduction) {
-        open(item.title, item.text, [['继续观察', close], ['整理这段记忆', () => memoryJournal.show(item.deduction)], ['回到厨房', returnMemory]]); return;
+        readRecord(item, [['继续观察', close], ['整理这段记忆', () => memoryJournal.show(item.deduction)], ['回到厨房', returnMemory]]); return;
     }
     if (item.id === 'medicine_letter') {
-        open(item.title, item.text, [['带着信继续走', close], ['今晚留下，给自己煮碗饭', () => ending('stay')]]); return;
+        readRecord(item, [['带着信继续走', close], ['今晚留下，给自己煮碗饭', () => ending('stay')]]); return;
     }
     if (item.id === 'road_exit') {
         open(item.title, item.text, [['再看看旧宅', close], ['走向天光', () => ending('leave')]]); return;
@@ -212,7 +209,7 @@ function inspect(item) {
     if (item.id === 'portrait') {
         if (story.state.portrait) {
             const record = knownRecords().find(record => record.id === 'portrait_back');
-            open(record.title, record.text, [['继续观察', close]]);
+            readRecord(record, [['继续观察', close]]);
         } else open(item.title, item.text, [['先不揭开', close], ['揭开黑布，查看背字', () => {
             story.revealPortrait(); scene.syncState(); inspect(item);
         }]]);
@@ -225,7 +222,7 @@ function inspect(item) {
         }]]);
         return;
     }
-    open(item.title, item.text, [['继续观察', close], ['打开手记', () => journal()]]);
+    readRecord(item, [['继续观察', close], ['打开手记', () => journal()]]);
 }
 function title() {
     leaveInspection(false);
@@ -257,7 +254,7 @@ $('begin').addEventListener('click', () => {
 $('restart').addEventListener('click', () => {
     open('重新回家', '重新开始会清除观察、字轮、量水、记忆推理和结局进度。', [['保留进度', close], ['确认重新开始', () => {
         story.reset(); scene.controls.teleport(scene.map.playerStart); audio.resetPosition();
-        scene.syncState(true); close(); updateStatus();
+        scene.syncState(true); evidenceJournal.sync(); close(); updateStatus();
     }]], '开始新的归门');
 });
 $('journal').addEventListener('click', () => journal(!!scene.inspectionReturn));
@@ -280,6 +277,8 @@ for (const action of ['fill', 'empty', 'pour', 'weigh']) $(`water-${action}`).ad
 $('water-leave').addEventListener('click', () => leaveInspection());
 $('water-records').addEventListener('click', () => journal(true));
 $('water-hint').addEventListener('click', () => guidance(0, true));
+evidenceJournal.mountInspector($('lock-inspector'));
+evidenceJournal.mountInspector($('water-inspector'));
 window.addEventListener('keydown', event => {
     if (event.defaultPrevented || event.isComposing || event.repeat || reader.open || mode !== 'game') return;
     if (scene.inspectionKind === 'water' && /^(Digit|Numpad)[12]$/.test(event.code)) {

@@ -7,3 +7,4 @@
 .memory-draft select:focus-visible { outline: 2px solid #e0c98a; outline-offset: 3px; }
 .memory-quote { font-size: 13px; line-height: 1.8; white-space: pre-line; border-left: 2px solid var(--line); padding: 5px 12px; color: #c4c5b6; }
 .memory-feedback { font-size: 13px; line-height: 1.8; color: #dbc18e; }
+.memory-use-pins { margin-top: 14px; font-size: 13px; }

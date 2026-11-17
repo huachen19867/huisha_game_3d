@@ -52,6 +52,18 @@ assert.equal(restored.state.ending, true); assert.equal(restored.state.portrait,
 assert.equal(restored.state.position.z, -12.3);
 assert.match(restored.guidance().text, /门闩已经松开/);
 assert.deepEqual([...restored.state.wheels], [3, 2, 1]);
+const pinStorage = new Map(), pinAdapter = { getItem: key => pinStorage.get(key), setItem: (key, value) => pinStorage.set(key, value) };
+const pinStory = new game.ThreeStory(pinAdapter);
+assert.equal(pinStory.togglePin('coffin'), false, 'unobserved records cannot enter the comparison');
+for (const id of ['letter', 'coffin', 'wall_marks']) pinStory.record(id);
+pinStory.togglePin('letter'); pinStory.togglePin('coffin');
+assert.equal(pinStory.togglePin('wall_marks'), false, 'a third pin never silently replaces either selected record');
+assert.deepEqual([...new game.ThreeStory(pinAdapter).state.pinnedRecords], ['letter', 'coffin']);
+assert.equal(pinStory.state.opened, false, 'comparing evidence never operates the lock');
+pinStorage.set('huisha.3d.homecoming.v1', JSON.stringify({ version: 1, records: ['coffin', 'letter', 'medicine_letter'],
+    pinnedRecords: ['unknown', 'medicine_letter', 'coffin', 'coffin', 'letter', 'wall_marks'] }));
+assert.deepEqual([...new game.ThreeStory(pinAdapter).state.pinnedRecords], ['coffin', 'letter'], 'restoring pins removes unknown, gated, unread and duplicate entries');
+pinStory.reset(); assert.equal(pinStory.state.pinnedRecords.length, 0);
 assert.equal([...storage.keys()][0], 'huisha.3d.homecoming.v1');
 const unavailable = new game.ThreeStory({ getItem() { throw new Error('denied'); } });
 assert.equal(unavailable.saveAvailable, false); unavailable.record('letter'); assert.equal(unavailable.state.records.length, 1);

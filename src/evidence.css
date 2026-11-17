@@ -1,0 +1,27 @@
+.evidence-journal { white-space: normal; }
+.evidence-journal h3 { margin: 18px 0 10px; font-size: 16px; font-weight: normal; letter-spacing: 2px; }
+.evidence-instruction, .evidence-empty { color: var(--muted); font-size: 12px; line-height: 1.8; }
+.evidence-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.evidence-comparison > .evidence-empty { grid-column: 1 / -1; }
+.evidence-card { min-width: 0; padding: 13px; background: #aa976b0c; border: 1px solid var(--line); border-top-color: #c6ad75; }
+.evidence-card h4 { margin: 0; font-weight: normal; font-size: 15px; line-height: 1.7; }
+.evidence-card small { color: var(--muted); font-size: 11px; }
+.evidence-card p { margin: 10px 0; white-space: pre-line; font-size: 13px; line-height: 1.9; letter-spacing: .5px; }
+.evidence-card button, .evidence-location .record button { font-size: 12px; padding: 6px 10px; }
+[data-pin-record][aria-pressed="true"] { border-color: #c6ad75; background: #76613b50; }
+[data-pin-record]:disabled { color: var(--muted); opacity: .6; cursor: default; }
+.evidence-filter { display: flex; align-items: center; gap: 12px; font-size: 13px; margin: 18px 0; }
+.evidence-filter select { min-width: 0; flex: 1; min-height: 42px; padding: 8px; background: #1e281e; border: 1px solid var(--line); color: var(--paper); font: inherit; }
+.evidence-location { margin-top: 20px; }
+.evidence-location h3 { color: #bdaa80; font-size: 13px; }
+.evidence-location .record { padding: 12px 0; }
+.inspection-notes { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.inspection-notes summary { color: #d8c392; cursor: pointer; font-size: 12px; }
+.inspection-notes-body { max-height: 150px; overflow-y: auto; overscroll-behavior: contain; margin-top: 8px; }
+.inspection-notes .evidence-card { padding: 10px; margin-bottom: 8px; }
+.inspection-notes .evidence-card h4 { font-size: 12px; }
+.inspection-notes .evidence-card p { font-size: 12px; }
+.lock-inspector { max-height: 43dvh; overflow-y: auto; }
+@media (max-width: 540px) { .evidence-comparison { grid-template-columns: 1fr; } .evidence-filter { align-items: flex-start; flex-direction: column; gap: 6px; } .evidence-filter select { width: 100%; } }
+@media (max-height: 520px) and (min-width: 681px) { .lock-inspector { max-height: none; } }
+@media (min-width: 900px) { .water-inspector { max-height: none; } }
