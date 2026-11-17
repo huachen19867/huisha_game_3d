@@ -22,12 +22,12 @@
     const regions = [], obstacles = [], items = [];
     const add = (space, id, title, x, y, z, text, extra = {}) => {
         const [cx, cz] = game.MEMORIES[space].center;
-        items.push({ id, title, location: game.MEMORIES[space].title, space, position: { x: cx + x, y, z: cz + z }, radius: 1.9,
+        items.push({ id, title, location: game.MEMORIES[space].title, space, area: space, position: { x: cx + x, y, z: cz + z }, radius: 1.9,
             requiresWater: true, text, ...extra });
     };
     for (const space of ['school', 'hospital']) {
         const [cx, cz] = game.MEMORIES[space].center;
-        regions.push({ xMin: cx - 4.9, xMax: cx + 4.9, zMin: cz - 4.6, zMax: cz + 4.6, space, requiresState: 'waterSolved' });
+        regions.push({ id: space, title: game.MEMORIES[space].title, xMin: cx - 4.9, xMax: cx + 4.9, zMin: cz - 4.6, zMax: cz + 4.6, space, requiresState: 'waterSolved' });
         add(space, `${space}_return`, '回到厨房的门', 0, 1.4, 4.1, '门后仍是那间亮着灯的厨房。可以先回去，也可以继续观察。', { journal: false, returnMemory: true });
         obstacles.push({ id: `${space}-return-door`, space, xMin: cx - 0.95, xMax: cx + 0.95, zMin: 4.44, zMax: 4.56 });
     }
@@ -37,7 +37,7 @@
         xMin: -32 + x - 0.25, xMax: -32 + x + 0.25, zMin: z + 0.6, zMax: z + 1.1 });
     obstacles.push({ id: 'hospital-wheelchair', space: 'hospital', xMin: 28.4, xMax: 29.5, zMin: -1.7, zMax: -0.6 },
         { id: 'hospital-desk', space: 'hospital', xMin: 33.5, xMax: 36.1, zMin: -3.8, zMax: -2.8 });
-    regions.push({ xMin: -3.5, xMax: 3.5, zMin: -64, zMax: -48, space: 'crash', requiresState: 'waterSolved' });
+    regions.push({ id: 'crash', title: game.MEMORIES.crash.title, xMin: -3.5, xMax: 3.5, zMin: -64, zMax: -48, space: 'crash', requiresState: 'waterSolved' });
     obstacles.push({ id: 'phone-stone', space: 'crash', xMin: -1.925, xMax: -1.375, zMin: -55.075, zMax: -54.525 },
         { id: 'emergency-case', space: 'crash', xMin: 1.3, xMax: 2.1, zMin: -60.825, zMax: -60.175 });
     for (const side of [-1, 1]) obstacles.push({ id: `rescue-post-${side}`, space: 'crash',
@@ -63,7 +63,7 @@
     add('crash', 'rescue_light', '另一边的救护灯', 0, 1.2, -7,
         '有人在雨里叫你的名字。母亲的语音已经播完，灯却还在另一边亮着。\n\n这一次，你要朝哪边走？', { journal: false, requiresTruth: true, finalChoice: true });
     world.walkable.push(...regions); world.obstacles.push(...obstacles);
-    world.interactables.push({ id: 'memory_album', title: '柜边旧相册', location: '厨房', position: { x: 7.75, y: 1.25, z: -23.86 },
+    world.interactables.push({ id: 'memory_album', title: '柜边旧相册', location: '厨房', area: 'kitchen', position: { x: 7.75, y: 1.25, z: -23.86 },
         radius: 1.9, requiresOpen: true, requiresWater: true,
         text: '相册有三处折角：录取那年、病历之前、雨夜归途。\n\n你可以主动翻入一段记忆，也可以先把相册合上。' }, ...items);
 })(window);

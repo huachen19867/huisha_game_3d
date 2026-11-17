@@ -2,7 +2,7 @@ import * as THREE from '../vendor/three.module.mjs';
 import { GLTFLoader } from '../vendor/GLTFLoader.mjs';
 window.THREE = THREE;
 window.Huisha3D = { GLTFLoader };
-for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeStory', 'ThreePreferences', 'ThreeSettings', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreeMemoryJournal', 'ThreeEvidenceJournal', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeHouseScene', 'ThreeAudio']) {
+for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeSettings', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreeMemoryJournal', 'ThreeEvidenceJournal', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeHouseScene', 'ThreeAudio']) {
     await import(`./3d/${name}.js`);
 }
 const $ = id => document.getElementById(id);
@@ -14,6 +14,10 @@ const reader = $('reader');
 const audio = new game.ThreeAudio();
 const assetErrors = new Set();
 const evidenceJournal = new game.ThreeEvidenceJournal({ story, knownRecords });
+const explorationMap = new game.ThreeExplorationMap({ story, knownRecords, open, onRead: id => {
+    const record = knownRecords().find(record => record.id === id);
+    if (record) readRecord(record, [['回到地图', () => showMap(false)]]);
+} });
 const memoryJournal = new game.ThreeMemoryJournal({ story, open, close, knownRecords,
     journal: () => journal(!!scene?.inspectionReturn), onReturn: returnMemory,
     onSolved: () => { audio.chime(); scene.syncState(); updateStatus(); } });
@@ -92,6 +96,12 @@ function readRecord(item, actions) {
     if (!choices.some(([label]) => label === '打开手记')) choices.push(['打开手记', () => journal(!!scene?.inspectionReturn)]);
     open(item.title, item.text, choices);
     evidenceJournal.appendPinAction($('reader-actions'), item.id);
+}
+function showMap(resetScope = true) {
+    if (mode !== 'game') return;
+    const pose = { ...scene.playerSnapshot() }; story.visitPosition(pose);
+    explorationMap.show({ pose, resetScope, exitLabel: scene.inspectionReturn ? inspectionLabel() : '继续探索',
+        onExit: scene.inspectionReturn ? resumeInspection : close });
 }
 function album() {
     const item = game.WORLD_MAP.interactables.find(item => item.id === 'memory_album');
@@ -261,7 +271,7 @@ function title() {
 function pause() {
     save();
     open('暂歇', '合上这页，就能继续观察。当前进度只保存在这台设备的浏览器中。', [
-        ['继续探索', close], ['回查手记', () => journal(!!scene.inspectionReturn)],
+        ['继续探索', close], ['回查手记', () => journal(!!scene.inspectionReturn)], ['查看地图', () => showMap()],
         ...(story.state.memory ? [['回到厨房', returnMemory]] : []), ['返回标题', title]
     ], '回煞 · 暂停');
     settings.append($('reader-body'));
@@ -271,6 +281,7 @@ $('reader-close').addEventListener('click', close);
 reader.addEventListener('cancel', event => { event.preventDefault(); close(); });
 $('begin').addEventListener('click', () => {
     mode = 'game'; $('title-screen').hidden = true; $('hud').hidden = false;
+    story.visitPosition(scene.playerSnapshot());
     document.activeElement?.blur?.(); scene.controls.clear(); audio.start();
 });
 $('restart').addEventListener('click', () => {
@@ -280,6 +291,7 @@ $('restart').addEventListener('click', () => {
     }]], '开始新的归门');
 });
 $('journal').addEventListener('click', () => journal(!!scene.inspectionReturn));
+$('map').addEventListener('click', () => showMap());
 $('pause').addEventListener('click', pause);
 $('title-settings').addEventListener('click', titleSettings);
 $('prompt').addEventListener('click', () => scene.interaction.activate());
@@ -326,6 +338,7 @@ window.addEventListener('keydown', event => {
         event.preventDefault(); rotateLock(Number(event.code.slice(-1)) - 1);
     }
     if (event.code === 'KeyJ') { event.preventDefault(); journal(!!scene.inspectionReturn); }
+    if (event.code === 'KeyM') { event.preventDefault(); showMap(); }
     if (event.code === 'Escape') { event.preventDefault(); scene.inspectionReturn ? leaveInspection() : pause(); }
 });
 const touches = new Map();
@@ -358,6 +371,7 @@ try {
         onAssetError: name => { assetErrors.add(name); updateLoadStatus(); },
         onFrame: (position, paused) => {
             audio.update(position, paused, story.state.memory || 'house');
+            if (!paused) story.visitPosition(position);
             if (scene.inspectionKind === 'portrait' && !reader.open) updatePortrait();
             if (!paused && !story.state.memory && story.state.opened && position.z < -15.2 && story.enterCourtyard()) updateStatus();
         } });

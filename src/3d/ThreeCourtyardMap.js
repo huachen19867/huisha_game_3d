@@ -11,9 +11,9 @@
         extraDoors: [{ id: 'yard', stateField: 'waterSolved', hingeX: -1, hingeZ: -27.5, width: 2,
             thickness: 0.16, frontDepth: 0.25, openAngle: Math.PI / 2 }],
         walkable: [...hall.walkable,
-            { xMin: -5.8, xMax: 5.8, zMin: -27.2, zMax: -13.8, requiresState: 'opened' },
-            { xMin: 5, xMax: 10.8, zMin: -24.7, zMax: -17.7, requiresState: 'opened' },
-            { xMin: -1.25, xMax: 1.25, zMin: -32, zMax: -26.5, requiresState: 'waterSolved' }
+            { id: 'yard', title: '雨庭', xMin: -5.8, xMax: 5.8, zMin: -27.2, zMax: -13.8, requiresState: 'opened' },
+            { id: 'kitchen', title: '厨房', xMin: 5, xMax: 10.8, zMin: -24.7, zMax: -17.7, requiresState: 'opened' },
+            { id: 'road', title: '院外山路', mapLabel: '山路', xMin: -1.25, xMax: 1.25, zMin: -32, zMax: -26.5, requiresState: 'waterSolved' }
         ],
         obstacles: [...hall.obstacles,
             { id: 'yard-front-left', xMin: -6.1, xMax: -1.375, zMin: -14.2, zMax: -14 },
@@ -45,4 +45,7 @@
                 requiresOpen: true, requiresWater: true, text: '山路上渐渐亮起来。身后的厨房还留着一盏灯。\n\n这次，你可以把它留在身后。' }
         ]
     };
+    for (const item of game.WORLD_MAP.interactables) {
+        if (item.location) item.area = { '雨庭': 'yard', '厨房': 'kitchen', '归路': 'road' }[item.location] || item.area;
+    }
 })(window);

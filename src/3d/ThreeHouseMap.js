@@ -1,6 +1,6 @@
 (function (global) {
     const game = global.Huisha3D || (global.Huisha3D = {});
-    game.PORTRAIT_BACK_RECORD = { id: 'portrait_back', title: '相框背字', location: '正厅',
+    game.PORTRAIT_BACK_RECORD = { id: 'portrait_back', title: '相框背字', location: '正厅', area: 'hall',
         text: '照片里是母亲，背面写着：\n\n「留一盏灯，是怕你看不见路，不是要你留下。」\n\n那块黑布是你离家时盖上去的。' };
     game.MAIN_HALL_MAP = {
         id: 'homecoming',
@@ -8,9 +8,9 @@
         playerRadius: 0.25,
         door: { hingeX: -1.17, hingeZ: -11.5, width: 2.34, thickness: 0.18, frontDepth: 0.6, openAngle: Math.PI / 2 },
         walkable: [
-            { xMin: -4.8, xMax: 4.8, zMin: -4.1, zMax: 4.2 },
-            { xMin: -1.25, xMax: 1.25, zMin: -11.5, zMax: -3.3 },
-            { xMin: -1.25, xMax: 1.25, zMin: -14.5, zMax: -10.9, requiresState: 'opened' }
+            { id: 'hall', title: '正厅', xMin: -4.8, xMax: 4.8, zMin: -4.1, zMax: 4.2 },
+            { id: 'corridor', title: '走廊', xMin: -1.25, xMax: 1.25, zMin: -11.5, zMax: -3.3 },
+            { id: 'path', title: '门外石路', mapLabel: '石路', xMin: -1.25, xMax: 1.25, zMin: -14.5, zMax: -10.9, requiresState: 'opened' }
         ],
         obstacles: [
             { id: 'altar', xMin: -4, xMax: -1.5, zMin: -3.7, zMax: -2.6 },
@@ -38,4 +38,7 @@
                 text: '雨已经停了。石路通向一座小院。\n\n右手边的厨房里，还亮着一盏灯。母亲留下的门没有锁，院门却仍由一根铜索扣着。', requiresOpen: true }
         ]
     };
+    for (const [area, ids] of Object.entries({ hall: ['letter', 'altar', 'coffin', 'portrait'], corridor: ['wall_marks', 'lock'], path: ['threshold'] })) {
+        for (const id of ids) game.MAIN_HALL_MAP.interactables.find(item => item.id === id).area = area;
+    }
 })(window);

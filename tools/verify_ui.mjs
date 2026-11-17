@@ -118,6 +118,12 @@ try {
     ui.destroy(); ui = await boot(null, savedPreferences);
     assert.equal(ui.scene.renderer.toneMappingExposure, 1.57, 'production boot reapplies saved brightness');
     ui.$('begin').click();
+    ui.key('KeyM'); assert.equal(ui.$('reader-title').textContent, '探索地图');
+    assert.deepEqual([...ui.document.querySelectorAll('[data-map-area]')].map(element => element.dataset.mapArea), ['hall']);
+    assert.equal(ui.document.querySelector('[data-map-point="letter"]'), null, 'the map never reveals an unread record');
+    assert.equal(ui.document.querySelector('[data-map-space="school"]'), null, 'the map does not reveal unvisited memories');
+    assert.equal(ui.document.querySelector('[data-map-player="current"]').getAttribute('transform'), 'translate(0 3.4) rotate(0)');
+    ui.click('继续探索');
     const pointer = (type, target, { id = 1, kind = 'mouse', x = 100, y = 100, button = 0, buttons = 1 } = {}) => {
         const event = new ui.window.MouseEvent(type, { bubbles: true, clientX: x, clientY: y, button, buttons });
         Object.defineProperties(event, { pointerId: { value: id }, pointerType: { value: kind } }); target.dispatchEvent(event);
@@ -171,6 +177,12 @@ try {
     ui.inspect('letter'); assert.equal(ui.$('reader').open, true);
     ui.scene.interaction.update(); assert.equal(ui.$('focus-marker').hidden, true, 'reading hides the focus marker');
     ui.click('放入摘记');
+    ui.$('reader-close').click(); const beforeMapRecords = [...ui.scene.story.state.records]; ui.$('map').click();
+    assert.ok(ui.document.querySelector('[data-map-point="letter"]'));
+    assert.equal(ui.document.querySelector('[data-map-point="coffin"]'), null);
+    ui.document.querySelector('[data-map-record="letter"]').click(); assert.equal(ui.$('reader-title').textContent, '门边来信');
+    ui.click('回到地图'); assert.deepEqual([...ui.scene.story.state.records], beforeMapRecords);
+    ui.click('继续探索');
     ui.inspect('coffin'); ui.click('放入摘记');
     ui.inspect('wall_marks');
     assert.equal(ui.document.querySelector('#reader-actions [data-pin-record]').disabled, true, 'a full comparison requires an explicit removal');
@@ -182,6 +194,15 @@ try {
     assert.deepEqual([...ui.scene.story.state.pinnedRecords], ['coffin', 'wall_marks']);
     ui.$('reader-close').click();
     ui.inspect('lock');
+    const lockMapPose = { ...ui.scene.playerSnapshot() }; ui.key('KeyM');
+    assert.ok(ui.document.querySelector('[data-map-player="current"]').getAttribute('transform').startsWith(`translate(${lockMapPose.x} ${lockMapPose.z})`));
+    assert.match(ui.document.querySelector('[data-map-area-notes="corridor"]').textContent, /尚未解开/);
+    const wholeMapBounds = ui.document.querySelector('.map-floor').getAttribute('viewBox');
+    ui.choose(ui.document.querySelector('[data-map-focus]'), 'corridor');
+    assert.notEqual(ui.document.querySelector('.map-floor').getAttribute('viewBox'), wholeMapBounds, 'a known room can be enlarged without moving the player');
+    assert.deepEqual({ ...ui.scene.playerSnapshot() }, lockMapPose);
+    ui.choose(ui.document.querySelector('[data-map-focus]'), 'all'); assert.equal(ui.document.querySelector('.map-floor').getAttribute('viewBox'), wholeMapBounds);
+    ui.click('回到字轮'); assert.deepEqual({ ...ui.scene.playerSnapshot() }, lockMapPose);
     assert.match(ui.document.querySelector('#lock-inspector .inspection-notes-body').textContent, /左位留灯/);
     assert.match(ui.document.querySelector('#lock-inspector .inspection-notes-body').textContent, /灯和门之间/);
     ui.$('lock-attempt').click(); assert.equal(ui.scene.story.state.opened, false);
@@ -195,6 +216,8 @@ try {
     ui.$('pause').click(); const pausedReleaseProgress = ui.scene.doorMechanism.progress;
     ui.scene.moveDoor(1); assert.equal(ui.scene.doorMechanism.progress, pausedReleaseProgress);
     ui.click('继续探索'); ui.scene.moveDoor(1); assert.ok(ui.scene.door.rotation.y > 0);
+    ui.$('map').click(); assert.match(ui.document.querySelector('[data-map-area-notes="corridor"]').textContent, /已解开/);
+    assert.equal(ui.document.querySelector('[data-map-area="path"]'), null, 'unlocking alone does not draw a room that has not been entered'); ui.click('继续探索');
     ui.inspect('water_station'); ui.$('water-weigh').click(); assert.equal(ui.scene.story.state.waterSolved, false);
     ui.document.querySelector('[data-bucket="1"]').click(); ui.$('water-fill').click(); ui.key('KeyP');
     ui.document.querySelector('[data-bucket="0"]').click(); ui.$('water-empty').click();
@@ -204,6 +227,12 @@ try {
     ui.$('water-leave').click();
     ui.inspect('memory_album'); ui.click('翻入记忆 · 录取那年');
     const returnPose = { ...ui.scene.story.state.memoryReturn };
+    const beforeMemoryMap = { ...ui.scene.controls.snapshot() }; ui.key('KeyM');
+    assert.ok(ui.document.querySelector('[data-map-area="school"]')); assert.equal(ui.document.querySelector('[data-map-space="hospital"]'), null);
+    ui.document.querySelector('[data-map-space="house"]').click();
+    assert.equal(ui.document.querySelector('[data-map-player="current"]'), null); assert.ok(ui.document.querySelector('[data-map-player="return"]'));
+    assert.equal(ui.scene.story.state.memory, 'school'); assert.deepEqual({ ...ui.scene.controls.snapshot() }, beforeMemoryMap);
+    ui.document.querySelector('[data-map-space="school"]').click(); ui.click('继续探索');
     ui.inspect('school_notice'); ui.click('整理这段记忆');
     assert.equal(ui.document.querySelector('.memory-draft option[value="school_receipt"]'), null, 'unread evidence is not offered in the DOM');
     ui.click('提交推理'); assert.match(ui.document.querySelector('.memory-feedback').textContent, /两份不同/);
@@ -259,6 +288,7 @@ try {
     assert.equal(ui.scene.story.state.memory, null); assert.equal(ui.scene.story.state.opened, false); assert.equal(ui.scene.story.state.departure, null);
     assert.equal(ui.scene.story.state.records.length, 0); assert.deepEqual([...ui.scene.story.state.buckets], [0, 0]);
     assert.equal(ui.scene.story.state.pinnedRecords.length, 0);
+    assert.equal(ui.scene.story.state.visitedAreas.length, 0);
     assert.equal(ui.scene.story.state.portraitBackRead, false); assert.equal(ui.scene.portrait.cloth.visible, true);
     assert.equal(ui.document.querySelectorAll('.inspection-notes [data-pinned-record]').length, 0, 'restarting clears stale originals from both inspectors');
     assert.equal(ui.window.localStorage.getItem('huisha.3d.preferences.v1'), savedPreferences, 'restarting the story keeps device preferences');
@@ -267,6 +297,6 @@ try {
     assert.equal(ui.scene.controls.getPreferences().invertY, false); assert.equal(ui.scene.story.state.records.length, 0);
     ui.click('返回标题');
     assert.equal(ui.errors.length, 0, ui.errors.map(error => error.message).join('\n'));
-    console.log('UI: production boot/settings, separate mouse/touch look, physical portrait reveal/drag/turn/read, journal orientation return, grouped evidence/inspector notes, explicit drafts, memory return, four endings and restart passed.');
+    console.log('UI: discovered-only SVG map, room focus/readback, real inspection pose, isolated memory layers, boot/settings, physical portrait, grouped evidence/drafts, memory return, four endings and restart passed.');
     console.log('Scope: jsdom DOM events with a rendering stub and dialog shim; no browser, native dialog/select behavior, layout, WebGL, pointer lock, audio or real-device acceptance.');
 } finally { ui?.destroy(); }

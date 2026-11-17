@@ -15,3 +15,5 @@
 0.6.0 的相框复用现有 Three.js 分组变换、射线与相机投影、已下载参考和现有近看生命周期，不引入新的三维引擎。图片通过 imagegen 技能的内置 image_gen 路径生成并复制入库；完整生产提示词见 `assets/art/mother-portrait.source.json`，原始输出保留在 Codex generated_images 目录，不借用商业游戏人物照片。
 
 0.7.0 下载同版本官方 [InstancedMesh](https://github.com/mrdoob/three.js/blob/r160/src/objects/InstancedMesh.js) 到 `InstancedMesh-r160.js`，许可同 Three.js MIT，仅用来核对矩阵更新、包围球和实例缓冲释放。raw.githubusercontent.com 直取遇 EOF，随后通过 GitHub 连接器读取同一公开文件保存。归门绳段实际使用已有本地 Three.js 的 InstancedMesh，厨房固定铜索使用已有 TubeGeometry；不加载参考文件或引入物理引擎。静止绳段不重复上传矩阵，场景释放时同时释放实例缓冲。
+
+0.8.0 复用父工作区已下载的 [W3C APG Modal Dialog Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/)，原文复制到本目录 `apg-dialog-modal-pattern.html`（SHA-256：14ce04000352a8d8ee6cf2ec4419e1cf28a8d6648736a1cf6653d38bc24099e3），原件保留，不重复下载。地图继续用现有原生 dialog 管理开合/焦点，SVG 只显示路线图，下方 HTML 按钮提供同样的已读原文入口；范围选择用原生 select。直接复用本项目 walkable 和记录元数据，不新增地图框架。

@@ -1,0 +1,27 @@
+.exploration-map { white-space: normal; }
+.map-spaces { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 12px; }
+.map-spaces button { font-size: 12px; padding: 7px 12px; }
+.map-spaces button[aria-pressed="true"] { color: #e7cf9b; border-color: #c6ad75; background: #76613b50; }
+.map-floor { display: block; width: 100%; height: min(52dvh, 440px); background: #101810; border: 1px solid var(--line); overflow: hidden; }
+.map-focus { display: flex; align-items: center; gap: 12px; margin: 12px 0; font-size: 12px; }
+.map-focus select { flex: 1; min-width: 0; min-height: 40px; padding: 8px; font: inherit; background: #1e281e; color: var(--paper); border: 1px solid var(--line); }
+.map-room rect { fill: #3c4434; stroke: #a69c7b; stroke-width: 1.4px; vector-effect: non-scaling-stroke; }
+.map-room.pending rect { fill: #64452e; stroke: #cea573; }
+.map-room.resolved rect { fill: #294a3c; stroke: #92b4a0; }
+.map-room text { fill: #e3dbc5; font-family: inherit; letter-spacing: 0; }
+.map-record-point { fill: #f0cf8d; stroke: #141a13; stroke-width: 1px; vector-effect: non-scaling-stroke; }
+.map-player circle { fill: #f3edda; stroke: #101810; stroke-width: 1px; vector-effect: non-scaling-stroke; }
+.map-player path { fill: #f3edda; }
+.map-return circle { fill: none; stroke: #d5b57c; stroke-width: 1.5px; vector-effect: non-scaling-stroke; }
+.map-return path { fill: #d5b57c; }
+.map-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 11px; color: var(--muted); }
+.map-key::before { content: ''; display: inline-block; width: 9px; height: 9px; margin-right: 6px; background: #3c4434; border: 1px solid #a69c7b; }
+.map-key.pending::before { background: #64452e; border-color: #cea573; }
+.map-key.resolved::before { background: #294a3c; border-color: #92b4a0; }
+.map-area-notes { padding: 14px 0; border-top: 1px solid var(--line); }
+.map-area-notes h3 { margin: 0 0 6px; font-size: 16px; font-weight: normal; letter-spacing: 2px; }
+.map-area-notes button { font-size: 12px; padding: 7px 10px; margin: 5px 6px 0 0; }
+.map-status, .map-empty { font-size: 12px; color: var(--muted); line-height: 1.8; margin: 4px 0; }
+.map-status.pending { color: #d7b080; }
+.map-status.resolved { color: #a7c4b4; }
+@media (max-width: 680px) { .hud nav { max-width: 112px; flex-wrap: wrap; justify-content: flex-end; } .chapter small { max-width: 45vw; } .map-floor { height: min(50dvh, 390px); } }

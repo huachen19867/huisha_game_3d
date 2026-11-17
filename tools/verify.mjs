@@ -18,10 +18,39 @@ const canvasContext = { fillRect() {}, strokeRect() {}, fillText() {} };
 const document = { ...eventTarget, createElement() { return { getContext() { return canvasContext; } }; }, hidden: false };
 const window = { ...eventTarget, THREE, Huisha3D: {} };
 const context = vm.createContext({ window, document, console });
-for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeStory', 'ThreePreferences', 'ThreeAudio', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeHouseScene']) {
+for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeAudio', 'ThreeControls', 'ThreeInteraction', 'ThreeCourtyard', 'ThreeMemoryScenes', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeHouseScene']) {
     vm.runInContext(await text(`src/3d/${name}.js`), context, { filename: `${name}.js` });
 }
 const game = window.Huisha3D;
+let mapWrites = 0; const mapStorage = new Map(), mapAdapter = { getItem: key => mapStorage.get(key), setItem: (key, value) => { mapStorage.set(key, value); mapWrites++; } };
+const mapStory = new game.ThreeStory(mapAdapter);
+assert.equal(mapStory.visitPosition(game.WORLD_MAP.playerStart), true); assert.deepEqual([...mapStory.state.visitedAreas], ['hall']);
+for (let frame = 0; frame < 120; frame++) mapStory.visitPosition(game.WORLD_MAP.playerStart);
+assert.equal(mapWrites, 1, 'remaining in a room never saves exploration history every frame');
+assert.equal(mapStory.visitPosition({ x: 8.5, z: -20.4 }), false, 'locked areas cannot be discovered from a forged position');
+mapStory.record('lock'); assert.deepEqual([...mapStory.state.visitedAreas], ['hall', 'corridor']);
+const mapSnapshot = JSON.stringify(mapStory.state), mapModel = new game.ThreeExplorationMap({ story: mapStory });
+assert.equal(mapModel.status(game.WORLD_MAP.walkable[0], []).kind, 'visited');
+assert.equal(mapModel.status(game.WORLD_MAP.walkable[1], [{ id: 'lock' }]).kind, 'pending');
+assert.equal(JSON.stringify(mapStory.state), mapSnapshot, 'map status does not observe new records or operate mechanisms');
+const legacyMap = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, records: ['letter', 'wall_marks'] }), setItem() {} });
+assert.deepEqual([...legacyMap.state.visitedAreas], ['hall', 'corridor'], 'legacy saves infer only the locations of already-read records');
+const malformedMap = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, visitedAreas: ['hall', 'hall', 'road', 'kitchen', 'school', '__proto__', {}] }), setItem() {} });
+assert.deepEqual([...malformedMap.state.visitedAreas], ['hall']);
+mapStory.state.opened = true; mapStory.state.waterSolved = true;
+mapStory.enterMemory('school', { x: 8.5, z: -20.4, yaw: Math.PI, pitch: 0 });
+assert.ok(mapStory.state.visitedAreas.includes('school'));
+assert.equal(mapStory.visitPosition({ x: 32, z: 3 }), false, 'one memory cannot discover another memory by world coordinates');
+assert.equal(new game.ThreeStory(mapAdapter).state.visitedAreas.includes('school'), true);
+mapStory.reset(); assert.equal(mapStory.state.visitedAreas.length, 0);
+for (const record of game.WORLD_MAP.interactables.filter(item => item.journal !== false)) {
+    const area = game.ThreeExplorationMap.areas().find(area => area.id === record.area);
+    assert.ok(area, `${record.id} needs a map area`);
+    assert.equal(area.space || 'house', record.space || 'house');
+    assert.ok(record.position.x >= area.xMin && record.position.x <= area.xMax && record.position.z >= area.zMin && record.position.z <= area.zMax,
+        `${record.id} belongs inside the actual walkable area used to draw it`);
+}
+console.log('Exploration: discovered-only rooms, observed record locations, no idle saves, gated/legacy restore, memory isolation and reset passed.');
 const preferenceData = new Map([['huisha.3d.homecoming.v1', 'existing-story']]);
 const preferenceAdapter = { getItem: key => preferenceData.get(key), setItem: (key, value) => preferenceData.set(key, value) };
 const preferences = new game.ThreePreferences(preferenceAdapter);

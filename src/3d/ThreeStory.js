@@ -2,7 +2,7 @@
     const game = global.Huisha3D || (global.Huisha3D = {});
     const SAVE_KEY = 'huisha.3d.homecoming.v1';
     const symbols = ['雨', '门', '人', '灯'];
-    const freshState = () => ({ records: [], pinnedRecords: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
+    const freshState = () => ({ records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
         courtyard: false, buckets: [0, 0], waterSolved: false, departure: null, position: null,
         memory: null, memoryReturn: null, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
@@ -50,12 +50,29 @@
                         || (this.truthSolved() && ['wake', 'remember'].includes(saved.departure)))) this.state.departure = saved.departure;
                     const p = saved.position;
                     if (p && [p.x, p.z, p.yaw, p.pitch].every(Number.isFinite)) this.state.position = p;
+                    this.state.visitedAreas = [...new Set((Array.isArray(saved.visitedAreas) ? saved.visitedAreas : []).filter(id =>
+                        game.ThreeExplorationMap.allowed(game.ThreeExplorationMap.areas().find(area => area.id === id), this.state)))];
+                    for (const id of this.state.records) this.markArea(this.recordArea(id));
                 }
             } catch (_) { this.saveAvailable = false; }
         }
         record(id) {
             if (!this.state.records.includes(id)) this.state.records.push(id);
+            this.markArea(this.recordArea(id));
             this.save();
+        }
+        recordArea(id) {
+            return id === 'portrait_back' ? 'hall' : (game.WORLD_MAP || game.MAIN_HALL_MAP).interactables.find(item => item.id === id)?.area;
+        }
+        markArea(id) {
+            const area = game.ThreeExplorationMap.areas().find(area => area.id === id);
+            if (!game.ThreeExplorationMap.allowed(area, this.state) || this.state.visitedAreas.includes(id)) return false;
+            this.state.visitedAreas.push(id); return true;
+        }
+        visitPosition(pose) {
+            const area = game.ThreeExplorationMap.areaAt(pose, this.state.memory || 'house', this.state);
+            if (!area || !this.markArea(area.id)) return false;
+            this.save(); return true;
         }
         togglePin(id) {
             if (!this.state.records.includes(id)) return false;
@@ -124,7 +141,7 @@
         enterMemory(id, pose) {
             if (!this.state.waterSolved || this.state.memory || typeof id !== 'string' || !Object.hasOwn(game.MEMORIES || {}, id) || !validPose(pose)) return false;
             this.state.memoryReturn = { ...pose }; this.state.memory = id;
-            this.state.position = { ...game.MEMORIES[id].start }; this.save(); return true;
+            this.state.position = { ...game.MEMORIES[id].start }; this.markArea(id); this.save(); return true;
         }
         leaveMemory() {
             if (!this.state.memory) return null;
