@@ -31,10 +31,14 @@
                 return;
             }
             let submit;
-            this.open(definition.title, '对照两份已读原文，把有明确日期的片段放上时间线，再提交解释。错误尝试不会清空草稿。',
+            this.open(definition.title, '这两份记录能确认什么？对照已读原文，按日期排列，再选择与原文相符的判断。错误尝试不会清空草稿。',
                 [['提交推理', () => submit()], ...actions], '只用你亲眼见到的记录');
             const container = document.getElementById('reader-body'), form = document.createElement('div'); form.className = 'memory-draft';
             const draft = this.story.state.drafts[id] || { evidence: ['', ''], interpretation: null, timeline: [] };
+            if (draft.questionChanged) {
+                const note = document.createElement('p'); note.className = 'memory-question-update';
+                note.textContent = '核对问题已更新。原文和时间线草稿保留，请重新选择判断。'; container.append(note);
+            }
             const records = this.knownRecords(), selectors = [], quotes = [];
             const option = (value, label) => { const element = document.createElement('option'); element.value = value; element.textContent = label; return element; };
             for (let index = 0; index < 2; index++) {
@@ -48,8 +52,8 @@
                 select.addEventListener('change', () => { update(); saveDraft(); }); update();
                 label.append(select); form.append(label, quote);
             }
-            const label = document.createElement('label'); label.textContent = '你的解释';
-            const interpretation = document.createElement('select'); interpretation.append(option('', '选择一个解释'));
+            const label = document.createElement('label'); label.textContent = '与原文相符的判断';
+            const interpretation = document.createElement('select'); interpretation.append(option('', '选择一个判断'));
             definition.choices.forEach((choice, index) => interpretation.append(option(String(index), choice)));
             interpretation.value = draft.interpretation === null ? '' : String(draft.interpretation);
             label.append(interpretation); form.append(label);
@@ -58,6 +62,7 @@
             const saveDraft = order => {
                 this.story.setMemoryDraft(id, selectors.map(select => select.value), interpretation.value === '' ? null : Number(interpretation.value),
                     Array.isArray(order) ? order : this.story.state.drafts[id]?.timeline);
+                if (!this.story.state.drafts[id]?.questionChanged) container.querySelector('.memory-question-update')?.remove();
                 timeline?.refresh();
             };
             timeline = new game.ThreeMemoryTimeline({ id, definition, story: this.story, records,

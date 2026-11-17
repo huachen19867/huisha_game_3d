@@ -194,8 +194,17 @@ assert.equal(house.scene.getObjectByName('chinese_cabinet').isGroup, true);
 const phoneBottom = new THREE.Box3().setFromObject(house.scene.getObjectByName('phone-body')).min.y;
 const phoneStoneTop = new THREE.Box3().setFromObject(house.scene.getObjectByName('phone-stone')).max.y;
 assert.ok(phoneBottom >= phoneStoneTop && phoneBottom - phoneStoneTop < 0.01, 'the phone rests on its stone rather than floating above it');
-for (const paper of house.documents.papers.values()) {
-    const desk = house.memories.rooms.school.children.find(object => object.name === 'SchoolDesk_01' && Math.abs(object.position.x - paper.home.x) < 0.01 && Math.abs(object.position.z - paper.home.z) < 0.01);
+for (const [id, paper] of house.documents.papers) {
+    const definition = game.DOCUMENTS[id]; assert.equal(paper.root.parent.userData.memorySpace, definition.space);
+    if (id === 'hospital_plan') {
+        const gap = new THREE.Box3().setFromObject(paper.front).min.z - new THREE.Box3().setFromObject(house.scene.getObjectByName('hospital-clipboard')).max.z;
+        assert.ok(gap > 0 && gap < 0.02, 'the upright plan sits in front of its clipboard'); continue;
+    }
+    const p = paper.root.getWorldPosition(new THREE.Vector3());
+    const desk = house.memories.rooms[definition.space].children.find(object => {
+        if (!['SchoolDesk_01', 'chinese_console_table'].includes(object.name)) return false;
+        const bounds = new THREE.Box3().setFromObject(object); return p.x >= bounds.min.x && p.x <= bounds.max.x && p.z >= bounds.min.z && p.z <= bounds.max.z;
+    });
     const gap = new THREE.Box3().setFromObject(paper.root).min.y - new THREE.Box3().setFromObject(desk).max.y;
     assert.ok(gap >= 0 && gap < 0.01, 'paper rests just above the actual imported desk surface');
 }
@@ -573,7 +582,8 @@ for (const [id, definition] of Object.entries(game.MEMORY_CASES)) {
                     house.documents.flip(); house.documents.update(0.02); assert.equal(house.documents.visibleFace, null);
                     readingPortrait = true; const rotation = paper.root.rotation.y; house.documents.update(1);
                     assert.equal(paper.root.rotation.y, rotation, 'reading pauses document rotation'); readingPortrait = false;
-                    house.documents.update(1); assert.equal(house.documents.visibleFace, 'back'); story.readDocumentFace(record, 'back');
+                    house.documents.update(1); assert.equal(house.documents.visibleFace, 'back');
+                    if (record !== 'hospital_record') story.readDocumentFace(record, 'back');
                 }
                 for (const [width, height] of [[1280, 720], [390, 844], [844, 390], [390, 640], [680, 720], [667, 375]]) {
                     house.root.clientWidth = width; house.root.clientHeight = height; camera.aspect = width / height; house.frameInspection(); house.scene.updateMatrixWorld(true);
@@ -589,7 +599,8 @@ for (const [id, definition] of Object.entries(game.MEMORY_CASES)) {
                     assert.deepEqual({ ...house.playerSnapshot() }, paperPose);
                 }
             }
-            house.endInspection(); assert.ok(paper.root.position.equals(paper.home)); assert.deepEqual({ ...controls.snapshot() }, paperPose);
+            house.endInspection(); assert.ok(paper.root.position.equals(paper.home)); assert.ok(paper.root.rotation.equals(paper.homeRotation));
+            assert.deepEqual({ ...controls.snapshot() }, paperPose);
         }
         if (record === 'crash_phone') {
             assert.equal(story.state.records.includes(record), false, 'picking up a phone does not observe both pages');
@@ -644,10 +655,11 @@ for (const [id, definition] of Object.entries(game.MEMORY_CASES)) {
     assert.equal(resumeCamera.position.x, memoryRestored.state.position.x); assert.equal(resumeCamera.position.z, memoryRestored.state.position.z);
     resumeControls.dispose();
     story.setMemoryDraft(id, [...definition.records], (definition.answer + 1) % definition.choices.length, definition.timelineOrder);
-    assert.match(story.deduce(id).message, /解释还不能/);
+    assert.match(story.deduce(id).message, /判断与两份原文还不能/);
     story.setMemoryDraft(id, [...definition.records], definition.answer);
     assert.deepEqual([...story.state.drafts[id].timeline], [...definition.timelineOrder], 'changing an explanation preserves the explicit timeline');
     assert.equal(story.deduce(id).success, true); assert.equal(story.state.memory, id, 'correct deduction keeps the player in the memory');
+    if (id === 'hospital') assert.equal(story.hasDocumentFace('hospital_record', 'back'), false, 'the optional medical follow-up back is not a submission gate');
     if (id === 'crash') {
         assert.equal(story.truthSolved(), true);
         verifyReachable(game.WORLD_MAP.interactables.find(item => item.id === 'rescue_light'), points);
@@ -676,12 +688,21 @@ assert.equal(malformedPhone.readPhonePage('recording'), false, 'reading is restr
 const legacyPartialMemory = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, opened: true, waterSolved: true,
     records: ['school_notice', 'school_receipt'], drafts: { school: { evidence: ['school_notice', 'school_receipt'], interpretation: 1 } } }), setItem() {} });
 assert.deepEqual([...legacyPartialMemory.state.drafts.school.evidence], ['school_notice', 'school_receipt']);
-assert.equal(legacyPartialMemory.state.drafts.school.interpretation, 1); assert.equal(legacyPartialMemory.state.drafts.school.timeline.length, 0);
+assert.equal(legacyPartialMemory.state.drafts.school.interpretation, null); assert.equal(legacyPartialMemory.state.drafts.school.questionChanged, true);
+assert.equal(legacyPartialMemory.state.drafts.school.timeline.length, 0);
 assert.match(legacyPartialMemory.deduce('school').message, /时间线/);
 const partialTimeline = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, opened: true, waterSolved: true, records: ['school_notice'],
     drafts: { school: { evidence: ['school_notice', 'school_receipt'], interpretation: 1, timeline: ['notice', 'notice', 'receipt', '__proto__'] } } }), setItem() {} });
 assert.deepEqual([...partialTimeline.state.drafts.school.timeline], ['notice']);
 assert.equal(partialTimeline.state.deductions.school, false);
+const oldMedical = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, opened: true, waterSolved: true,
+    documentViews: { school_notice: ['front'] }, records: ['hospital_record', 'hospital_plan'], deductions: { hospital: true },
+    drafts: { hospital: { evidence: ['hospital_record', 'hospital_plan'], interpretation: 1, timeline: ['diagnosis', 'plan'] } } }), setItem() {} });
+assert.equal(oldMedical.state.deductions.hospital, true, '0.13 saves already having school face fields keep their whole medical observations');
+assert.deepEqual([...oldMedical.state.documentViews.hospital_plan], ['front', 'back']);
+assert.deepEqual([...oldMedical.state.drafts.hospital.timeline], ['diagnosis', 'plan']); assert.equal(oldMedical.state.drafts.hospital.interpretation, null);
+oldMedical.setMemoryDraft('hospital', ['hospital_record', 'hospital_plan'], 1);
+assert.equal(oldMedical.state.drafts.hospital.questionChanged, false, 'selecting a current factual judgement clears the migration notice');
 console.log('Chronology: original-source fragments, observed-only events, incomplete/undated/wrong-order rejection, persistent wrong drafts and completed legacy compatibility passed.');
 for (const memory of ['__proto__', ['school'], 'missing']) {
     const invalid = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, opened: true, waterSolved: true, memory }), setItem() {} });

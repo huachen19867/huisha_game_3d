@@ -4,7 +4,7 @@
     const symbols = ['雨', '门', '人', '灯'];
     const freshState = () => ({ records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
         courtyard: false, buckets: [0, 0], waterSolved: false, departure: null, position: null,
-        memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
+        memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, reasoningRevision: 2, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
     class ThreeStory {
         constructor(storage) {
@@ -40,7 +40,9 @@
                     if (!this.state.phoneViews.length) this.state.records = this.state.records.filter(id => id !== 'crash_phone');
                     else if (!this.state.records.includes('crash_phone')) this.state.records.push('crash_phone');
                     for (const [id, document] of Object.entries(game.DOCUMENTS)) {
-                        this.state.documentViews[id] = !this.state.waterSolved ? [] : !Object.hasOwn(saved, 'documentViews') && this.state.records.includes(id)
+                        const hadWholeRecord = this.state.records.includes(id) && (!Object.hasOwn(saved, 'documentViews')
+                            || (document.introducedRevision === 2 && saved.reasoningRevision !== 2 && !Object.hasOwn(saved.documentViews || {}, id)));
+                        this.state.documentViews[id] = !this.state.waterSolved ? [] : hadWholeRecord
                             ? Object.keys(document.faces) : [...new Set((Array.isArray(saved.documentViews?.[id]) ? saved.documentViews[id] : [])
                                 .filter(face => typeof face === 'string' && Object.hasOwn(document.faces, face)))];
                         if (!this.state.documentViews[id].length) this.state.records = this.state.records.filter(record => record !== id);
@@ -52,9 +54,10 @@
                         this.state.deductions[id] = this.state.waterSolved && saved.deductions?.[id] === true
                             && definition.records.every(record => this.state.records.includes(record))
                             && definition.facts.every(fact => (!fact.phonePage && !fact.documentFace) || this.knowsFact(fact))
-                            && (definition.documents || []).every(record => this.documentComplete(record));
+                            && this.missingDocumentFaces(definition).length === 0;
                         const draft = saved.drafts?.[id];
-                        this.state.drafts[id] = this.cleanDraft(id, draft?.evidence, draft?.interpretation, draft?.timeline);
+                        const questionChanged = draft?.questionChanged === true || (saved.reasoningRevision !== 2 && Number.isInteger(draft?.interpretation));
+                        this.state.drafts[id] = this.cleanDraft(id, draft?.evidence, saved.reasoningRevision === 2 ? draft?.interpretation : null, draft?.timeline, questionChanged);
                     }
                     if (this.state.waterSolved && typeof saved.memory === 'string' && Object.hasOwn(game.MEMORIES || {}, saved.memory)) {
                         this.state.memory = saved.memory;
@@ -83,6 +86,8 @@
         phoneText() { return this.state.phoneViews.map(page => `${game.PHONE_PAGES[page].title}\n\n${game.PHONE_PAGES[page].text}`).join('\n\n'); }
         hasDocumentFace(id, face) { return this.state.documentViews[id]?.includes(face) === true; }
         documentComplete(id) { return Object.keys(game.DOCUMENTS[id].faces).every(face => this.hasDocumentFace(id, face)); }
+        missingDocumentFaces(definition) { return Object.entries(definition.requiredFaces || {}).flatMap(([record, faces]) =>
+            faces.filter(face => !this.hasDocumentFace(record, face)).map(face => ({ record, face }))); }
         readDocumentFace(id, face) {
             const definition = typeof id === 'string' && Object.hasOwn(game.DOCUMENTS, id) ? game.DOCUMENTS[id] : null;
             if (!definition || !this.state.waterSolved || this.state.memory !== definition.space || typeof face !== 'string' || !Object.hasOwn(definition.faces, face)) return false;
@@ -179,9 +184,10 @@
             const pose = this.state.memoryReturn || { x: 8.5, z: -20.4, yaw: Math.PI, pitch: 0 };
             this.state.memory = null; this.state.memoryReturn = null; this.state.position = { ...pose }; this.save(); return pose;
         }
-        cleanDraft(id, evidence, interpretation, timeline) {
+        cleanDraft(id, evidence, interpretation, timeline, questionChanged = false) {
             return { evidence: [0, 1].map(index => Array.isArray(evidence) && this.state.records.includes(evidence[index]) ? evidence[index] : ''),
                 interpretation: Number.isInteger(interpretation) && interpretation >= 0 && interpretation < (game.MEMORY_CASES?.[id]?.choices.length || 0) ? interpretation : null,
+                questionChanged: questionChanged === true && (interpretation === null || interpretation === undefined),
                 timeline: [...new Set((Array.isArray(timeline) ? timeline : []).filter(event => {
                     const fact = game.MEMORY_CASES?.[id]?.facts.find(fact => fact.id === event);
                     return fact && this.knowsFact(fact);
@@ -189,7 +195,7 @@
         }
         setMemoryDraft(id, evidence, interpretation, timeline) {
             if (typeof id !== 'string' || !Object.hasOwn(game.MEMORY_CASES || {}, id)) return;
-            this.state.drafts[id] = this.cleanDraft(id, evidence, interpretation, timeline === undefined ? this.state.drafts[id]?.timeline : timeline); this.save();
+            this.state.drafts[id] = this.cleanDraft(id, evidence, interpretation, timeline === undefined ? this.state.drafts[id]?.timeline : timeline, this.state.drafts[id]?.questionChanged); this.save();
         }
         deduce(id) {
             const definition = typeof id === 'string' && Object.hasOwn(game.MEMORY_CASES || {}, id) ? game.MEMORY_CASES[id] : null, draft = this.state.drafts[id];
@@ -197,15 +203,16 @@
             if (this.state.deductions[id]) return { success: true, message: definition.conclusion };
             const evidence = draft.evidence;
             if (!evidence[0] || !evidence[1] || evidence[0] === evidence[1]) return { success: false, message: '需要两份不同的已读记录。草稿仍保留着。' };
-            const mismatch = { success: false, message: '这两份记录与解释还不能相互支持。留意日期、签字和原文；可以保留草稿，回去再看。' };
+            const mismatch = { success: false, message: '这两份记录与判断还不能相互支持。留意日期、签字和原文；可以保留草稿，回去再看。' };
             if (!this.state.waterSolved || !evidence.every(record => this.state.records.includes(record))) return mismatch;
             const timeline = draft.timeline || [];
             if (timeline.some(event => definition.facts.find(fact => fact.id === event)?.dated === false)) {
                 return { success: false, message: '时间线里有缺少明确日期的片段，暂时不能据此确定先后。可以先把它放回旁边。草稿还在。' };
             }
             if (!definition.records.every(record => evidence.includes(record))) return mismatch;
-            if ((definition.documents || []).some(record => !this.documentComplete(record))) {
-                return { success: false, message: '这两张纸还有没有读过的一面。日期在正面，背面的留言也需要翻到眼前核对；草稿仍保留着。' };
+            const missingFaces = this.missingDocumentFaces(definition);
+            if (missingFaces.length) {
+                return { success: false, message: `「${game.DOCUMENTS[missingFaces[0].record].title}」还有没有读过的一面。翻看并核对日期、签字与原话；草稿仍保留着。` };
             }
             if (definition.facts.some(fact => fact.phonePage && !this.knowsFact(fact))) {
                 return { success: false, message: '手机还有没有记下的页面。把通话记录与本地录音资料分别阅读，再回到这份草稿。' };
@@ -215,7 +222,7 @@
                 return { success: false, message: '时间线的先后还对不上。回看原文里的年份、日期和时刻。'
                     + (id === 'crash' ? '文件保存的旧语音与今夜拨出的电话也要分开。' : '') + '草稿仍保留着。' };
             }
-            if (draft.interpretation !== definition.answer) return { success: false, message: '时间已经排好，但这两份原文与解释还不能相互支持。留意签字和原话，不把猜想当成已经发生的事实。' };
+            if (draft.interpretation !== definition.answer) return { success: false, message: '时间已经排好，但当前判断与两份原文还不能相互支持。留意日期、签字和原话，不把猜想当成已经发生的事实。' };
             this.state.deductions[id] = true; this.save(); return { success: true, message: definition.conclusion };
         }
         truthSolved() { return ['school', 'hospital', 'crash'].every(id => this.state.deductions[id]); }
@@ -272,8 +279,8 @@
             const id = this.state.memory, definition = game.MEMORY_CASES[id];
             if (id === 'crash' && this.truthSolved()) return { text: '三段记忆已经核对。继续走向路尽头的红蓝救护灯，靠近后主动决定是否回应。也可以先回厨房。' };
             if (this.state.deductions[id]) return { text: definition.conclusion + '\n\n可以继续观察，或从门边、暂停菜单回到厨房。' };
-            if (stage === 0) return { text: { school: '近处左侧课桌留着录取通知，远处右侧课桌有家长回执。先分别看原文，再用“整理记忆”核对。',
-                hospital: '看看右前方桌上的初诊病历，再去左侧轮椅旁查看签字的复诊安排。比较记录与离家的日期。',
+            if (stage === 0) return { text: { school: '近处左侧课桌留着录取通知，远处右侧课桌有家长回执。拿近并翻看正反面，再用“整理记忆”核对。',
+                hospital: '看看右前方桌上的初诊病历，再去左侧轮椅旁拿近复诊安排。比较年份，核对签字和背面的复诊办法。',
                 crash: '来路左侧石块上有手机，前方右侧放着救护交接单。拿近手机，分别查看通话记录和本地录音资料，留意日期。' }[id], next: '再想一想原文' };
             if (stage === 1) return { text: '选两份不同的已读原文，把有明确日期的片段从早到晚放上时间线，再选择解释。没有具体日期的描述或猜想，可以先留在旁边。选好后仍需主动提交。', next: '直接查看这段推理做法' };
             const titles = definition.records.map(record => game.WORLD_MAP.interactables.find(item => item.id === record).title);

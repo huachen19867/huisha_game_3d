@@ -25,6 +25,8 @@ Poly Haven 对其资产的 [CC0 许可说明](https://polyhaven.com/license) 已
 
 0.13.0 两张学校纸张由 ThreeDocument 的轻微弯曲几何与分别受光的正反面组成，Canvas 纹理绘制本项目原文字迹、边线与折痕。签字栏以虚构记忆中的“父”落款表示，不引入现实姓名、学校标识、第三方证件图片或额外美术依赖。原课桌 glTF 与全部下载字节保持不变。
 
+0.14.0 医院初诊病历和复诊安排沿用同一纸面几何，医疗表格使用灰绿纸/墨色，患者签字栏以虚构记忆中的“母”落款表示。未下载真实病历、医院标识或新增图片；原轮椅/门诊桌 glTF、原始许可与校验保持不变。
+
 2026-11-16 记忆扩展从 Poly Haven 官方 files API 下载 SchoolDesk_01、SchoolChair_01、wheelchair_01 的 1K glTF、二进制和各三张贴图，新增 15 份原始文件。`sources.json` 记录全部 36 份下载文件的 URL、MD5 和本地路径，检查脚本读取原始字节核对。三个目录的 source.json 保留当次完整 files API 返回。事故现场的护栏、路面、手机和救护物件为自建几何，不使用未经授权的车辆照片或收费模型。
 
 2026-11-17 从 [Kenney Impact Sounds 1.0](https://kenney.nl/assets/impact-sounds) 官方下载包导入九份原始 Ogg Vorbis 音效：木地板/硬地面脚步各三份，轻金属碰撞两份，轻木碰撞一份。位于 `audio/kenney-impact/`，合计约 57 KB，逐文件 SHA-256、包 SHA-256、官方入口和原包路径见 `audio/sources.json`；CC0 原文在 `audio/kenney-impact/License.txt`。没有修改或重新编码原文件。完整下载包和页面留在本地忽略的 `audio/.source/`，只随游戏分发实际使用的九份音效和许可。

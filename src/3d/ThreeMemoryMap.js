@@ -25,33 +25,44 @@
                 text: '二〇一四年七月二十日，家长回执上是父亲的签名。' },
             back: { title: '背面 · 父亲的留言', lines: ['我把担心说成了命令。', '那些话伤了你，', '不能算作是为你好。', '你去读书，', '钱的事我再想办法。'],
                 text: '背面写着：「我把担心说成了命令。那些话伤了你，不能算作是为你好。你去读书，钱的事我再想办法。」\n\n这张纸后来夹在母亲的相册里。' }
+        } },
+        hospital_record: { title: '初诊病历', space: 'hospital', position: [2.3, 1.004, -2.95], introducedRevision: 2, style: 'medical', faces: {
+            front: { title: '正面 · 初诊日期', lines: ['初诊病历', '二〇一二年', '八月二十三日'], text: '初诊日期：二〇一二年八月二十三日。' },
+            back: { title: '背面 · 后续记录', lines: ['后续记录', '反复检查', '长期用药'],
+                text: '后续栏里是反复检查与长期用药的记录。那时候，你还没有收到录取通知，更没有离家。' }
+        } },
+        hospital_plan: { title: '复诊安排', space: 'hospital', position: [-2.8, 1.32, -0.808], rotation: [0, 0, 0], introducedRevision: 2, style: 'medical', faces: {
+            front: { title: '正面 · 日期与本人签字', lines: ['复诊安排', '二〇一四年', '八月二十日', '患者本人签字'], signature: '母',
+                text: '二〇一四年八月二十日。\n\n患者签字是母亲的名字。' },
+            back: { title: '背面 · 复诊与代取药安排', lines: ['九月起孩子在外地读书。', '本人知情，按月复诊；', '必要时由邻居代取药。', '', '别把治病也当成你的考试。'],
+                text: '「九月起孩子在外地读书。本人知情，按月复诊；必要时由邻居代取药。」\n\n旁边另写着：「别把治病也当成你的考试。」' }
         } }
     };
     game.MEMORY_CASES = {
-        school: { title: '离家意味着什么', records: ['school_notice', 'school_receipt'], documents: ['school_notice', 'school_receipt'],
-            choices: ['留下才算尽孝，离家就是背叛', '离家读书不等于遗弃，父亲也承认了自己的控制', '父亲签过字，过去的伤害就不存在了'], answer: 1,
+        school: { title: '离家前留下了什么记录', records: ['school_notice', 'school_receipt'], requiredFaces: { school_notice: ['front', 'back'], school_receipt: ['front', 'back'] },
+            choices: ['回执没有家长签名，背面只重复了“不许离家”', '通知先到，父亲十天后签回执，背面写下“你去读书”', '父亲先签回执，十天后你才收到录取通知'], answer: 1,
             facts: [
                 { id: 'notice', record: 'school_notice', documentFace: 'front', title: '收到录取通知', quote: '二〇一四年七月十日。' },
                 { id: 'receipt', record: 'school_receipt', documentFace: 'front', title: '父亲签下回执', quote: '二〇一四年七月二十日，家长回执上是父亲的签名。' },
                 { id: 'rules', record: 'school_rules', title: '记忆里的家规', quote: '黑板上的日期停在你拿到录取通知的那一年。', dated: false }
             ], timelineOrder: ['notice', 'receipt'],
-            conclusion: '录取通知和父亲回执上的签名属于同一年。你有权离开，父亲也曾承认把担心说成了命令。这份迟来的承认不能抹掉伤害，但离家读书不是你的罪。' },
-        hospital: { title: '病情始于哪一天', records: ['hospital_record', 'hospital_plan'],
-            choices: ['你离家后，母亲才第一次生病', '病情早于离家，母亲知情安排过后续治疗', '只要你没有离开，病就一定能治好'], answer: 1,
+            conclusion: '录取通知是七月十日，父亲的回执是七月二十日。背面写着「你去读书，钱的事我再想办法」，也写着「那些话伤了你，不能算作是为你好」。支持与承认伤人的话，在同一张纸上。' },
+        hospital: { title: '初诊与复诊记录能确认什么', records: ['hospital_record', 'hospital_plan'], requiredFaces: { hospital_record: ['front'], hospital_plan: ['front', 'back'] },
+            choices: ['初诊在二〇一四年，复诊安排由你代签', '二〇一二年初诊；二〇一四年母亲签复诊，邻居可代取药', '初诊在二〇一二年，但复诊安排没有患者签字'], answer: 1,
             facts: [
-                { id: 'diagnosis', record: 'hospital_record', title: '初诊记录', quote: '初诊日期：二〇一二年八月二十三日。' },
-                { id: 'plan', record: 'hospital_plan', title: '母亲签字安排复诊', quote: '二〇一四年八月二十日。…患者签字是母亲的名字。' },
+                { id: 'diagnosis', record: 'hospital_record', documentFace: 'front', title: '初诊记录', quote: '初诊日期：二〇一二年八月二十三日。' },
+                { id: 'plan', record: 'hospital_plan', documentFace: 'front', title: '母亲签字安排复诊', quote: '二〇一四年八月二十日。…患者签字是母亲的名字。' },
                 { id: 'clock', record: 'hospital_clock', title: '如果早一点回来', quote: '你曾反复想象：如果再早一点回来，会不会不一样。', dated: false }
             ], timelineOrder: ['diagnosis', 'plan'],
-            conclusion: '初诊是二〇一二年，离家是二〇一四年。复诊安排上有母亲自己的签字。疾病并不由你的离家开始，也没有一份记录能证明留下就一定能救回她。' },
-        crash: { title: '今夜谁还在等你', records: ['crash_report', 'crash_phone'],
-            choices: ['你在事故后仍有生命体征，老宅在重复旧记忆', '母亲打来电话，把你带来陪葬', '已经宣告死亡，只能留在旧宅'], answer: 0,
+            conclusion: '初诊写着二〇一二年，复诊安排写着二〇一四年。母亲签了字，注明九月起孩子在外地读书、本人按月复诊，必要时由邻居代取药。纸边另有一句：「别把治病也当成你的考试。」' },
+        crash: { title: '手机与交接单记录了什么', records: ['crash_report', 'crash_phone'],
+            choices: ['手机保存的是二〇一六年录音，今夜呼出未接，交接单记录仍有呼吸', '母亲今夜二十一时十二分打来电话，接着发生了事故', '交接单宣告死亡，手机录音是在本次事故后收到的'], answer: 0,
             facts: [
                 { id: 'handover', record: 'crash_report', title: '今夜的救护交接', quote: '二〇二六年七月十四日，二十一时十八分。' },
                 { id: 'call', record: 'crash_phone', phonePage: 'calls', title: '给旧宅拨出的电话', quote: '二十一时十二分，你给旧宅拨过电话，没有人接。' },
                 { id: 'voice', record: 'crash_phone', phonePage: 'recording', title: '手机保存的母亲语音', quote: '屏幕停在本地录音：「母亲，二〇一六年七月十四日。」' }
             ], timelineOrder: ['voice', 'call', 'handover'],
-            conclusion: '手机播放的是十年前保存的语音，救护交接单却写着今夜、你的名字和“仍有呼吸”。这座宅子把旧日的声音接在了一起。救护灯的另一边，还有人正在叫你。' }
+            conclusion: '手机文件是十年前保存的录音。今夜二十一时十二分，是你给旧宅拨出了电话，没有接通；六分钟后的交接单仍记着呼吸与呼名反应。旧录音不是今夜打来的电话。救护灯的另一边，还有人在叫你的名字。' }
     };
     const regions = [], obstacles = [], items = [];
     const add = (space, id, title, x, y, z, text, extra = {}) => {
@@ -83,9 +94,9 @@
     add('school', 'school_rules', '黑板旁的旧家规', 0, 1.7, -4.45,
         '六点前回家，不许顶嘴，志愿由父亲决定。\n\n背过的句子仍在，但黑板上的日期停在你拿到录取通知的那一年。记忆没有替谁把这些命令擦掉。', { deduction: 'school' });
     add('hospital', 'hospital_record', '初诊病历', 2.3, 1.02, -2.85,
-        '初诊日期：二〇一二年八月二十三日。\n\n后续栏里是反复检查与长期用药的记录。那时候，你还没有收到录取通知，更没有离家。', { deduction: 'hospital' });
+        '初诊日期：二〇一二年八月二十三日。\n\n后续栏里是反复检查与长期用药的记录。那时候，你还没有收到录取通知，更没有离家。', { deduction: 'hospital', journal: false });
     add('hospital', 'hospital_plan', '母亲签过字的复诊安排', -2.8, 1.32, -0.8,
-        '二〇一四年八月二十日。\n\n「九月起孩子在外地读书。本人知情，按月复诊；必要时由邻居代取药。」\n\n患者签字是母亲的名字。旁边另写着：「别把治病也当成你的考试。」', { deduction: 'hospital' });
+        '二〇一四年八月二十日。\n\n「九月起孩子在外地读书。本人知情，按月复诊；必要时由邻居代取药。」\n\n患者签字是母亲的名字。旁边另写着：「别把治病也当成你的考试。」', { deduction: 'hospital', journal: false });
     add('hospital', 'hospital_clock', '候诊室的钟', 0, 2.1, -4.4,
         '你曾反复想象：如果再早一点回来，会不会不一样。\n\n钟面却没有哪一格写着“保证来得及”。可以拿记录核对发生过的事，不必把猜想当成证据。', { deduction: 'hospital' });
     add('crash', 'crash_report', '救护交接单', 1.7, 1.05, -4.5,

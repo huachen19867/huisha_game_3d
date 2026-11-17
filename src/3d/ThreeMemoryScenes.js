@@ -41,9 +41,8 @@
                 h.box(`hospital-grout-z-${i}`, [10, 0.003, 0.012], [0, 0, i], m.ash, undefined, root, false);
             }
             h.label('hospital-label', '门　诊', [1.7, 0.45], [2.7, 2, -4.73], [0, 0, 0], undefined, root, '#a8b9b3', '#304743');
-            h.label('first-diagnosis', '初 诊\n2012.08.23', [0.65, 0.4], [2.3, 1.013, -2.95], [-Math.PI / 2, 0, 0], 'hospital_record', root);
             h.box('hospital-clipboard', [0.55, 0.62, 0.04], [-2.8, 1.32, -0.83], pale, 'hospital_plan', root);
-            h.label('hospital-plan-label', '复诊安排\n患者本人签字', [0.48, 0.53], [-2.8, 1.32, -0.802], [0, 0, 0], 'hospital_plan', root);
+            h.documents.build(root);
             h.cylinder('clipboard-stand', 0.018, 0.018, 1.25, [-2.8, 0.62, -0.9], m.brass, 'hospital_plan', root);
             const clock = h.cylinder('hospital-clock', 0.32, 0.32, 0.07, [0, 2.1, -4.7], pale, 'hospital_clock', root); clock.rotation.x = Math.PI / 2;
             h.box('clock-hand-hour', [0.025, 0.17, 0.015], [-0.06, 2.15, -4.65], m.darkWood, 'hospital_clock', root).rotation.z = 0.6;

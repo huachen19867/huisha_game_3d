@@ -5,8 +5,9 @@
         build(parent) {
             const h = this.house;
             for (const [id, definition] of Object.entries(game.DOCUMENTS)) {
+                if (definition.space !== parent.userData.memorySpace || this.papers.has(id)) continue;
                 const root = new THREE.Group(); root.name = `document-${id}`;
-                root.position.set(...definition.position); root.rotation.x = -Math.PI / 2; parent.add(root);
+                root.position.set(...definition.position); root.rotation.set(...(definition.rotation || [-Math.PI / 2, 0, 0])); parent.add(root);
                 const sheet = new THREE.PlaneGeometry(0.38, 0.54, 12, 16), vertices = sheet.attributes.position;
                 for (let i = 0; i < vertices.count; i++) {
                     const x = vertices.getX(i), y = vertices.getY(i);
@@ -17,19 +18,20 @@
                 const backGeometry = sheet.clone(), uv = backGeometry.attributes.uv;
                 for (let i = 0; i < uv.count; i++) uv.setX(i, 1 - uv.getX(i));
                 const back = h.mesh(`${id}-back`, backGeometry, this.createFaceMaterial(definition, 'back'), [0, 0, -0.0006], id, root);
-                this.papers.set(id, { root, front, back, home: root.position.clone() });
+                this.papers.set(id, { root, front, back, home: root.position.clone(), homeRotation: root.rotation.clone() });
             }
         }
         createFaceMaterial(definition, face) {
             const canvas = document.createElement('canvas'); canvas.width = 768; canvas.height = 1024;
             const ctx = canvas.getContext('2d'), data = definition.faces[face];
-            ctx.fillStyle = face === 'front' ? '#cbbb93' : '#c7b68e'; ctx.fillRect(0, 0, 768, 1024);
-            ctx.fillStyle = '#b3a37e'; ctx.fillRect(0, 503, 768, 5); ctx.fillRect(0, 509, 768, 2);
-            ctx.strokeStyle = face === 'front' ? '#8e5241' : '#ad9b76'; ctx.lineWidth = 3; ctx.strokeRect(34, 36, 700, 952);
+            const medical = definition.style === 'medical';
+            ctx.fillStyle = medical ? '#d6dad0' : face === 'front' ? '#cbbb93' : '#c7b68e'; ctx.fillRect(0, 0, 768, 1024);
+            ctx.fillStyle = medical ? '#bbc5bd' : '#b3a37e'; ctx.fillRect(0, 503, 768, 5); ctx.fillRect(0, 509, 768, 2);
+            ctx.strokeStyle = medical ? '#557f7b' : face === 'front' ? '#8e5241' : '#ad9b76'; ctx.lineWidth = 3; ctx.strokeRect(34, 36, 700, 952);
             ctx.textAlign = 'center';
             data.lines.forEach((line, i) => {
-                ctx.fillStyle = face === 'front' && i === 0 ? '#813f32' : '#3e352b';
-                ctx.font = `${face === 'front' && i === 0 ? 64 : 46}px ${face === 'back' ? '"KaiTi", "STKaiti"' : '"SimSun"'}, serif`;
+                ctx.fillStyle = medical ? '#314b4a' : face === 'front' && i === 0 ? '#813f32' : '#3e352b';
+                ctx.font = `${face === 'front' && i === 0 ? 64 : 46}px ${face === 'back' && !medical ? '"KaiTi", "STKaiti"' : '"SimSun"'}, serif`;
                 ctx.fillText(line, 384, 180 + i * 135, 650);
             });
             if (data.signature) { ctx.font = '72px "KaiTi", "STKaiti", serif'; ctx.textAlign = 'right'; ctx.fillText(data.signature, 610, 810); }
@@ -74,7 +76,7 @@
         }
         end() {
             const paper = this.papers.get(this.activeId);
-            if (paper) { paper.root.position.copy(paper.home); paper.root.rotation.set(-Math.PI / 2, 0, 0); }
+            if (paper) { paper.root.position.copy(paper.home); paper.root.rotation.copy(paper.homeRotation); }
             this.activeId = null;
         }
     }

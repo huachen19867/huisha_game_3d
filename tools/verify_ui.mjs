@@ -64,6 +64,8 @@ async function boot(saved, preferences) {
                         crash.userData.memorySpace = 'crash'; this.scene.add(crash); this.phone = new game.ThreePhone(this); this.phone.build(crash);
                         const school = new THREE.Group(); school.position.x = game.MEMORIES.school.center[0]; school.userData.memorySpace = 'school'; this.scene.add(school);
                         this.documents = new game.ThreeDocument(this); this.documents.build(school);
+                        const hospital = new THREE.Group(); hospital.position.x = game.MEMORIES.hospital.center[0]; hospital.userData.memorySpace = 'hospital'; this.scene.add(hospital);
+                        this.documents.build(hospital);
                         this.controls = new game.ThreeControls({ camera: this.camera, domElement: canvas, map: this.map,
                             story: this.story, isPaused: this.isPaused, getPreferences: this.getPreferences });
                         this.interaction = new game.ThreeInteraction({ camera: this.camera, map: this.map, scene: this.scene,
@@ -344,6 +346,19 @@ try {
         const definition = ui.window.Huisha3D.MEMORY_CASES[id];
         for (const record of definition.records) {
             ui.inspect(record);
+            if (Object.hasOwn(ui.window.Huisha3D.DOCUMENTS, record)) {
+                assert.equal(ui.scene.story.state.records.includes(record), false);
+                ui.$('document-read').click();
+                if (record === 'hospital_plan') {
+                    assert.doesNotMatch(ui.$('reader-body').textContent, /邻居/);
+                    ui.click('整理这段记忆'); const medicalFields = [...ui.document.querySelectorAll('.memory-draft select')];
+                    ui.choose(medicalFields[0], 'hospital_record'); ui.choose(medicalFields[1], 'hospital_plan'); ui.click('提交推理');
+                    assert.match(ui.document.querySelector('.memory-feedback').textContent, /没有读过的一面/);
+                    ui.click('回查手记'); ui.click('回到纸张'); ui.$('document-flip').click(); ui.scene.documents.update(1); ui.scene.onFrame(ui.scene.camera.position, true);
+                    ui.$('document-read').click(); assert.match(ui.$('reader-body').textContent, /邻居代取药/);
+                }
+                continue;
+            }
             if (record !== 'crash_phone') continue;
             const phonePose = { ...ui.scene.playerSnapshot() };
             assert.equal(ui.$('phone-inspector').hidden, false); assert.equal(ui.$('phone-read').disabled, true);
@@ -392,6 +407,15 @@ try {
     ui.click('恢复默认设置'); assert.equal(ui.scene.renderer.toneMappingExposure, 1.28);
     assert.equal(ui.scene.controls.getPreferences().invertY, false); assert.equal(ui.scene.story.state.records.length, 0);
     ui.click('返回标题');
+    assert.equal(ui.errors.length, 0, ui.errors.map(error => error.message).join('\n'));
+    const oldDraft = JSON.parse(saved); delete oldDraft.reasoningRevision;
+    ui.destroy(); ui = await boot(JSON.stringify(oldDraft), savedPreferences); ui.$('begin').click(); ui.key('KeyJ'); ui.click('整理 · 录取那年');
+    fields = [...ui.document.querySelectorAll('.memory-draft select')];
+    assert.deepEqual(fields.map(field => field.value), ['school_notice', 'school_receipt', '']);
+    assert.ok(ui.document.querySelector('.memory-question-update'), 'old question choices are cleared with an explanation while evidence is kept');
+    assert.deepEqual([...ui.scene.story.state.drafts.school.timeline], ['receipt', 'notice']);
+    ui.choose(fields[2], 1); assert.equal(ui.document.querySelector('.memory-question-update'), null);
+    assert.equal(ui.scene.story.state.deductions.school, false, 'migrating or reselecting a judgement does not submit it');
     assert.equal(ui.errors.length, 0, ui.errors.map(error => error.message).join('\n'));
     console.log('UI: discovered-only SVG map, room focus/readback, real inspection pose, isolated memory layers, boot/settings, physical portrait, grouped evidence/drafts, memory return, four endings and restart passed.');
     console.log('Scope: jsdom DOM events with a rendering stub and dialog shim; no browser, native dialog/select behavior, layout, WebGL, pointer lock, audio or real-device acceptance.');
