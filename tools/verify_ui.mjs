@@ -113,7 +113,11 @@ async function boot(saved, preferences) {
         assert.fail(`could not deliver investigation event for ${id}`);
     };
     const destroy = () => { window.dispatchEvent(new window.PageTransitionEvent('pagehide', { persisted: false })); window.close(); };
-    return { window, document, scene, $, key, click, choose, inspect, errors, destroy };
+    const expandReading = kind => {
+        assert.equal($('reader').open, false, 'recording a face/page stays in the object view');
+        const button = $(`${kind}-reading`).querySelector('[data-read-expanded]'); assert.ok(button); button.click();
+    };
+    return { window, document, scene, $, key, click, choose, inspect, expandReading, errors, destroy };
 }
 
 let ui;
@@ -273,15 +277,21 @@ try {
     assert.equal(ui.scene.story.state.memory, 'school'); assert.deepEqual({ ...ui.scene.controls.snapshot() }, beforeMemoryMap);
     ui.document.querySelector('[data-map-space="school"]').click(); ui.click('继续探索');
     ui.inspect('school_notice'); assert.equal(ui.scene.story.state.records.includes('school_notice'), false);
-    ui.$('document-read').click(); assert.doesNotMatch(ui.$('reader-body').textContent, /第一次/);
+    ui.$('document-read').click(); assert.equal(ui.$('reader').open, false);
+    assert.equal(ui.$('document-reading').querySelector('details').open, true);
+    assert.doesNotMatch(ui.$('document-reading').textContent, /第一次/);
+    assert.deepEqual(JSON.parse(ui.window.localStorage.getItem(saveKey)).position, { ...ui.scene.playerSnapshot() }, 'inline reading saves the real evidence position immediately');
+    ui.expandReading('document'); assert.doesNotMatch(ui.$('reader-body').textContent, /第一次/);
     ui.click('打开手记'); assert.doesNotMatch(ui.$('reader-body').textContent, /第一次/);
     ui.click('回到纸张'); ui.$('document-flip').click(); ui.scene.documents.update(0.02); ui.scene.onFrame(ui.scene.camera.position, true);
     assert.equal(ui.$('document-read').disabled, true); ui.$('document-read').click(); assert.equal(ui.scene.story.hasDocumentFace('school_notice', 'back'), false);
+    assert.equal(ui.$('document-reading').hidden, true); assert.equal(ui.$('document-reading').textContent, '', 'edge-on or unread faces leave no stale transcript');
     ui.$('document-records').click(); const paperAngle = ui.scene.documents.papers.get('school_notice').root.rotation.y;
     ui.scene.documents.update(1); assert.equal(ui.scene.documents.papers.get('school_notice').root.rotation.y, paperAngle);
     ui.click('回到纸张'); assert.equal(ui.document.activeElement, ui.$('document-flip'), 'returning mid-turn focuses an enabled document control');
     ui.scene.documents.update(1); ui.scene.onFrame(ui.scene.camera.position, true);
-    assert.equal(ui.$('document-read').disabled, false); ui.$('document-read').click(); ui.click('整理这段记忆');
+    assert.equal(ui.$('document-read').disabled, false); ui.$('document-read').click();
+    assert.equal(ui.$('reader').open, false); ui.$('document-reading').querySelector('[data-read-deduce]').click();
     assert.equal(ui.document.querySelector('.memory-draft option[value="school_receipt"]'), null, 'unread evidence is not offered in the DOM');
     assert.equal(ui.document.querySelector('.memory-timeline-board [data-fact="receipt"]'), null, 'unread facts never appear as cards');
     ui.click('提交推理'); assert.match(ui.document.querySelector('.memory-feedback').textContent, /两份不同/);
@@ -298,12 +308,16 @@ try {
     ui.document.querySelector('[data-record="school_notice"] [data-pin-record]').click();
     const scope = ui.document.querySelector('.evidence-filter select'); ui.choose(scope, 'all');
     assert.ok(ui.document.querySelector('.evidence-records [data-record="coffin"]'), 'other observed records remain available through the explicit filter');
-    ui.inspect('school_receipt'); ui.$('document-read').click(); ui.click('整理这段记忆');
+    ui.inspect('school_receipt'); ui.$('document-read').click(); ui.expandReading('document'); ui.click('整理这段记忆');
     const frontFields = [...ui.document.querySelectorAll('.memory-draft select')];
     ui.choose(frontFields[0], 'school_notice'); ui.choose(frontFields[1], 'school_receipt'); ui.click('提交推理');
     assert.match(ui.document.querySelector('.memory-feedback').textContent, /没有读过的一面/);
     ui.click('回查手记'); ui.click('回到纸张'); ui.$('document-flip').click(); ui.scene.documents.update(1); ui.scene.onFrame(ui.scene.camera.position, true);
-    ui.$('document-read').click(); ui.click('放入摘记'); ui.click('整理这段记忆'); ui.click('把两份摘记放入草稿');
+    ui.$('document-read').click();
+    const inlinePin = ui.$('document-reading').querySelector('[data-pin-record]'); inlinePin.focus(); inlinePin.click();
+    assert.deepEqual([...ui.scene.story.state.pinnedRecords], ['school_notice', 'school_receipt']);
+    assert.equal(ui.document.activeElement, inlinePin); assert.equal(ui.$('reader').open, false, 'pinning in place does not open a modal or remove focus');
+    ui.$('document-reading').querySelector('[data-read-deduce]').click(); ui.click('把两份摘记放入草稿');
     let fields = [...ui.document.querySelectorAll('.memory-draft select')];
     assert.deepEqual(fields.map(field => field.value), ['school_notice', 'school_receipt', '']);
     ui.choose(fields[0], 'school_notice'); ui.choose(fields[1], 'school_receipt'); ui.choose(fields[2], 0);
@@ -348,14 +362,14 @@ try {
             ui.inspect(record);
             if (Object.hasOwn(ui.window.Huisha3D.DOCUMENTS, record)) {
                 assert.equal(ui.scene.story.state.records.includes(record), false);
-                ui.$('document-read').click();
+                ui.$('document-read').click(); ui.expandReading('document');
                 if (record === 'hospital_plan') {
                     assert.doesNotMatch(ui.$('reader-body').textContent, /邻居/);
                     ui.click('整理这段记忆'); const medicalFields = [...ui.document.querySelectorAll('.memory-draft select')];
                     ui.choose(medicalFields[0], 'hospital_record'); ui.choose(medicalFields[1], 'hospital_plan'); ui.click('提交推理');
                     assert.match(ui.document.querySelector('.memory-feedback').textContent, /没有读过的一面/);
                     ui.click('回查手记'); ui.click('回到纸张'); ui.$('document-flip').click(); ui.scene.documents.update(1); ui.scene.onFrame(ui.scene.camera.position, true);
-                    ui.$('document-read').click(); assert.match(ui.$('reader-body').textContent, /邻居代取药/);
+                    ui.$('document-read').click(); ui.expandReading('document'); assert.match(ui.$('reader-body').textContent, /邻居代取药/);
                 }
                 continue;
             }
@@ -364,7 +378,11 @@ try {
             assert.equal(ui.$('phone-inspector').hidden, false); assert.equal(ui.$('phone-read').disabled, true);
             assert.equal(ui.scene.story.state.records.includes('crash_phone'), false);
             ui.document.querySelector('[data-phone-page="calls"]').click(); assert.equal(ui.scene.story.state.phoneViews.length, 0);
-            ui.$('phone-read').click(); assert.equal(ui.$('reader-title').textContent, '手机 · 通话记录');
+            ui.$('phone-read').click(); assert.equal(ui.$('reader').open, false);
+            assert.match(ui.$('phone-reading').textContent, /二十一时十二分/); assert.doesNotMatch(ui.$('phone-reading').textContent, /二〇一六/);
+            ui.key('Digit2'); assert.equal(ui.$('phone-reading').hidden, true); assert.equal(ui.$('phone-reading').textContent, '');
+            assert.deepEqual([...ui.scene.story.state.phoneViews], ['calls'], 'switching directly to the recording page does not observe it');
+            ui.key('Digit1'); ui.expandReading('phone'); assert.equal(ui.$('reader-title').textContent, '手机 · 通话记录');
             ui.click('整理这段记忆'); const partialFields = [...ui.document.querySelectorAll('.memory-draft select')];
             ui.choose(partialFields[0], 'crash_report'); ui.choose(partialFields[1], 'crash_phone');
             assert.ok(ui.document.querySelector('[data-fact="call"]')); assert.equal(ui.document.querySelector('[data-fact="voice"]'), null);
@@ -372,7 +390,7 @@ try {
             ui.click('回查手记'); assert.doesNotMatch(ui.$('reader-body').textContent, /二〇一六/);
             ui.click('回到手机'); assert.equal(ui.scene.phone.page, 'calls', 'journal return keeps the selected phone page');
             ui.key('Digit2'); assert.equal(ui.scene.phone.page, 'recording');
-            assert.deepEqual([...ui.scene.story.state.phoneViews], ['calls']); ui.$('phone-read').click();
+            assert.deepEqual([...ui.scene.story.state.phoneViews], ['calls']); ui.$('phone-read').click(); ui.expandReading('phone');
             assert.deepEqual([...ui.scene.story.state.phoneViews], ['calls', 'recording']);
             assert.deepEqual({ ...ui.scene.playerSnapshot() }, phonePose);
         }
@@ -401,6 +419,7 @@ try {
     assert.equal(ui.scene.story.state.pinnedRecords.length, 0);
     assert.equal(ui.scene.story.state.visitedAreas.length, 0);
     assert.equal(ui.scene.story.state.portraitBackRead, false); assert.equal(ui.scene.portrait.cloth.visible, true);
+    for (const kind of ['phone', 'document']) assert.equal(ui.$(`${kind}-reading`).textContent, '', 'leaving and restarting clear stale object transcripts');
     assert.equal(ui.document.querySelectorAll('.inspection-notes [data-pinned-record]').length, 0, 'restarting clears stale originals from both inspectors');
     assert.equal(ui.window.localStorage.getItem('huisha.3d.preferences.v1'), savedPreferences, 'restarting the story keeps device preferences');
     ui.$('title-settings').click(); assert.equal(ui.document.querySelector('[data-setting="volume"]').value, '0.4');

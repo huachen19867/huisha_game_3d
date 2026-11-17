@@ -18,6 +18,8 @@
 
 0.14.0 的医院纸张直接复用现有 ThreeDocument 和 Three.js Euler 的朝向保存/恢复，按记忆空间建模，不复制另一套纸张控制器。事实核对继续沿用已下载 Ink 的条件选项与“已观察事实/可执行行动”分离方法，不新增叙事库或第三方医疗表单图片；所有文字仍来自本项目原病历/复诊记录。未重复下载已有项目或素材。
 
+0.15.0 的近看内原文复用原生 details、已下载 W3C 模态/焦点资料、本项目 ThreeEvidenceJournal 的摘记按钮与原记忆入口。共享主入口函数和机关样式，不下载另一套阅读器，不引入运行依赖。主动放大仍使用原 dialog，测试沿用现有 jsdom；DOM 事件不代表浏览器原生开合、焦点或布局证据。
+
 2026-11-16 为界面事件验证安装 [jsdom 26.1.0](https://github.com/jsdom/jsdom/tree/26.1.0)，MIT。源码与 LICENSE.txt 位于工作区开发依赖 node_modules/jsdom，npm 的 39 份包及完整性摘要通过 package-lock.json 锁定，来源为 registry.npmjs.org；不把 node_modules 或 jsdom 加入游戏运行模块。`tools/verify_ui.mjs` 复用它的 DOM 与事件实现，渲染边界和 dialog 开合另行模拟，不能据此宣称浏览器默认行为、布局或 WebGL 已验收。
 
 2026-11-17 的手记对照与机关旁摘记复用已下载的 W3C 对话框研究、原生 details/select 控件及现有 jsdom。没有重新下载相同参考、引入界面框架或新运行依赖；新模块只呈现真实已读原文，不生成替代线索。

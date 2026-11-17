@@ -135,6 +135,22 @@ function guidance(stage = 0, backToLock = !!scene?.inspectionReturn) {
 }
 function inspectionLabel() { return { water: '回到量水桌', portrait: '回到相框', phone: '回到手机', document: '回到纸张' }[scene.inspectionKind] || '回到字轮'; }
 function resumeInspection() { ({ water, portrait, phone, lock, document: () => documentInspect(scene.documents.activeId) }[scene.inspectionKind] || lock)(); }
+function updateObjectReading(kind, record, space) {
+    const host = $(`${kind}-reading`), hadFocus = host.contains(document.activeElement);
+    host.replaceChildren(); host.hidden = !record;
+    if (record) {
+        const detail = document.createElement('details'), summary = document.createElement('summary'), text = document.createElement('p');
+        summary.textContent = record.title; text.textContent = record.text; detail.append(summary, text); host.append(detail);
+        const actions = document.createElement('div'); actions.className = 'inspection-reading-actions';
+        const expand = document.createElement('button'); expand.type = 'button'; expand.dataset.readExpanded = kind; expand.textContent = '放大阅读';
+        expand.addEventListener('click', () => readRecord(record,
+            [[inspectionLabel(), resumeInspection], ['整理这段记忆', () => memoryJournal.show(space)], ['回到厨房', returnMemory]]));
+        const reason = document.createElement('button'); reason.type = 'button'; reason.textContent = '整理这段记忆'; reason.dataset.readDeduce = space;
+        reason.addEventListener('click', () => memoryJournal.show(space));
+        actions.append(expand, reason); evidenceJournal.appendPinAction(actions, record.id); host.append(actions);
+    }
+    if (hadFocus) (kind === 'document' ? $('document-flip') : document.querySelector(`[data-phone-page="${scene.phone.page}"]`))?.focus({ preventScroll: true });
+}
 function updateDocument() {
     const id = scene.documents.activeId; if (!id) return;
     const face = scene.documents.visibleFace, targetBack = Math.cos(scene.documents.angle) < 0;
@@ -145,6 +161,9 @@ function updateDocument() {
     $('document-flip').textContent = targetBack ? '转回正面' : '翻到背面';
     $('document-status').textContent = face ? `${game.DOCUMENTS[id].faces[face].title} · ${story.hasDocumentFace(id, face) ? '已记入手记' : '尚未记下'}。可以主动阅读，或翻到另一面。`
         : '等纸张转到眼前，再阅读这一面。可以拖动纸张调整角度。';
+    const definition = game.DOCUMENTS[id], page = face && definition.faces[face];
+    updateObjectReading('document', page && story.hasDocumentFace(id, face)
+        ? { id, title: `${definition.title} · ${page.title}`, text: page.text } : null, definition.space);
 }
 function documentInspect(id) {
     if (!Object.hasOwn(game.DOCUMENTS, id) || story.state.memory !== game.DOCUMENTS[id].space) return;
@@ -160,6 +179,8 @@ function updatePhone() {
     $('phone-read').disabled = !Object.hasOwn(game.PHONE_PAGES, page);
     $('phone-status').textContent = page === 'home' ? '分别查看通话与本地录音资料，再把当前页记入手记。'
         : `${game.PHONE_PAGES[page].title}${story.state.phoneViews.includes(page) ? ' · 已记入手记' : ' · 尚未记下'}。切换页面不会自动记入或提交推理。`;
+    updateObjectReading('phone', story.state.phoneViews.includes(page)
+        ? { id: 'crash_phone', title: `手机 · ${game.PHONE_PAGES[page].title}`, text: game.PHONE_PAGES[page].text } : null, 'crash');
 }
 function phone() {
     if (story.state.memory !== 'crash') return;
@@ -202,6 +223,7 @@ function updateLock(message) {
 function leaveInspection(restoreFocus = true) {
     if (!scene?.inspectionReturn) return;
     scene.endInspection(); $('lock-inspector').hidden = true; $('water-inspector').hidden = true; $('portrait-inspector').hidden = true; $('phone-inspector').hidden = true; $('document-inspector').hidden = true; $('hud').classList.remove('inspecting');
+    for (const kind of ['phone', 'document']) { $(`${kind}-reading`).replaceChildren(); $(`${kind}-reading`).hidden = true; }
     touches.clear(); updateTouch();
     if (restoreFocus && lockFocus?.isConnected) lockFocus.focus?.({ preventScroll: true });
     save();
@@ -376,9 +398,7 @@ $('phone-leave').addEventListener('click', () => leaveInspection());
 $('phone-records').addEventListener('click', () => journal(true));
 $('phone-read').addEventListener('click', () => {
     if (reader.open || scene.inspectionKind !== 'phone' || !story.readPhonePage(scene.phone.page)) return;
-    const page = game.PHONE_PAGES[scene.phone.page]; audio.paper(); updatePhone();
-    readRecord({ id: 'crash_phone', title: `手机 · ${page.title}`, text: page.text },
-        [['回到手机', phone], ['整理这段记忆', () => memoryJournal.show('crash')], ['回到厨房', returnMemory]]);
+    audio.paper(); save(); updatePhone(); $('phone-reading').querySelector('details').open = true;
 });
 $('document-leave').addEventListener('click', () => leaveInspection());
 $('document-records').addEventListener('click', () => journal(true));
@@ -390,9 +410,7 @@ $('document-read').addEventListener('click', () => {
     if (reader.open || scene.inspectionKind !== 'document') return;
     const id = scene.documents.activeId, face = scene.documents.visibleFace;
     if (!face || !story.readDocumentFace(id, face)) return;
-    const definition = game.DOCUMENTS[id], page = definition.faces[face]; audio.paper(); updateDocument();
-    readRecord({ id, title: `${definition.title} · ${page.title}`, text: page.text },
-        [['回到纸张', () => documentInspect(id)], ['整理这段记忆', () => memoryJournal.show(definition.space)], ['回到厨房', returnMemory]]);
+    audio.paper(); save(); updateDocument(); $('document-reading').querySelector('details').open = true;
 });
 evidenceJournal.mountInspector($('lock-inspector'));
 evidenceJournal.mountInspector($('water-inspector'));
