@@ -2,8 +2,8 @@
     const game = global.Huisha3D || (global.Huisha3D = {});
     const THREE = global.THREE;
     class ThreeHouseScene {
-        constructor({ root, prompt, focusMarker, story, isPaused, isReading, onInspect, onAssetError, onFrame, getPreferences, onMechanismEvent }) {
-            Object.assign(this, { root, prompt, focusMarker, story, isPaused, isReading, onInspect, onAssetError, onFrame, getPreferences, onMechanismEvent });
+        constructor({ root, prompt, focusMarker, story, isPaused, isReading, onInspect, onAssetError, onFrame, getPreferences, onMechanismEvent, onScaleEvent }) {
+            Object.assign(this, { root, prompt, focusMarker, story, isPaused, isReading, onInspect, onAssetError, onFrame, getPreferences, onMechanismEvent, onScaleEvent });
             this.map = game.WORLD_MAP || game.MAIN_HALL_MAP;
             this.clock = new THREE.Clock();
             this.textures = [];
@@ -362,6 +362,7 @@
             const pose = this.inspectionReturn;
             if (!pose) return;
             if (this.inspectionKind === 'portrait') this.portrait.end();
+            if (this.inspectionKind === 'water') this.courtyard.cancelWeigh();
             this.camera.position.set(pose.x, this.map.playerStart.y, pose.z);
             this.camera.fov = this.inspectionFov; this.camera.clearViewOffset(); this.camera.updateProjectionMatrix();
             this.controls.yaw = pose.yaw; this.controls.pitch = pose.pitch;

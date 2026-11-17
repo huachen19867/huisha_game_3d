@@ -44,11 +44,11 @@ async function boot(saved, preferences) {
                         scene = this; this.scene = new THREE.Scene(); this.camera = new THREE.PerspectiveCamera(66, 16 / 9, 0.06, 60);
                         const canvas = document.createElement('canvas'); this.root.append(canvas);
                         this.renderer = { domElement: canvas, toneMappingExposure: 1.28, dispose() {} };
-                        this.materials = Object.fromEntries(['wood', 'darkWood', 'brass', 'portrait', 'paper', 'cloth', 'red'].map(name => [name, new THREE.MeshStandardMaterial()]));
+                        this.materials = Object.fromEntries(['wood', 'darkWood', 'brass', 'portrait', 'paper', 'cloth', 'red', 'stone', 'plaster', 'floor'].map(name => [name, new THREE.MeshStandardMaterial()]));
                         this.portrait = new game.ThreePortrait(this); this.portrait.build();
                         this.door = new THREE.Group(); this.door.position.set(this.map.door.hingeX, 0, this.map.door.hingeZ); this.scene.add(this.door);
                         this.outsideLight = { intensity: 4 }; this.doorMechanism = new game.ThreeDoorMechanism(this); this.doorMechanism.build();
-                        this.courtyard = { selected: 0, frame() {}, moveGate() {}, pick() { return null; } }; this.wheels = [];
+                        this.courtyard = new game.ThreeCourtyard(this); this.courtyard.build(); this.wheels = [];
                         this.controls = new game.ThreeControls({ camera: this.camera, domElement: canvas, map: this.map,
                             story: this.story, isPaused: this.isPaused, getPreferences: this.getPreferences });
                         this.interaction = new game.ThreeInteraction({ camera: this.camera, map: this.map, scene: this.scene,
@@ -60,7 +60,8 @@ async function boot(saved, preferences) {
                         this.portrait?.sync(immediate);
                         if (immediate) this.door.rotation.y = this.story.state.opened ? this.map.door.openAngle : 0;
                         this.doorMechanism?.sync(immediate);
-                    } // Other scene geometry remains outside this DOM check.
+                        this.courtyard?.sync(immediate);
+                    } // Models, lights and rendering remain outside this DOM check.
                 };
             }
             return module;
@@ -223,11 +224,28 @@ try {
     ui.$('map').click(); assert.match(ui.document.querySelector('[data-map-area-notes="corridor"]').textContent, /已解开/);
     assert.equal(ui.document.querySelector('[data-map-area="path"]'), null, 'unlocking alone does not draw a room that has not been entered'); ui.click('继续探索');
     ui.inspect('water_station'); ui.$('water-weigh').click(); assert.equal(ui.scene.story.state.waterSolved, false);
+    assert.equal(ui.$('water-fill').disabled, true); ui.key('KeyF'); assert.deepEqual([...ui.scene.story.state.buckets], [0, 0]);
+    ui.scene.courtyard.update(0.55); assert.match(ui.$('water-status').textContent, /偏轻/);
+    const trialTime = ui.scene.courtyard.weighing.time;
+    ui.$('water-records').click(); ui.scene.courtyard.update(1);
+    assert.equal(ui.scene.courtyard.weighing.time, trialTime, 'journal pauses the actual scale trial');
+    ui.click('回到量水桌'); ui.scene.courtyard.update(1.3); assert.equal(ui.$('water-fill').disabled, false);
+    assert.equal(ui.$('reader').open, false);
+    ui.document.querySelector('[data-bucket="1"]').click(); ui.$('water-fill').click(); ui.$('water-weigh').click();
+    ui.scene.courtyard.update(0.55); assert.match(ui.$('water-status').textContent, /偏重/);
+    ui.$('water-leave').click(); assert.equal(ui.scene.courtyard.weighing, null);
+    assert.deepEqual([...ui.scene.story.state.buckets], [0, 5]); ui.inspect('water_station');
+    assert.equal(ui.$('water-fill').disabled, false);
     ui.document.querySelector('[data-bucket="1"]').click(); ui.$('water-fill').click(); ui.key('KeyP');
     ui.document.querySelector('[data-bucket="0"]').click(); ui.$('water-empty').click();
     ui.document.querySelector('[data-bucket="1"]').click(); ui.$('water-pour').click(); ui.$('water-fill').click(); ui.$('water-pour').click();
     assert.deepEqual([...ui.scene.story.state.buckets], [3, 4]);
-    ui.$('water-weigh').click(); assert.equal(ui.scene.story.state.waterSolved, true); assert.equal(ui.$('water-fill').disabled, true);
+    ui.$('water-weigh').click(); assert.equal(ui.scene.story.state.waterSolved, false);
+    ui.scene.courtyard.update(0.25); assert.equal(ui.scene.story.state.waterSolved, false);
+    ui.scene.courtyard.update(0.3); assert.equal(ui.scene.story.state.waterSolved, true); assert.equal(ui.$('water-fill').disabled, true);
+    assert.equal(ui.scene.courtyard.needle.rotation.z, 0); assert.equal(ui.scene.courtyard.buckets[1].position.x, 9.4);
+    assert.ok(Math.abs(ui.scene.courtyard.pan.position.y - 0.1) < 1e-9);
+    assert.match(ui.$('water-status').textContent, /对准四升/); ui.scene.courtyard.update(1);
     ui.$('water-leave').click();
     ui.inspect('memory_album'); ui.click('翻入记忆 · 录取那年');
     const returnPose = { ...ui.scene.story.state.memoryReturn };

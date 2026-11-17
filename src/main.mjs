@@ -185,9 +185,9 @@ function updateWater(message) {
     if (message) $('water-status').textContent = message;
     document.querySelectorAll('[data-bucket]').forEach(button => {
         button.setAttribute('aria-pressed', String(Number(button.dataset.bucket) === scene.courtyard.selected));
-        button.disabled = story.state.waterSolved;
+        button.disabled = story.state.waterSolved || !!scene.courtyard.weighing;
     });
-    for (const id of ['water-fill', 'water-empty', 'water-pour', 'water-weigh']) $(id).disabled = story.state.waterSolved;
+    for (const id of ['water-fill', 'water-empty', 'water-pour', 'water-weigh']) $(id).disabled = story.state.waterSolved || !!scene.courtyard.weighing;
     scene.syncState(); updateStatus();
 }
 function water() {
@@ -197,12 +197,12 @@ function water() {
     touches.clear(); updateTouch(); scene.beginWaterInspection();
     $('water-inspector').hidden = false; $('hud').classList.add('inspecting');
     updateWater(story.state.waterSolved ? '秤盘已经压平，桌下的抽屉打开了。退回桌前，可以低头查看家书。'
-        : '点桶选中，再点水缸添满、水槽倒空。两桶互倒也可用下方按钮；四升的五升桶才能压平秤盘。');
+        : '点桶选中，再点水缸添满、水槽倒空。两桶互倒也可用下方按钮；把五升桶放上秤盘后，指针会显示偏轻、四升或偏重。');
     evidenceJournal.sync();
     (story.state.waterSolved ? $('water-leave') : document.querySelector('[data-bucket]')).focus();
 }
 function waterAction(action) {
-    if (reader.open || scene.inspectionKind !== 'water' || story.state.waterSolved) return;
+    if (reader.open || scene.inspectionKind !== 'water' || story.state.waterSolved || scene.courtyard.weighing) return;
     if (/^bucket[01]$/.test(action)) {
         scene.courtyard.selected = Number(action.slice(-1));
         updateWater(`已选${scene.courtyard.selected ? '五' : '三'}升桶。可以添满、倒空，或倒入另一桶。`); return;
@@ -213,11 +213,10 @@ function waterAction(action) {
     else if (action === 'empty') { changed = story.emptyBucket(index); message = changed ? '水倒进了槽里，桶空了。' : '这个桶已经是空的。'; }
     else if (action === 'pour') { const amount = story.pourBucket(index); changed = amount > 0; message = amount ? `向另一桶倒入 ${amount} 升水。` : '倒不进去：选中的桶是空的，或另一桶已经满了。'; }
     else if (action === 'weigh') {
-        changed = story.weighWater();
-        message = changed ? '四升水压平了秤盘。旧抽屉弹开，院门的铜索也松了。退回桌前，可以低头看信。'
-            : '秤盘又弹了回来。需要五升桶里恰好四升水，桶里的水还保留着。';
+        if (scene.courtyard.beginWeigh() && scene.courtyard.weighing) updateWater('正在把五升桶放上秤盘。指针中央的红刻线是四升。');
+        return;
     } else return;
-    if (changed) action === 'weigh' ? audio.release() : audio.water(action);
+    if (changed) audio.water(action);
     updateWater(message);
 }
 function ending(choice) {
@@ -370,6 +369,19 @@ try {
         getPreferences: () => preferences.values,
         isReading: () => reader.open || document.hidden || mode !== 'game',
         onMechanismEvent: event => { if (event === 'door-release') audio.knock(); },
+        onScaleEvent: event => {
+            if (event.phase === 'ready') {
+                updateWater();
+                const active = document.activeElement;
+                if (scene.inspectionKind === 'water' && !reader.open && [document.body, scene.renderer.domElement, $('water-weigh')].includes(active)) {
+                    (story.state.waterSolved ? $('water-leave') : $('water-weigh')).focus({ preventScroll: true });
+                }
+                return;
+            }
+            event.success ? audio.release() : audio.knock();
+            updateWater(event.success ? '指针对准四升红线，秤盘压平。抽屉和院门的铜索松开了，退回桌前可以低头看信。'
+                : `指针偏${event.amount < 4 ? '轻' : '重'}，还没有对准四升红线。五升桶会放回桌上，水量保留；可以继续调整。`);
+        },
         onAssetError: name => { assetErrors.add(name); updateLoadStatus(); },
         onFrame: (position, paused) => {
             audio.update(position, paused, story.state.memory || 'house');

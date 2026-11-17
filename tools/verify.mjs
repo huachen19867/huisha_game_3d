@@ -390,7 +390,7 @@ for (const [width, height] of [[1280, 720], [390, 844], [844, 390], [390, 640], 
     const targets = [
         [house.scene.getObjectByName('bucket-0'), 'bucket0'], [house.scene.getObjectByName('bucket-1'), 'bucket1'],
         [house.scene.getObjectByName('kitchen-tank-water'), 'fill'], [house.scene.getObjectByName('water-sink'), 'empty'],
-        [house.courtyard.pan, 'weigh']
+        [house.courtyard.pan, 'weigh'], [house.scene.getObjectByName('scale-dial'), 'weigh']
     ];
     house.scene.updateMatrixWorld(true);
     for (const [object, action] of targets) {
@@ -409,6 +409,38 @@ for (const [width, height] of [[1280, 720], [390, 844], [844, 390], [390, 640], 
     assert.deepEqual({ ...controls.snapshot() }, kitchenPose);
 }
 assert.equal(story.weighWater(), false, 'empty pails cannot release the drawer');
+const scaleEvents = []; house.onScaleEvent = event => scaleEvents.push(event);
+for (const amount of [0, 3, 5]) {
+    story.state.buckets = [0, amount]; house.syncState(true); house.beginWaterInspection();
+    const beforeTrial = JSON.stringify(story.state);
+    assert.equal(house.courtyard.beginWeigh(), true); assert.equal(house.courtyard.beginWeigh(), false);
+    house.courtyard.update(0.25);
+    assert.ok(house.courtyard.buckets[1].position.x > 8.45 && house.courtyard.buckets[1].position.x < 9.4);
+    assert.equal(story.state.waterSolved, false); assert.equal(house.courtyard.releaseProgress, 0);
+    readingPortrait = true; const held = house.courtyard.weighing.time; house.courtyard.update(1);
+    assert.equal(house.courtyard.weighing.time, held, 'reading freezes the scale trial'); readingPortrait = false;
+    house.courtyard.update(0.3);
+    assert.equal(house.courtyard.buckets[1].position.x, 9.4, 'failed loads are still physically placed on the pan');
+    assert.ok(Math.abs(house.courtyard.needle.rotation.z - (4 - amount) * 0.26) < 1e-9);
+    assert.equal(JSON.stringify(story.state), beforeTrial, 'failed trials do not change water, records, progress or saved position');
+    assert.equal(scaleEvents.at(-1).phase, 'weighed'); assert.equal(scaleEvents.at(-1).amount, amount);
+    house.courtyard.update(1.3);
+    assert.equal(house.courtyard.weighing, null); assert.equal(scaleEvents.at(-1).phase, 'ready');
+    assert.ok(Math.abs(house.courtyard.buckets[1].position.x - 8.45) < 1e-9);
+    house.endInspection();
+}
+story.state.buckets = [0, 4]; house.syncState(true); house.beginWaterInspection();
+house.courtyard.beginWeigh(); house.courtyard.update(0.2); house.endInspection();
+assert.equal(story.state.waterSolved, false, 'leaving before the bucket lands cancels the trial');
+assert.equal(house.courtyard.weighing, null); assert.equal(house.courtyard.buckets[1].position.x, 8.45);
+house.beginWaterInspection(); house.courtyard.beginWeigh(); house.courtyard.update(0.25); house.syncState(true);
+assert.equal(house.courtyard.weighing, null, 'restoring/resetting clears transient scale animation');
+assert.equal(story.state.waterSolved, false); house.endInspection();
+story.state.buckets = [0, 5]; house.beginWaterInspection(); house.reducedMotion = { matches: true };
+assert.equal(house.courtyard.beginWeigh(), true); assert.equal(house.courtyard.weighing, null);
+assert.equal(story.state.waterSolved, false); assert.equal(scaleEvents.at(-2).amount, 5);
+house.reducedMotion = null; house.endInspection(); story.state.buckets = [0, 0]; house.syncState(true);
+console.log('Scale: actual light/heavy loads, pan/needle, delayed judgement, reading freeze, cancellation, restore and reduced motion passed.');
 story.fillBucket(1); assert.equal(story.pourBucket(1), 3);
 assert.deepEqual([...story.state.buckets], [3, 2], 'pouring conserves water and stops at the smaller capacity');
 story.emptyBucket(0); assert.equal(story.pourBucket(1), 2);

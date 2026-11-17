@@ -8,6 +8,8 @@
 
 0.9.0 的记忆时间线继续复用父工作区 `docs/references/WritingWithInk.md` 的条件选项资料和本目录 W3C APG 模态参考，不重复下载或引入 Ink 运行库。ThreeMemoryTimeline 用原生按钮完成放入、上下调整和移除，操作后恢复卡片按钮焦点，反馈沿用 role=status；原文片段仍以本项目记录为唯一来源。DOM 事件检查不代表原生模态、浏览器布局或设备操作验收。
 
+0.10.0 的量水试称复用本地 Three.js r160 的基本几何、Group 和 MathUtils.lerp，沿用 ThreeDoorMechanism 已有的受控缓入缓出动画与减少动态效果处理；不引入物理引擎或重复下载模型。原有 Kenney 木碰撞反馈用于失败落秤，成功沿用机关释放声音。表盘是本项目几何，来源不变。
+
 2026-11-16 为界面事件验证安装 [jsdom 26.1.0](https://github.com/jsdom/jsdom/tree/26.1.0)，MIT。源码与 LICENSE.txt 位于工作区开发依赖 node_modules/jsdom，npm 的 39 份包及完整性摘要通过 package-lock.json 锁定，来源为 registry.npmjs.org；不把 node_modules 或 jsdom 加入游戏运行模块。`tools/verify_ui.mjs` 复用它的 DOM 与事件实现，渲染边界和 dialog 开合另行模拟，不能据此宣称浏览器默认行为、布局或 WebGL 已验收。
 
 2026-11-17 的手记对照与机关旁摘记复用已下载的 W3C 对话框研究、原生 details/select 控件及现有 jsdom。没有重新下载相同参考、引入界面框架或新运行依赖；新模块只呈现真实已读原文，不生成替代线索。

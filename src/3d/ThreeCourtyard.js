@@ -89,6 +89,20 @@
             h.cylinder('scale-base', 0.27, 0.32, 0.08, [0, 0, 0], m.brass, 'water_station', this.scale);
             this.pan = h.cylinder('scale-pan', 0.31, 0.25, 0.06, [0, 0.16, 0], m.brass, 'water_station', this.scale);
             h.label('scale-sign', '四升', [0.32, 0.18], [0, 0.06, 0.33], [0, 0, 0], 'water_station', this.scale);
+            h.box('scale-dial-support', [0.06, 0.42, 0.08], [-0.5, 0.14, 0], m.brass, 'water_station', this.scale);
+            const dial = h.cylinder('scale-dial', 0.19, 0.19, 0.045, [-0.5, 0.39, 0], m.paper, 'water_station', this.scale);
+            dial.rotation.x = Math.PI / 2;
+            h.mesh('scale-dial-rim', new THREE.TorusGeometry(0.19, 0.013, 6, 32), m.brass,
+                [-0.5, 0.39, 0.027], 'water_station', this.scale);
+            for (let mark = 0; mark <= 5; mark++) {
+                const tick = h.box(`scale-dial-tick-${mark}`, [0.012, mark === 4 ? 0.055 : 0.028, 0.012],
+                    [-0.5 - Math.sin((4 - mark) * 0.26) * 0.145, 0.39 + Math.cos((4 - mark) * 0.26) * 0.145, 0.031],
+                    mark === 4 ? m.red : m.darkWood, 'water_station', this.scale, false);
+                tick.rotation.z = (4 - mark) * 0.26;
+            }
+            this.needle = new THREE.Group(); this.needle.name = 'scale-needle'; this.needle.position.set(-0.5, 0.39, 0.045); this.scale.add(this.needle);
+            h.box('scale-needle-hand', [0.016, 0.14, 0.012], [0, 0.06, 0], m.darkWood, 'water_station', this.needle, false);
+            h.label('scale-dial-key', '轻　四　重', [0.44, 0.1], [-0.5, 0.14, 0.055], [0, 0, 0], 'water_station', this.scale);
             this.target(this.scale, 'weigh');
             this.drawer = new THREE.Group(); this.drawer.position.set(8.5, 0.66, -22.23); h.scene.add(this.drawer);
             h.box('drawer-front', [1.05, 0.22, 0.08], [0, 0, 0], m.wood, 'water_station', this.drawer);
@@ -102,6 +116,38 @@
             this.marker.rotation.x = Math.PI / 2;
         }
         target(object, action) { object.userData.waterAction = action; this.targets.push(object); }
+        beginWeigh() {
+            const s = this.house.story.state;
+            if (this.weighing || !s.opened || s.waterSolved || this.house.inspectionKind !== 'water') return false;
+            this.weighing = { time: 0, amount: s.buckets[1], checked: false, accepted: false };
+            // Accessibility preference skips travel, but still requires this explicit action.
+            if (this.house.reducedMotion?.matches) this.update(2);
+            return true;
+        }
+        cancelWeigh() { this.weighing = null; this.updateScalePose(1); }
+        updateScalePose(step) {
+            const s = this.house.story.state, trial = this.weighing;
+            const ease = value => { const t = Math.max(0, Math.min(1, value)); return t * t * (3 - 2 * t); };
+            let load = Number(s.waterSolved), lift = 0;
+            if (trial) {
+                if (trial.time <= 0.55) { const t = trial.time / 0.55; load = ease(t); lift = Math.sin(Math.PI * t) * 0.32; }
+                else if (!trial.accepted && trial.time > 1.3) { const t = (trial.time - 1.3) / 0.55; load = 1 - ease(t); lift = Math.sin(Math.PI * Math.min(1, t)) * 0.32; }
+                else load = 1;
+            }
+            const amount = trial ? trial.amount : s.buckets[1], weight = amount * load;
+            const panY = 0.16 - 0.015 * weight;
+            this.pan.position.y = panY;
+            this.needle.rotation.z = (4 - weight) * 0.26;
+            this.buckets.forEach((bucket, i) => {
+                const targetX = i === 1 ? THREE.MathUtils.lerp(8.45, 9.4, load) : 7.65;
+                const targetY = i === 1 ? THREE.MathUtils.lerp(0.98, 1.02 + panY + 0.03, load) + lift : 0.98;
+                const targetZ = i === 1 ? THREE.MathUtils.lerp(-22.55, -22.5, load) : -22.55;
+                const move = trial ? 1 : step;
+                bucket.position.x += (targetX - bucket.position.x) * move;
+                bucket.position.y += (targetY - bucket.position.y) * move;
+                bucket.position.z += (targetZ - bucket.position.z) * move;
+            });
+        }
         buildLinkage() {
             const h = this.house, m = h.materials;
             const points = [[9.4, 0.72, -22.55], [10.75, 0.72, -22.7], [10.75, 2.65, -24.72], [6.2, 2.65, -24.72],
@@ -136,6 +182,7 @@
             this.letter.visible = s.waterSolved && this.drawer.position.z > -21.75;
             this.marker.visible = this.house.inspectionKind === 'water' && !s.waterSolved;
             if (immediate) {
+                this.weighing = null;
                 this.releaseProgress = s.waterSolved ? 1 : 0;
                 this.gate.rotation.y = s.waterSolved ? this.house.map.extraDoors[0].openAngle : 0;
                 this.update(1, true);
@@ -144,16 +191,21 @@
         update(delta, immediate = false) {
             if (!immediate && this.house.isReading?.()) return;
             const s = this.house.story.state;
+            const trial = this.weighing;
+            if (trial) {
+                trial.time = Math.min(1.85, trial.time + (this.house.reducedMotion?.matches ? 2 : Math.max(0, delta)));
+                if (!trial.checked && trial.time >= 0.55) {
+                    trial.checked = true; trial.accepted = this.house.story.weighWater();
+                    this.house.onScaleEvent?.({ phase: 'weighed', success: trial.accepted, amount: trial.amount });
+                }
+            }
             this.releaseProgress = immediate || this.house.reducedMotion?.matches ? Number(s.waterSolved)
                 : Math.max(0, Math.min(1, this.releaseProgress + (s.waterSolved ? 1 : -1) * delta / 0.75));
             if (Math.abs(Number(s.waterSolved) - this.releaseProgress) < 1e-8) this.releaseProgress = Number(s.waterSolved);
             this.updateLinkage();
             const step = immediate || this.house.reducedMotion?.matches ? 1 : Math.min(1, delta * 8);
+            this.updateScalePose(step);
             this.buckets.forEach((bucket, i) => {
-                const targetX = s.waterSolved && i === 1 ? 9.4 : 7.65 + i * 0.8;
-                const targetY = s.waterSolved && i === 1 ? 1.15 : 0.98;
-                bucket.position.x += (targetX - bucket.position.x) * step;
-                bucket.position.y += (targetY - bucket.position.y) * step;
                 const level = this.waterParts[i], capacity = i ? 5 : 3;
                 const height = level.userData.levelHeight * s.buckets[i] / capacity;
                 level.scale.y += (Math.max(0.002, height) - level.scale.y) * step;
@@ -166,7 +218,10 @@
             // The opening drawer may gently push the real player/return pose forward; it must not trap them on exit.
             const h = this.house, pose = h.inspectionReturn || h.camera?.position;
             if (pose && h.controls?.clearMovingObstacle(obstacle, pose) && !h.inspectionReturn) h.controls.applyLook();
-            this.pan.position.y += ((s.waterSolved ? 0.1 : 0.16) - this.pan.position.y) * step;
+            if (trial && trial.time >= (trial.accepted ? 1.3 : 1.85)) {
+                this.weighing = null;
+                this.house.onScaleEvent?.({ phase: 'ready' });
+            }
             this.marker.position.x = this.buckets[this.selected].position.x;
         }
         moveGate(delta) {
