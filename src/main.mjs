@@ -4,10 +4,14 @@ import { GLTFLoader } from '../vendor/GLTFLoader.mjs';
 import { mergeGeometries } from '../vendor/BufferGeometryUtils.mjs';
 window.THREE = THREE;
 window.Huisha3D = { GLTFLoader, mergeGeometries };
-for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeSettings', 'ThreeControls', 'ThreeInteraction', 'ThreeWindowWall', 'ThreeCourtyard', 'ThreePhone', 'ThreeDocument', 'ThreeMemoryScenes', 'ThreeMemoryTimeline', 'ThreeMemoryJournal', 'ThreeEvidenceJournal', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeVillageLane', 'ThreeHouseScene', 'ThreeAudio']) {
-    await import(`./3d/${name}.js`);
+const sceneModules = ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeSettings', 'ThreeControls', 'ThreeInteraction', 'ThreeWindowWall', 'ThreeCourtyard', 'ThreePhone', 'ThreeDocument', 'ThreeMemoryScenes', 'ThreeMemoryTimeline', 'ThreeMemoryJournal', 'ThreeEvidenceJournal', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeVillageLane', 'ThreeHouseScene', 'ThreeAudio', 'ThreeYardWatch'];
+// Fetch in parallel. Registration still follows map, story, controls and scene order.
+for (const name of sceneModules) {
+    const link = document.createElement('link');
+    link.rel = 'modulepreload'; link.href = `src/3d/${name}.js`;
+    document.head.append(link);
 }
-await import('./3d/ThreeYardWatch.js');
+for (const name of sceneModules) await import(`./3d/${name}.js`);
 const $ = id => document.getElementById(id);
 const game = window.Huisha3D;
 const story = new game.ThreeStory();
@@ -30,7 +34,7 @@ let mode = 'title', scene, lastFocus, saveTimer, portraitUiState, documentUiStat
 const isPaused = () => mode !== 'game' || reader.open || document.hidden || !!scene?.inspectionReturn;
 function updateLoadStatus() {
     $('load-status').textContent = assetErrors.size
-        ? `部分材质未载入：${[...assetErrors].join('、')}。画面可能不完整，请检查本地文件。`
+        ? `部分场景资源未载入：${[...assetErrors].join('、')}。画面可能不完整，请检查本地文件。`
         : story.saveAvailable ? '进度会自动保存 · 可随时暂停' : '此浏览器暂不支持保存，可在当前页面游玩';
 }
 function updateStatus() {

@@ -29,7 +29,7 @@
             this.createArchitecture();
             this.createProps();
             this.createLights();
-            await this.loadModels();
+            this.modelLoading = this.loadModels();
             this.watch = new game.ThreeYardWatch(this);
             this.syncState(true);
             this.controls = new game.ThreeControls({ camera: this.camera, domElement: this.renderer.domElement,
@@ -344,13 +344,26 @@
         }
         async loadModels() {
             const loader = new game.GLTFLoader();
-            const entries = await Promise.all(['chinese_armchair', 'chinese_console_table', 'chinese_cabinet', 'SchoolDesk_01', 'SchoolChair_01', 'wheelchair_01','wooden_bucket_01'].map(async id => {
-                const gltf = await loader.loadAsync(`assets/models/${id}/model.gltf`);
-                return [id, gltf.scene];
-            }));
-            const models = Object.fromEntries(entries);
+            const instances = new Map();
             const place = (id, size, position, rotation, item, stretch = false) => {
-                const model = models[id].clone(true);
+                const group = new THREE.Group();
+                group.name = id; group.position.set(...position); group.rotation.y = rotation; this.scene.add(group);
+                const proxy = new THREE.Group(); group.add(proxy);
+                const [w,h,d] = size;
+                if (/table|Desk/.test(id)) {
+                    this.box('tabletop',[w,.09,d],[0,h-.045,0],this.materials.wood,item,proxy);
+                    for (const side of [-1,1]) this.box('trestle',[.1,h-.09,d*.78],[side*w*.39,(h-.09)/2,0],this.materials.darkWood,item,proxy);
+                } else if (/chair/i.test(id)) {
+                    this.box('chair-seat',[w,h*.41,d],[0,h*.205,0],this.materials.darkWood,item,proxy);
+                    this.box('chair-back',[w,h*.59,.07],[0,h*.705,-d*.45],this.materials.wood,item,proxy);
+                } else if (id.includes('bucket')) this.cylinder('bucket',w/2,w*.4,h,[0,h/2,0],this.materials.wood,item,proxy);
+                else this.box('cabinet',size,[0,h/2,0],this.materials.wood,item,proxy);
+                if (!instances.has(id)) instances.set(id,[]);
+                instances.get(id).push({group,proxy,size,stretch,item});
+                return group;
+            };
+            const install = ({group,proxy,size,stretch,item}, source) => {
+                const model = source.clone(true);
                 const bounds = new THREE.Box3().setFromObject(model), dimensions = bounds.getSize(new THREE.Vector3());
                 const center = bounds.getCenter(new THREE.Vector3());
                 const ratios = size.map((n, i) => n / [dimensions.x, dimensions.y, dimensions.z][i]);
@@ -358,9 +371,9 @@
                 const normalized = new THREE.Group();
                 model.position.sub(new THREE.Vector3(center.x, bounds.min.y, center.z));
                 normalized.add(model); normalized.scale.set(...scale);
-                const group = new THREE.Group(); group.add(normalized); group.position.set(...position); group.rotation.y = rotation;
-                group.name = id; this.scene.add(group);
-                group.traverse(mesh => {
+                group.add(normalized); group.remove(proxy);
+                proxy.traverse(obj => obj.geometry?.dispose());
+                normalized.traverse(mesh => {
                     if (!mesh.isMesh) return;
                     mesh.castShadow = true; mesh.receiveShadow = true;
                     Object.assign(mesh.userData, { blocksSight: true, item });
@@ -379,6 +392,14 @@
             place('chinese_cabinet', [1.45, 2.15, 0.85], [3.4, 0, -3.4], 0);
             this.courtyard?.placeFurniture(place);
             this.memories?.placeFurniture(place); this.memories?.sealHome();
+            await Promise.all([...instances].map(async ([id, placements]) => {
+                try {
+                    const gltf = await loader.loadAsync(`assets/models/${id}/model.gltf`);
+                    if (this.disposed) return;
+                    for (const placement of placements) install(placement,gltf.scene);
+                    this.interaction?.rebuildOccluders();
+                } catch (_) { if (!this.disposed) this.onAssetError?.(id); }
+            }));
         }
         createLights() {
             this.scene.add(new THREE.HemisphereLight(0xb1bec8, 0x51402e, 1.8));
@@ -518,6 +539,7 @@
             this.courtyard?.moveGate(delta);
         }
         dispose() {
+            this.disposed = true;
             global.cancelAnimationFrame(this.animationId);
             global.removeEventListener('resize', this.onResize);
             this.controls?.dispose(); this.interaction?.dispose();
