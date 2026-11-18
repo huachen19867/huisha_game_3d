@@ -5,7 +5,7 @@
         build(parent) {
             const h = this.house;
             this.root = new THREE.Group(); this.root.name = 'memory-phone'; parent.add(this.root);
-            this.home = new THREE.Vector3(-1.65, 0.649, 1.2);
+            this.home = new THREE.Vector3(-1.65, 0.654, 1.2);
             const shape = new THREE.Shape(), x = 0.09, y = 0.17, r = 0.018;
             shape.moveTo(-x + r, -y); shape.lineTo(x - r, -y); shape.quadraticCurveTo(x, -y, x, -y + r);
             shape.lineTo(x, y - r); shape.quadraticCurveTo(x, y, x - r, y); shape.lineTo(-x + r, y);
@@ -43,6 +43,10 @@
                 ctx.fillStyle = this.page === page ? '#4c615a' : '#24383b'; ctx.fillRect(36 + i * 356, 1060, 340, 130);
                 ctx.fillStyle = '#e1e5d9'; ctx.font = '44px "Microsoft YaHei", sans-serif'; ctx.textAlign = 'center';
                 ctx.fillText(i ? '录音资料' : '通话记录', 206 + i * 356, 1140, 310); ctx.textAlign = 'left';
+            }
+            ctx.strokeStyle='rgba(213,230,227,.58)';ctx.lineWidth=2;
+            for(const line of [[[768,107],[740,131],[715,134],[689,191],[665,215]],[[740,131],[699,116],[682,93]],[[715,134],[722,180],[708,208]]]){
+                ctx.beginPath();ctx.moveTo(...line[0]);for(const point of line.slice(1)) ctx.lineTo(...point);ctx.stroke();
             }
             this.texture.needsUpdate = true;
         }

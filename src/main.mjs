@@ -395,13 +395,13 @@ function waterAction(action) {
     if (changed) audio.water(action);
     updateWater(message);
 }
-function ending(choice) {
-    if (!story.depart(choice)) return;
+function ending(choice, memoryPlace) {
+    if (!story.depart(choice,memoryPlace)) return;
     audio.chime();
     const text = choice === 'wake'
-        ? '“李明，听得见就捏一下。”\n\n我捏住那人的手指。他冲车门外喊：“有反应了。”有人问我哪儿疼。我张了两次嘴才说出一个“腿”字。那只戴手套的手一直没松。\n\n结局 · 破茧'
+        ? '我捏了一下，又捏了一下。有人把晃在我眼皮上的灯挪开。「好，李明。我不照你了。车上还有人吗？」\n\n我张了两次嘴。「就我一个。」他朝车门外把这四个字重复了一遍。我这才听清，一直响的是雨点落在他雨衣上的声音。\n\n结局 · 破茧'
         : choice === 'remember'
-        ? '我没应那声“李明”。厨房里，妈用锅铲敲了两下锅沿，叫我递碗。\n\n碗底磕掉了一块。我用拇指盖住缺口，递给她。门外又有自行车响铃，送信的人到了。\n\n结局 · 回煞'
+        ? '我把碗端稳。妈用筷子把最后几根面拨进我碗里，留了一根，自己尝尝软硬。「这回没煮过吧？」\n\n我摇头，嘴里还含着面。门外喊「李明」的那个人又等了一会儿。妈把醋往我手边推了推。\n\n结局 · 回煞'
         : choice === 'stay'
         ? '米瓮底还有一小碗米。我淘了两遍，照她教的，把食指伸进锅里量水。\n\n等饭熟的时候，我把第二双筷子收回了抽屉。\n\n结局 · 余温'
         : story.state.records.includes('medicine_letter')
@@ -411,8 +411,8 @@ function ending(choice) {
     if(choice==='stay' && story.state.records.includes('clerk_holdall') && story.state.records.includes('clerk_cuff')) {
         endingText='我淘了一碗米，坐在灶边等锅开。校服的左袖还摊在我腿上。水池边有块用薄了的肥皂，我接了半盆水，把那三颗扣子解开，只把袖口浸进去。\n\n搓到最后一颗扣子，米汤扑了出来。我一只手提着湿袖口，一只手赶紧去揭锅盖。\n\n结局 · 余温';
     }
-    if(choice==='remember' && story.state.records.includes('bridge_post')) {
-        endingText='桥头有人喊「李明」。我扭头，看见妈捧着那台银色的小相机，正拿指甲拨过片轮。\n\n「刚才照上没？」我问。她把相机贴回眼睛：「你再骑一趟，我怕照虚了。」我把脚搁上踏板，听见爸在后面追了两步。桥那头叫我名字的人等了一会儿，声音远了。\n\n结局 · 回煞';
+    if(choice==='remember' && story.state.rememberPlace==='bridge') {
+        endingText='我踩下踏板。爸松了手，在后头跟了两步就跑不动了。我回过头来，妈才把相机举稳。\n\n「这回拍到没有？」她拿指甲拨了一下过片轮，笑我：「哪有人骑车还顾着看镜头的。」桥那头喊我名字的人又等了一会儿。我扶正车把，骑回去替她拿相机套。\n\n结局 · 回煞';
     }
     if(choice==='leave' && story.state.records.includes('forwarding_slip')) {
         const ride=text.slice(0,text.lastIndexOf('\n\n结局'));
@@ -507,8 +507,19 @@ function inspect(item) {
     if (Object.hasOwn(game.DOCUMENTS, item.id)) { documentInspect(item.id); return; }
     if (item.returnMemory) { open(item.title, item.text, [['继续观察', close], ['回到厨房', returnMemory]]); return; }
     if (item.finalChoice) {
-        open(item.title, item.text, [['先不决定，继续观察', close], ['回应救护灯，醒来', () => ending('wake')],
-            ['留在母亲的记忆里', () => ending('remember')]]); return;
+        const bridge=story.state.records.includes('bridge_post');
+        const leave=['先不决定，继续观察',close];
+        const roadside=()=>{
+            const touch=story.state.records.includes('crash_belt')?'是刚才替我剪开安全带的声音。':'有人把两根手指放进我的手心。';
+            open('车门外的人',touch+'「李明，我在你右手边。听得见的话，捏我两下。」他停下来等着，我能摸到手套上的皱褶。',[
+                ['捏他的手两下，醒来',()=>ending('wake')],['再听母亲那边',()=>home(bridge)],leave]);
+        };
+        const home=onBridge=>open(onBridge?'石桥上的母亲':'灶间的母亲',onBridge
+            ? '桥头的雨停了。妈眯着一只眼举起相机：「刚才那张怕是虚了，你再骑一趟。」爸弯着腰，手还扶在后座上。'
+            : '筷子磕在锅沿上。妈一手捞着面，一手朝我摊开：「碗呢？快端过来，面该坨了。」那只缺了口的碗就在我手边。',
+            [[onBridge?'踩下踏板，留在桥上':'端起碗，留在灶间',()=>ending('remember',onBridge?'bridge':'kitchen')],
+                ...(bridge?[[onBridge?'回想灶间':'回想石桥',()=>home(!onBridge)]]:[]),['再听车门外的人',roadside],leave]);
+        open(item.title,item.text,[['听车门外的人说完',roadside],['听母亲说完',()=>home(bridge)],leave]);return;
     }
     if (item.deduction) {
         readRecord(item, [['继续观察', close], ['整理这段记忆', () => memoryJournal.show(item.deduction)], ['回到厨房', returnMemory]]); return;

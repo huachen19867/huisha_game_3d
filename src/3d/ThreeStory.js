@@ -3,7 +3,7 @@
     const SAVE_KEY = 'huisha.3d.homecoming.v1';
     const symbols = ['雨', '门', '人', '灯'];
     const freshState = () => ({ arrival: 'intro', chapterEdition: 2, basketDown:false, cellarOpen:false, filterClear:false, sumpDrained:false, oldCoffinLatch:false, gear: [], wardrobeOpen: false, chestOpen: false, calibrated: false, vigil: 0, coffinOpen: false, photoFiled:false, busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
-        courtyard: false, crossedYard: false, maskHung:false, buckets: [0, 0], waterSolved: false, departure: null, position: null, lamp: 'altar', shielded: false,
+        courtyard: false, crossedYard: false, maskHung:false, buckets: [0, 0], waterSolved: false, departure: null, rememberPlace:null, position: null, lamp: 'altar', shielded: false,
         memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, reasoningRevision: 2, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
     class ThreeStory {
@@ -90,6 +90,8 @@
                     }
                     if (this.state.waterSolved && (['leave', 'stay'].includes(saved.departure)
                         || (this.truthSolved() && ['wake', 'remember'].includes(saved.departure)))) this.state.departure = saved.departure;
+                    if(this.state.departure==='remember' && (saved.rememberPlace==='kitchen' ||
+                        (saved.rememberPlace==='bridge' && this.state.records.includes('bridge_post')))) this.state.rememberPlace=saved.rememberPlace;
                     const p = saved.position;
                     if (p && [p.x, p.z, p.yaw, p.pitch].every(Number.isFinite)) this.state.position = p;
                     this.state.visitedAreas = [...new Set((Array.isArray(saved.visitedAreas) ? saved.visitedAreas : []).filter(id =>
@@ -237,12 +239,14 @@
             if (!this.state.waterSolved || this.state.memory || direction !== 'bridge') return false;
             this.state.busCalled = true; this.save(); return true;
         }
-        depart(choice) {
+        depart(choice,place) {
             if (!this.state.waterSolved) return false;
             if (['wake', 'remember'].includes(choice)) {
                 if (!this.truthSolved() || this.state.memory !== 'crash') return false;
             } else if (!['leave', 'stay'].includes(choice) || this.state.memory) return false;
             if (choice === 'leave' && !this.state.busCalled) return false;
+            if(choice==='remember' && place==='bridge' && !this.state.records.includes('bridge_post')) return false;
+            this.state.rememberPlace=choice==='remember' ? (place==='bridge'?'bridge':'kitchen') : null;
             this.state.departure = choice; this.save(); return true;
         }
         enterMemory(id, pose) {
@@ -330,6 +334,7 @@
         }
         objective() {
             if (this.arrivalTask()) return this.arrivalTask();
+            if(this.state.departure==='remember' && this.state.rememberPlace) return this.state.rememberPlace==='bridge'?'回煞 · 你留在石桥上，陪母亲拍完了那张照片':'回煞 · 你留在灶间，接过了母亲煮的面';
             if (this.state.memory && ['wake', 'remember'].includes(this.state.departure)) return '已经作出去向选择 · 可以继续回看，或从暂停回到厨房';
             if (this.state.memory) {
                 if (this.state.memory === 'crash' && this.truthSolved()) return '救护灯另一边还有人在叫你 · 靠近灯，主动决定去向';

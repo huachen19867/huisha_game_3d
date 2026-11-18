@@ -40,7 +40,8 @@ async function boot(saved, preferences) {
             await module.evaluate();
             if (identifier.endsWith(`${path.sep}ThreePhone.js`)) {
                 window.Huisha3D.ThreePhone.prototype.createScreen = function () {
-                    this.ctx = { fillRect() {}, fillText() {} }; this.texture = new THREE.Texture(); this.house.textures.push(this.texture);
+                    this.ctx = { fillRect() {}, fillText() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {} };
+                    this.texture = new THREE.Texture(); this.house.textures.push(this.texture);
                     return new THREE.MeshBasicMaterial({ map: this.texture }); // Text pixels remain outside this DOM check.
                 };
             }
@@ -473,10 +474,18 @@ try {
         assert.equal(ui.scene.story.state.memory, id, 'correct submission does not auto-return');
         if (id === 'hospital') ui.click('回到厨房');
     }
-    ui.inspect('rescue_light'); ui.click('回应救护灯，醒来'); assert.equal(ui.$('reader-title').textContent, '破茧');
+    ui.inspect('rescue_light');ui.click('听母亲说完');assert.match(ui.$('reader-body').textContent,/面该坨了/);
+    ui.click('再听车门外的人');ui.key('KeyE');assert.equal(ui.scene.story.state.departure,null);
+    ui.inspect('crash_belt');ui.key('KeyE');
+    ui.inspect('rescue_light');ui.click('听车门外的人说完');assert.match(ui.$('reader-body').textContent,/剪开安全带/);
+    ui.click('捏他的手两下，醒来'); assert.equal(ui.$('reader-title').textContent, '破茧');
     ui.inspect('bridge_post');ui.key('KeyE');
-    ui.inspect('rescue_light'); ui.click('留在母亲的记忆里'); assert.equal(ui.$('reader-title').textContent, '回煞');
+    ui.inspect('rescue_light');ui.click('听母亲说完');ui.click('回想灶间');ui.click('端起碗，留在灶间');
+    assert.match(ui.$('reader-body').textContent,/最后几根面/);
+    assert.equal(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).state.rememberPlace,'kitchen');
+    ui.inspect('rescue_light');ui.click('听母亲说完');ui.click('踩下踏板，留在桥上');assert.equal(ui.$('reader-title').textContent,'回煞');
     assert.match(ui.$('reader-body').textContent,/过片轮/);
+    assert.equal(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).state.rememberPlace,'bridge');
     ui.click('留在现场回看'); ui.$('pause').click(); ui.click('回到厨房');
     ui.inspect('road_exit'); ui.click('去候车棚'); ui.inspect('bus_notice'); ui.key('KeyE'); ui.inspect('stop_signal');
     ui.click('转向老宅'); ui.click('再转一次'); ui.click('转向石桥'); ui.click('去站牌'); ui.inspect('road_exit'); ui.click('坐车下山'); assert.equal(ui.scene.story.state.departure, 'leave');

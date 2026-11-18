@@ -11,8 +11,8 @@
     game.PHONE_PAGES = {
         calls: { title: '通话记录', lines: ['今夜', '21:12', '呼出 → 旧宅', '未接通'],
             text: '二十一时十二分，你给旧宅拨过电话，没有人接。' },
-        recording: { title: '本地录音资料', lines: ['本地录音', '母亲', '2016.07.14', '录音文字', '别赶夜路，慢一点。', '灯会给你留着。'],
-            text: '屏幕停在本地录音：「母亲，二〇一六年七月十四日。」\n\n录音文字：「别赶夜路，慢一点。灯会给你留着。」' }
+        recording: { title: '本地录音资料', lines: ['本地录音', '母亲', '2016.07.14', '录音文字', '开到石桥就给家响一声。', '我好下面。', '……老李，按哪儿停啊？'],
+            text: '屏幕停在本地录音：「母亲，二〇一六年七月十四日。」\n\n「明，下回开到石桥就给家响一声，我好下面。上次你说快到了，我把面都煮烂了。……老李，按哪儿停啊？」' }
     };
     game.DOCUMENTS = {
         school_notice: { title: '录取通知', space: 'school', position: [-2, 0.954, 1], faces: {
@@ -62,7 +62,7 @@
                 { id: 'call', record: 'crash_phone', phonePage: 'calls', title: '给旧宅拨出的电话', quote: '二十一时十二分，你给旧宅拨过电话，没有人接。' },
                 { id: 'voice', record: 'crash_phone', phonePage: 'recording', title: '手机保存的母亲语音', quote: '屏幕停在本地录音：「母亲，二〇一六年七月十四日。」' }
             ], timelineOrder: ['voice', 'call', 'handover'],
-            conclusion: '手机文件是十年前保存的录音。今夜二十一时十二分，是你给旧宅拨出了电话，没有接通；六分钟后的交接单仍记着呼吸与呼名反应。旧录音不是今夜打来的电话。救护灯的另一边，还有人在叫你的名字。' }
+            conclusion: '车灯照到石桥，我顺手就拨了家里。以前响一声挂掉，妈就知道该下面了。这回我没挂，一直等到电话自己断掉。\n\n她说话的那段录音，日期是十年前。今晚二十一点十八分，有人叫我的名字。我睁过一次眼。' }
     };
     const regions = [], obstacles = [], items = [];
     const add = (space, id, title, x, y, z, text, extra = {}) => {
@@ -100,15 +100,18 @@
     add('hospital', 'hospital_clock', '候诊室的钟', 0, 2.1, -4.4,
         '你曾反复想象：如果再早一点回来，会不会不一样。\n\n分针卡在四点二十。我挪了把椅子，站上去看。钟壳背后连电池都没有。', { deduction: 'hospital' });
     obstacles.push({id:'old-bridge-post',space:'crash',xMin:-3.68,xMax:-3.18,zMin:-52.25,zMax:-51.75});
+    obstacles.push({id:'accident-wagon',space:'crash',xMin:-4.89,xMax:-.42,zMin:-57.07,zMax:-54.92});
+    obstacles.push({id:'rescue-cot',space:'crash',xMin:-.36,xMax:.36,zMin:-63.91,zMax:-62.03});
+    add('crash','crash_belt','驾驶座窗边的安全带',-2.53,1.0,.97,'车头歪进了护栏缺口，车尾还露着我的牌照，末四位七三一六。驾驶座窗沿垂着半截安全带。另一截还扣在座椅旁，红色按钮朝上。两道断口都是斜的。\n\n我记得那只手伸进来时，我还往后躲了一下。那人说：「我剪带子。好了，你看着我。」');
     add('crash','bridge_post','缺角的石桥栏柱',-3.17,.89,4,'车灯照过来，桥柱顶上缺了一角。跟厨房相册里那张一个样。那天我骑到桥那头才回头。爸站在这根柱子旁边，正两手撑着膝盖喘气。');
     add('crash', 'crash_report', '救护交接单', 1.7, 1.05, -4.5,
-        '二〇二六年七月十四日，二十一时十八分。\n\n地点：回宅山路弯道，雨后落石。\n伤者姓名与你相同。\n「呼吸存在，呼名反应微弱，继续转运。」\n\n纸角的雨水还没有干。这是今夜的记录。', { deduction: 'crash' });
+        '二〇二六年七月十四日，二十一时十八分。\n\n接诊地点：石桥弯道。姓名：李明（据驾驶证）。发现时在驾驶位。自主呼吸，呼名睁眼一次，未能回答。\n\n随身物品：驾驶证一本，手机一部。手机屏幕裂。接收人签字处还空着。', { deduction: 'crash' });
     add('crash', 'crash_phone', '雨夜的旧手机', -1.65, 0.7, 1.2,
-        '二十一时十二分，你给旧宅拨过电话，没有人接。\n\n屏幕停在本地录音：「母亲，二〇一六年七月十四日。」\n\n「别赶夜路，慢一点。灯会给你留着。」\n\n那不是今夜打来的电话，是你一直没舍得删的语音。', { deduction: 'crash', journal: false });
+        Object.values(game.PHONE_PAGES).map(page=>page.text).join('\n\n'), { deduction: 'crash', journal: false });
     add('crash', 'crash_return', '回到厨房的旧影', 0, 1.3, 6.8,
         '身后的雨幕里，厨房那盏灯仍在。可以先回去核对其他记录。', { journal: false, returnMemory: true });
     add('crash', 'rescue_light', '另一边的救护灯', 0, 1.2, -7,
-        '有人在雨里叫你的名字。母亲的语音已经播完，灯却还在另一边亮着。\n\n这一次，你要朝哪边走？', { journal: false, requiresTruth: true, finalChoice: true });
+        '有人喊了两遍「李明」，近得像是嘴唇贴着我耳朵。隔了一会儿，另一头有人喊「明，过来搭把手」。是妈在叫我。\n\n我把头朝声音来的方向偏了偏。', { journal: false, requiresTruth: true, finalChoice: true });
     world.walkable.push(...regions); world.obstacles.push(...obstacles);
     world.interactables.push({ id: 'memory_album', title: '柜边旧相册', location: '厨房', area: 'kitchen', position: { x: 7.75, y: 1.25, z: -23.86 },
         radius: 1.9, requiresOpen: true, requiresWater: true,

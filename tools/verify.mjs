@@ -15,7 +15,7 @@ const eventTarget = {
     addEventListener(type, callback) { if (!listeners.has(type)) listeners.set(type, new Set()); listeners.get(type).add(callback); },
     removeEventListener(type, callback) { listeners.get(type)?.delete(callback); }
 };
-const canvasContext = { fillRect() {}, strokeRect() {}, fillText() {} };
+const canvasContext = { fillRect() {}, strokeRect() {}, fillText() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {} };
 const document = { ...eventTarget, createElement() { return { getContext() { return canvasContext; } }; }, hidden: false };
 const window = { ...eventTarget, THREE, Huisha3D: {} };
 const context = vm.createContext({ window, document, console });
@@ -631,6 +631,12 @@ for (const [id, definition] of Object.entries(game.MEMORY_CASES)) {
     assert.equal(house.homeRoot.visible, false);
     for (const [space, room] of Object.entries(house.memories.rooms)) assert.equal(room.visible, space === id);
     assert.equal(controls.canOccupy(returnPose.x, returnPose.z), false, 'movement is confined to the current memory, not the house');
+    if(id==='crash'){
+        assert.equal(controls.canOccupy(-2.65,-56),false);
+        assert.equal(controls.canOccupy(0,-63),false);
+        assert.ok(house.villageCar.getObjectByName('driver-window-glass'));
+        assert.equal(house.memories.rooms.crash.getObjectByName('driver-window-glass'),undefined);
+    }
     const points = flood();
     for (const item of game.WORLD_MAP.interactables.filter(item => item.space === id && !item.requiresTruth)) verifyReachable(item, points);
     story.setMemoryDraft(id, [...definition.records], definition.answer, definition.timelineOrder);

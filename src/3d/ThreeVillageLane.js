@@ -11,14 +11,15 @@
         car.position.set(-2.15, 0, 29.7);
         h.scene.add(car);
         // Each section gives the underside and roof widths of the same cross-section.
-        function shell(name, sections, material) {
-            const positions = [], indices = [];
+        function shell(name, sections, material, splitWindow=false) {
+            const positions = [], indices = [], driverPane=[];
             for (const [z, bottom, top, lowWidth, highWidth] of sections) {
                 positions.push(-lowWidth,bottom,z, lowWidth,bottom,z, highWidth,top,z, -highWidth,top,z);
             }
             for (let j = 0; j < sections.length - 1; j++) for (let k = 0; k < 4; k++) {
                 const a = j * 4 + k, b = j * 4 + (k + 1) % 4;
-                indices.push(a,b,b+4, a,b+4,a+4);
+                const face=splitWindow && k===3 && sections[j+1][0]<=.33 ? driverPane : indices;
+                face.push(a,b,b+4, a,b+4,a+4);
             }
             const last = (sections.length - 1) * 4;
             indices.push(0,2,1,0,3,2,last,last+1,last+2,last,last+2,last+3);
@@ -26,9 +27,13 @@
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
             geometry.setIndex(indices); geometry.computeVertexNormals();
             h.mesh(name, geometry, material, [0,0,0], 'car_envelope', car);
+            if(driverPane.length){
+                const pane=geometry.clone();pane.setIndex(driverPane);pane.computeVertexNormals();
+                h.mesh('driver-window-glass',pane,material,[0,0,0],'car_envelope',car);
+            }
         }
         shell('station-wagon', [[-2.18,.38,.73,.83,.87],[-1.64,.64,.91,.83,.94],[-.82,.65,.99,.82,.94],[1.68,.64,.96,.82,.93],[2.15,.43,.87,.85,.86]], body);
-        shell('wagon-windows', [[-.91,.95,.99,.94,.92],[-.27,.95,1.51,.95,.76],[1.44,.93,1.53,.93,.78],[1.95,.9,1,.87,.86]], glass);
+        shell('wagon-windows', [[-.91,.95,.99,.94,.92],[-.27,.95,1.51,.95,.76],[.33,.943,1.517,.943,.767],[1.44,.93,1.53,.93,.78],[1.95,.9,1,.87,.86]], glass,true);
         h.box('car-roof',[1.57,.08,1.78],[0,1.54,.6],body,'car_envelope',car);
         const panel = new THREE.Shape();
         panel.moveTo(-2.14,.43); panel.lineTo(-1.72,.38);
@@ -43,8 +48,13 @@
             mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),delta.normalize());
         };
         for (const row of [-.17,.86]) for (const x of [-.45,.45]) {
-            h.box('seat-back',[.48,.42,.14],[x,1.12,row+.21],inside,undefined,car).rotation.x=.12;
-            h.box('headrest',[.26,.18,.14],[x,1.39,row+.22],inside,undefined,car);
+            const cushion=h.mesh('seat-cushion',new THREE.SphereGeometry(1,20,12),inside,[x,.925,row],undefined,car);
+            cushion.scale.set(.278,.071,.267);
+            const back=h.mesh('seat-back',new THREE.SphereGeometry(1,20,12),inside,[x,1.105,row+.22],undefined,car);
+            back.scale.set(.258,.246,.095);back.rotation.x=.12;
+            for(const offset of [-.072,.072]) bar('headrest-pin',[x+offset,1.29,row+.23],[x+offset,1.397,row+.24],.009,trim);
+            const headrest=h.mesh('headrest',new THREE.SphereGeometry(1,18,12),inside,[x,1.408,row+.246],undefined,car);
+            headrest.scale.set(.15,.087,.068);
         }
         h.box('dash',[1.64,.16,.32],[0,1.02,-.67],inside,undefined,car);
         h.mesh('steering-wheel',new THREE.TorusGeometry(.172,.021,9,30),rubber,[-.45,1.145,-.49],undefined,car).rotation.x=-.5;
@@ -93,7 +103,7 @@
         }
         transfer.dispose();
         h.box('front-bumper',[1.76,.12,.11],[0,.45,-2.16],rubber,'car_envelope',car);
-
+        return car;
     }
 
     // Bake the small timber and masonry details together per building for frustum culling.
@@ -232,6 +242,6 @@
             light.position.set(x-.26,2.14,z); h.scene.add(light);
             h.box('porch-lamp',[.09,.14,.09],[x,2.37,z],new THREE.MeshBasicMaterial({color:0xffda9a}));
         }
-        buildCar(h);
+        h.villageCar=buildCar(h);
     };
 })(window);

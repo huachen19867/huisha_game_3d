@@ -67,11 +67,71 @@
             postOutline.lineTo(.065,1.06);postOutline.lineTo(-.23,1.06);postOutline.closePath();
             const post=new THREE.ExtrudeGeometry(postOutline,{depth:.42,bevelEnabled:true,bevelSegments:2,steps:1,bevelSize:.018,bevelThickness:.018});
             h.mesh('chipped-bridge-pier',post,m.wellStone||m.stone,[-3.43,0,3.79],'bridge_post',root);
-            const bent = h.box('bent-guardrail', [0.08, 0.22, 2], [-3.5, 0.65, 0], m.ash, undefined, root); bent.rotation.y = 0.5;
-            h.box('phone-stone', [0.55, 0.65, 0.55], [-1.65, 0.32, 1.2], m.stone, 'crash_phone', root);
+            h.box('gravel-verge',[1.9,.24,18.6],[-4.65,-.22,0],m.paving,undefined,root);
+            for(const side of [-1,1]){
+                const bent=h.box('bent-guardrail', [.08,.22,1.18], [-4.15,.42,side*.64], m.ash, undefined, root);
+                bent.rotation.y=side*.72;bent.rotation.x=-side*.36;
+            }
+            const wagon=new THREE.Group();wagon.name='crashed-wagon';root.add(wagon);
+            wagon.position.set(-2.65,-.045,0);wagon.rotation.order='YXZ';wagon.rotation.set(-.075,Math.PI/2,.025);
+            for (const part of h.villageCar.children) {
+                if(!part.isMesh || part.name==='wiper-pigment' || part.name==='driver-window-glass') continue;
+                const copy=part.clone();copy.userData.item='crash_belt';wagon.add(copy);
+                if(part.name==='front-bumper') {copy.rotation.z=-.13;copy.position.y-=.08;}
+            }
+            // Both cut ends remain attached, one to the upper guide and one to the buckle.
+            const webbing=new THREE.MeshStandardMaterial({color:0x393d3a,roughness:.98,side:THREE.DoubleSide});
+            function strap(name,points){
+                const path=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));
+                const coords=[],indices=[];
+                for(let i=0;i<=16;i++){
+                    const p=path.getPoint(i/16);
+                    coords.push(p.x,p.y,p.z-.027,p.x,p.y+(i===16 ? .028 : 0),p.z+.027);
+                    if(i<16){const k=i*2;indices.push(k,k+1,k+2,k+1,k+3,k+2);}
+                }
+                const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(coords,3));geo.setIndex(indices);geo.computeVertexNormals();
+                h.mesh(name,geo,webbing,[0,0,0],'crash_belt',wagon,false);
+            }
+            strap('belt-upper-cut',[[-.79,1.46,.31],[-.89,1.17,.22],[-.965,.995,.12],[-.974,.84,.09]]);
+            strap('belt-buckle-cut',[[-.30,.96,-.11],[-.43,1.0,-.10],[-.60,.987,-.07]]);
+            h.box('seatbelt-release',[.067,.04,.083],[-.30,.956,-.11],m.red,'crash_belt',wagon);
+            for(const [x,z,size] of [[-4.7,-.26,.54],[-4.38,.28,.37],[-3.77,-.82,.21],[-3.81,.86,.16]]){
+                const rock=h.mesh('rockfall',new THREE.DodecahedronGeometry(size,0),m.wellStone||m.stone,[x,size*.35,z],undefined,root);
+                rock.rotation.set(z,.6+x,.7);rock.scale.set(1.26,.76,1);
+            }
+            const markerOutline=new THREE.Shape();
+            markerOutline.moveTo(-.27,-.20);markerOutline.lineTo(-.20,-.27);markerOutline.lineTo(.22,-.27);
+            markerOutline.lineTo(.27,-.195);markerOutline.lineTo(.27,.20);markerOutline.lineTo(.20,.27);
+            markerOutline.lineTo(-.21,.27);markerOutline.lineTo(-.27,.20);markerOutline.closePath();
+            const marker=new THREE.ExtrudeGeometry(markerOutline,{depth:.622,bevelEnabled:true,bevelSegments:2,bevelSize:.012,bevelThickness:.012});
+            marker.rotateX(-Math.PI/2);
+            h.mesh('phone-stone',marker,m.wellStone||m.stone,[-1.65,.012,1.2],'crash_phone',root);
+            const bag=new THREE.MeshStandardMaterial({color:0xc3cdba,transparent:true,opacity:.46,roughness:.47,depthWrite:false});
+            h.box('open-effects-bag',[.32,.004,.41],[-1.65,.648,1.2],bag,'crash_phone',root,false);
+            h.box('bag-zip',[.006,.007,.39],[-1.502,.651,1.2],m.paper,'crash_phone',root,false);
             h.phone = new game.ThreePhone(h); h.phone.build(root);
             h.box('emergency-case', [0.8, 1, 0.65], [1.7, 0.5, -4.5], m.red, 'crash_report', root);
-            h.label('handover-sheet', '救护交接\n呼吸存在', [0.64, 0.42], [1.7, 1.012, -4.5], [-Math.PI / 2, 0, 0], 'crash_report', root);
+            h.label('handover-sheet', '院前救护记录\n21:18　李 明', [0.53, 0.41], [1.7, 1.014, -4.5], [-Math.PI / 2, 0, 0], 'crash_report', root,'#c9c6ae','#294344');
+            h.box('clipboard-clip',[.18,.022,.047],[1.7,1.027,-4.69],m.stone,'crash_report',root);
+            const bed=new THREE.PlaneGeometry(.62,1.81,12,20);
+            bed.rotateX(-Math.PI/2);
+            const fabric=bed.attributes.position;
+            for(let i=0;i<fabric.count;i++){
+                const x=fabric.getX(i)/.31,z=fabric.getZ(i);
+                fabric.setY(i,-.045*(1-x*x)+.028*Math.max(0,-z-.5)+.007*Math.cos(z*19)*(1-x*x));
+            }
+            bed.computeVertexNormals();
+            const stretcherFabric=(m.denim||m.cloth).clone();stretcherFabric.color.setHex(0x8b7854);stretcherFabric.side=THREE.DoubleSide;
+            h.mesh('empty-stretcher',bed,stretcherFabric,[0,.73,-7],'rescue_light',root);
+            for(const side of [-1,1]){
+                h.cylinder('cot-rail',.026,.026,1.9,[side*.32,.73,-7],m.stone,'rescue_light',root).rotation.x=Math.PI/2;
+                for(const end of [-1,1]){
+                    const brace=h.cylinder('cot-folding-leg',.021,.021,1.24,[side*.265,.422,-7],m.stone,'rescue_light',root);
+                    brace.rotation.x=end*1.09;
+                    const caster=h.cylinder('cot-caster',.082,.082,.052,[side*.265,.082,-7+end*.56],m.cloth,'rescue_light',root);
+                    caster.rotation.z=Math.PI/2;
+                }
+            }
             for (const side of [-1, 1]) {
                 h.box(`rescue-post-${side}`, [0.08, 1.15, 0.08], [side * 0.9, 0.57, -7], m.stone, 'rescue_light', root);
                 const lens = new THREE.MeshBasicMaterial({ color: side === -1 ? 0xd74c3c : 0x6a9fbd });
@@ -80,6 +140,7 @@
             }
             h.label('crash-return-sign', '回到厨房', [1.1, 0.32], [0, 1.4, 7.2], [0, Math.PI, 0], 'crash_return', root);
             const returnLight = new THREE.PointLight(0xc1d4de, 12, 13, 1.6); returnLight.position.set(0, 3, 3); root.add(returnLight);
+            const workLight=new THREE.PointLight(0xffedd4,12,9,1.7);workLight.position.set(-.5,2.65,-2);root.add(workLight);
         }
         placeFurniture(place) {
             for (const x of [-2, 2]) for (const z of [-1.5, 1]) {
