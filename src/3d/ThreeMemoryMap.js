@@ -17,14 +17,14 @@
     game.DOCUMENTS = {
         school_notice: { title: '录取通知', space: 'school', position: [-2, 0.954, 1], faces: {
             front: { title: '正面 · 录取日期', lines: ['录取通知', '二〇一四年', '七月十日'], text: '二〇一四年七月十日。' },
-            back: { title: '背面 · 写给自己的话', lines: ['九月去外地。', '第一次，', '我想自己选。'],
-                text: '录取通知背面是你写给自己的话：「九月去外地。第一次，我想自己选。」\n\n你把它藏进课桌，仿佛一个属于自己的决定也需要被藏起来。' }
+            back: { title: '背面 · 写给自己的话', lines: ['九月一日到校。', '六点四十，第一班车。', '一张票。'],
+                text: '背面是我查的车次：「九月一日到校。六点四十，第一班车。一张票。」我用拇指擦了擦，铅笔字还会蹭掉。' }
         } },
         school_receipt: { title: '家长回执', space: 'school', position: [2, 0.954, -1.5], faces: {
             front: { title: '正面 · 日期与签名', lines: ['家长回执', '二〇一四年', '七月二十日', '家长签字'], signature: '父',
                 text: '二〇一四年七月二十日，家长回执上是父亲的签名。' },
-            back: { title: '背面 · 父亲的留言', lines: ['我把担心说成了命令。', '那些话伤了你，', '不能算作是为你好。', '你去读书，', '钱的事我再想办法。'],
-                text: '背面写着：「我把担心说成了命令。那些话伤了你，不能算作是为你好。你去读书，钱的事我再想办法。」\n\n这张纸后来夹在母亲的相册里。' }
+            back: { title: '背面 · 父亲的留言', lines: ['明，车钱在缝纫机', '第二个抽屉。', '那天我把你的志愿草表撕了，', '这事是我做错。', '要我送，出门前敲一下门。爸'],
+                text: '回执沿虚线撕开了，家里留下的这一联背面有爸的字：「明，车钱在缝纫机第二个抽屉。那天我把你的志愿草表撕了，这事是我做错。要我送，出门前敲一下门。爸」' }
         } },
         hospital_record: { title: '初诊病历', space: 'hospital', position: [2.3, 1.004, -2.95], introducedRevision: 2, style: 'medical', faces: {
             front: { title: '正面 · 初诊日期', lines: ['初诊病历', '二〇一二年', '八月二十三日'], text: '初诊日期：二〇一二年八月二十三日。' },
@@ -34,19 +34,19 @@
         hospital_plan: { title: '复诊安排', space: 'hospital', position: [-2.8, 1.32, -0.808], rotation: [0, 0, 0], introducedRevision: 2, style: 'medical', faces: {
             front: { title: '正面 · 日期与本人签字', lines: ['复诊安排', '二〇一四年', '八月二十日', '患者本人签字'], signature: '母',
                 text: '二〇一四年八月二十日。\n\n患者签字是母亲的名字。' },
-            back: { title: '背面 · 复诊与代取药安排', lines: ['九月起孩子在外地读书。', '本人知情，按月复诊；', '必要时由邻居代取药。', '', '别把治病也当成你的考试。'],
-                text: '「九月起孩子在外地读书。本人知情，按月复诊；必要时由邻居代取药。」\n\n旁边另写着：「别把治病也当成你的考试。」' }
+            back: { title: '背面 · 复诊与代取药安排', lines: ['九月起本人按月复诊。', '代取药联系人：', '周福生（邻居）。', '联系电话见挂号页。'],
+                text: '「九月起本人按月复诊。代取药联系人：周福生（邻居）。联系电话见挂号页。」\n\n周字写小了些，刚好挤进联系人那一格。' }
         } }
     };
     game.MEMORY_CASES = {
         school: { title: '离家前留下了什么记录', records: ['school_notice', 'school_receipt'], requiredFaces: { school_notice: ['front', 'back'], school_receipt: ['front', 'back'] },
-            choices: ['回执没有家长签名，背面只重复了“不许离家”', '通知先到，父亲十天后签回执，背面写下“你去读书”', '父亲先签回执，十天后你才收到录取通知'], answer: 1,
+            choices: ['回执没有家长签名，背面只重复了“不许离家”', '通知先到，父亲十天后签回执，留了去学校的车钱', '父亲先签回执，十天后你才收到录取通知'], answer: 1,
             facts: [
                 { id: 'notice', record: 'school_notice', documentFace: 'front', title: '收到录取通知', quote: '二〇一四年七月十日。' },
                 { id: 'receipt', record: 'school_receipt', documentFace: 'front', title: '父亲签下回执', quote: '二〇一四年七月二十日，家长回执上是父亲的签名。' },
                 { id: 'rules', record: 'school_rules', title: '记忆里的家规', quote: '黑板上的日期停在你拿到录取通知的那一年。', dated: false }
             ], timelineOrder: ['notice', 'receipt'],
-            conclusion: '录取通知是七月十日，父亲的回执是七月二十日。背面写着「你去读书，钱的事我再想办法」，也写着「那些话伤了你，不能算作是为你好」。支持与承认伤人的话，在同一张纸上。' },
+            conclusion: '七月十日，我已经查好了去学校的头班车。十天后爸才签字。他把车钱放进了抽屉。那张被他撕掉的草表，我记得也没错。' },
         hospital: { title: '初诊与复诊记录能确认什么', records: ['hospital_record', 'hospital_plan'], requiredFaces: { hospital_record: ['front'], hospital_plan: ['front', 'back'] },
             choices: ['初诊在二〇一四年，复诊安排由你代签', '二〇一二年初诊；二〇一四年母亲签复诊，邻居可代取药', '初诊在二〇一二年，但复诊安排没有患者签字'], answer: 1,
             facts: [
@@ -54,7 +54,7 @@
                 { id: 'plan', record: 'hospital_plan', documentFace: 'front', title: '母亲签字安排复诊', quote: '二〇一四年八月二十日。…患者签字是母亲的名字。' },
                 { id: 'clock', record: 'hospital_clock', title: '如果早一点回来', quote: '你曾反复想象：如果再早一点回来，会不会不一样。', dated: false }
             ], timelineOrder: ['diagnosis', 'plan'],
-            conclusion: '初诊写着二〇一二年，复诊安排写着二〇一四年。母亲签了字，注明九月起孩子在外地读书、本人按月复诊，必要时由邻居代取药。纸边另有一句：「别把治病也当成你的考试。」' },
+            conclusion: '初诊写着二〇一二年，复诊安排写着二〇一四年。我离家上学前，妈已经在看病。九月的复诊她自己签了字，代取药那一栏填的是邻居老周。' },
         crash: { title: '手机与交接单记录了什么', records: ['crash_report', 'crash_phone'],
             choices: ['手机保存的是二〇一六年录音，今夜呼出未接，交接单记录仍有呼吸', '母亲今夜二十一时十二分打来电话，接着发生了事故', '交接单宣告死亡，手机录音是在本次事故后收到的'], answer: 0,
             facts: [
@@ -88,17 +88,17 @@
     for (const side of [-1, 1]) obstacles.push({ id: `rescue-post-${side}`, space: 'crash',
         xMin: side * 0.9 - 0.08, xMax: side * 0.9 + 0.08, zMin: -63.08, zMax: -62.92 });
     add('school', 'school_notice', '课桌上的录取通知', -2, 0.96, 1,
-        '二〇一四年七月十日。\n\n录取通知背面是你写给自己的话：「九月去外地。第一次，我想自己选。」\n\n你把它藏进课桌，仿佛一个属于自己的决定也需要被藏起来。', { deduction: 'school', journal: false });
+        '二〇一四年七月十日。\n\n背面是我查的车次：「九月一日到校。六点四十，第一班车。一张票。」我用拇指擦了擦，铅笔字还会蹭掉。', { deduction: 'school', journal: false });
     add('school', 'school_receipt', '课桌上的家长回执', 2, 0.96, -1.5,
-        '二〇一四年七月二十日，家长回执上是父亲的签名。\n\n背面写着：「我把担心说成了命令。那些话伤了你，不能算作是为你好。你去读书，钱的事我再想办法。」\n\n这张纸后来夹在母亲的相册里。', { deduction: 'school', journal: false });
+        '二〇一四年七月二十日，家长回执上是父亲的签名。\n\n回执沿虚线撕开了，家里留下的这一联背面有爸的字：「明，车钱在缝纫机第二个抽屉。那天我把你的志愿草表撕了，这事是我做错。要我送，出门前敲一下门。爸」', { deduction: 'school', journal: false });
     add('school', 'school_rules', '黑板旁的旧家规', 0, 1.7, -4.45,
-        '六点前回家，不许顶嘴，志愿由父亲决定。\n\n背过的句子仍在，但黑板上的日期停在你拿到录取通知的那一年。记忆没有替谁把这些命令擦掉。', { deduction: 'school' });
+        '六点前回家，不许顶嘴，志愿由父亲决定。\n\n黑板上的日期停在你拿到录取通知的那一年。右下角那一小块擦得发白，我写过要报的学校，刚写了个校名，爸就伸手拿了板擦。', { deduction: 'school' });
     add('hospital', 'hospital_record', '初诊病历', 2.3, 1.02, -2.85,
         '初诊日期：二〇一二年八月二十三日。\n\n后续栏里是反复检查与长期用药的记录。那时候，你还没有收到录取通知，更没有离家。', { deduction: 'hospital', journal: false });
     add('hospital', 'hospital_plan', '母亲签过字的复诊安排', -2.8, 1.32, -0.8,
-        '二〇一四年八月二十日。\n\n「九月起孩子在外地读书。本人知情，按月复诊；必要时由邻居代取药。」\n\n患者签字是母亲的名字。旁边另写着：「别把治病也当成你的考试。」', { deduction: 'hospital', journal: false });
+        '二〇一四年八月二十日。\n\n「九月起本人按月复诊。代取药联系人：周福生（邻居）。联系电话见挂号页。」\n\n患者签字是母亲的名字。周字写小了些，刚好挤进联系人那一格。', { deduction: 'hospital', journal: false });
     add('hospital', 'hospital_clock', '候诊室的钟', 0, 2.1, -4.4,
-        '你曾反复想象：如果再早一点回来，会不会不一样。\n\n钟面却没有哪一格写着“保证来得及”。可以拿记录核对发生过的事，不必把猜想当成证据。', { deduction: 'hospital' });
+        '你曾反复想象：如果再早一点回来，会不会不一样。\n\n分针卡在四点二十。我挪了把椅子，站上去看。钟壳背后连电池都没有。', { deduction: 'hospital' });
     add('crash', 'crash_report', '救护交接单', 1.7, 1.05, -4.5,
         '二〇二六年七月十四日，二十一时十八分。\n\n地点：回宅山路弯道，雨后落石。\n伤者姓名与你相同。\n「呼吸存在，呼名反应微弱，继续转运。」\n\n纸角的雨水还没有干。这是今夜的记录。', { deduction: 'crash' });
     add('crash', 'crash_phone', '雨夜的旧手机', -1.65, 0.7, 1.2,

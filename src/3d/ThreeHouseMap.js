@@ -36,7 +36,9 @@
         ],
         interactables: [
             { id: 'car_envelope', title: '随身来信', inventoryOnly: true, location: '村口', area: 'lane', position: {x: -1.11, y: 1.08, z: 29.8}, radius: 2.4,
-                text: '收件人：李明。寄件地址：槐树巷十四号。\n\n信封背面有母亲的字：我把钥匙留给老周了。你去值班室找他。' },
+                text: '外封打印着我现在的地址，单号末四位 0317。县城投递章是七月十三。里面还有一只小信封，妈用圆珠笔写了「李明收」。背面是家里的旧门牌：槐树巷十四号。\n\n「明，十四回来吃饭。你要是到得早，就上老周那儿拿钥匙。走廊漏风，端灯记得拢着手。妈」\n\n落款没写年。' },
+            { id:'forwarding_slip', title:'值班室的寄件底单', inventoryOnly:true, location:'村口', area:'lane', position:{x:2.98,y:1.08,z:21.15},
+                text:'寄件人：周福生，下面留着他的手机号。收件人：李明。七月十二日收寄。单号末四位 0317。\n\n底单和外封的号码一样。周师傅说，换掉进水的老钥匙柜时，在背板和墙之间找到了那个写着「李明收」的小信封。他照我春天寄回来的修屋回执填了新地址。内封到我手里才拆。' },
             { id: 'clerk', title: '值夜的周师傅', location: '村口', area: 'lane', position: {x:3.20,y:1.64,z:20.38}, radius:2.65,
                 text: '周师傅摘下眼镜，在袖口擦了擦。「李明？上回见你，你还没这窗台高。」' },
             { id: 'duty_book', title: '值班室换牌登记簿', area: 'lane', position: {x: 2.62, y: 1.1, z: 21.1}, radius: 2.2,

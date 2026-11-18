@@ -362,7 +362,7 @@ function ending(choice) {
     if (!story.depart(choice)) return;
     audio.chime();
     const text = choice === 'wake'
-        ? '“李明，听得见就捏一下。”\n\n我捏住那人的手指。他冲车门外喊：“有反应了。”手机还贴着我耳朵。妈那句“慢一点”放完，播放器轻轻咔了一声。\n\n结局 · 破茧'
+        ? '“李明，听得见就捏一下。”\n\n我捏住那人的手指。他冲车门外喊：“有反应了。”有人问我哪儿疼。我张了两次嘴才说出一个“腿”字。那只戴手套的手一直没松。\n\n结局 · 破茧'
         : choice === 'remember'
         ? '我没应那声“李明”。厨房里，妈用锅铲敲了两下锅沿，叫我递碗。\n\n碗底磕掉了一块。我用拇指盖住缺口，递给她。门外又有自行车响铃，送信的人到了。\n\n结局 · 回煞'
         : choice === 'stay'
@@ -370,7 +370,12 @@ function ending(choice) {
         : story.state.records.includes('medicine_letter')
             ? '天刚蒙亮，村口卖早点的正在卸炉子。我借了个塑料袋，把信和复诊单套好。\n\n老板问要几个包子。我说两个，想了想，改成了一个。\n\n结局 · 归路'
             : '车开过第一个弯，我才想起厨房的抽屉还开着。我问司机明天还有没有这趟车。\n\n他说有，把第一班车的时间写在了我的票背面。\n\n结局 · 归路';
-    open({ stay: '余温', leave: '归路', wake: '破茧', remember: '回煞' }[choice], text, [['留在现场回看', close], ['返回标题', title]], '回煞 · 你的选择');
+    let endingText=text;
+    if(choice==='leave' && story.state.records.includes('forwarding_slip')) {
+        const ride=text.slice(0,text.lastIndexOf('\n\n结局'));
+        endingText=ride+'\n\n到了县城，钥匙在口袋里硌了一下。我照底单上的号码给老周发消息：「您哪天值班？我把钥匙给您送回来。」\n\n「周三。别赶早，我上夜班。」我把号码存下来，名字填了个「周叔」。\n\n结局 · 归路';
+    }
+    open({ stay: '余温', leave: '归路', wake: '破茧', remember: '回煞' }[choice], endingText, [['留在现场回看', close], ['返回标题', title]], '回煞 · 你的选择');
 }
 function inspectVillage(item) {
     const phase = story.state.arrival;
@@ -378,9 +383,15 @@ function inspectVillage(item) {
         const after=phase==='letter'?'老周把眼镜往上一推。「你说你是李家的？信给我瞧瞧，村里的门牌去年都换过了。」':
             phase==='ledger'?'周师傅翻开登记簿。「十四号我记得。新号在这页上，你自己对一下，省得拿错人家的钥匙。」':
             '「你爸修秤那间屋还在，」周师傅把搪瓷缸挪到炉边，「后来他在门口挡了个大衣柜。你小时候老往里钻。」';
+        const askAboutPost=['这封信是谁寄的？',()=>{
+            const slip=game.WORLD_MAP.interactables.find(entry=>entry.id==='forwarding_slip');
+            open('柜子后面的信','老周把我的外封翻过来，看了一眼条码。\n\n「是我寄的。上礼拜这窗户漏雨，我们往外抬钥匙柜，你妈那个小信封从背后掉下来了。我没敢拆。」\n\n「您怎么知道我住哪儿？」\n\n「你寄回来的修屋回执上有。你等会儿，我给你找那张底单。」',[
+                ['核对寄件底单',()=>{story.record(slip.id);readRecord(slip,[['还给周师傅',()=>inspectVillage(item)],['告辞',close]]);}],
+                ['不用找了',close]]);
+        }];
         open('值夜的周师傅',after,phase==='letter'?[['拿出内袋里的信',pocketLetter],['告辞',close]]:[['翻看登记簿',()=>{
             const book=game.WORLD_MAP.interactables.find(i=>i.id==='duty_book');story.record(book.id);inspectVillage(book);
-        }],['告辞',close]]);return true;
+        }],askAboutPost,['告辞',close]]);return true;
     }
     if (item.id === 'car_envelope') {pocketLetter();return true;}
     else if (item.id === 'duty_book') story.advanceArrival('ledger', 'keys');

@@ -39,7 +39,7 @@
             { id: 'water_station', title: '三升五升量水秤', location: '厨房', position: { x: 8.5, y: 1.25, z: -22 }, radius: 2,
                 requiresOpen: true, text: '两只提桶刻着三升、五升。秤盘与桌下的抽屉由一根铜杆连着。旁边有添水的水缸和倒水槽。' },
             { id: 'medicine_letter', title: '没有寄出的家书', location: '厨房', position: { x: 8.5, y: 0.63, z: -21.9 }, radius: 1.7,
-                requiresOpen: true, requiresWater: true, text: '抽屉里没有符纸，只有一封没寄出的信和一张复诊单。\n\n「不是你走了，我才病的。更不是你回来，我就能好。\n\n你爹做的这张量水桌，我一直没拆。等你回家，我们还可以慢慢试。\n\n要是没等到，就带着这封信出去吧。别把自己也留在屋里。」\n\n复诊单上的日期，比你离家的日子早了两年。' },
+                requiresOpen: true, requiresWater: true, text: '一封没封口的信，夹在复诊单里。信封只写到「学生宿舍」，门牌那儿空着。\n\n「明，你托同学捎来的钱收到了。我在信封里又给你装回去了，你月底还要买饭票。下回写信，把宿舍几栋几号写全。上封信在邮局贴了半天，人家还是叫我拿回来。」\n\n信封里夹着两张十块。复诊单是二〇一四年八月二十日的，背面用铅笔试写了三个宿舍号，又都划掉了。' },
             { id: 'yard_gate', title: '通往归路的院门', location: '雨庭', position: { x: 0, y: 1.35, z: -27.2 }, radius: 1.8,
                 requiresOpen: true, text: '一根旧铜索从厨房桌下穿过檐廊，接在院门门闩上。门外是一条没有灯的山路。' },
             { id: 'bus_notice', title: '路口的接驳通知', location: '归路', position: {x: .99,y: 1.55,z:-31.2}, radius: 2.2,

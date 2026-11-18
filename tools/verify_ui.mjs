@@ -171,7 +171,11 @@ try {
     ui.$('replay-drive').click(); ui.$('skip-drive').click(); assert.equal(ui.$('title-screen').hidden,false);
     assert.equal(ui.window.localStorage.getItem(saveKey),roadsideSave); ui.$('begin').click();
     assert.equal(ui.$('drive').hidden,true); assert.equal(ui.scene.story.state.arrival,'ledger');
-    ui.inspect('clerk'); ui.click('翻看登记簿'); ui.key('KeyE'); ui.inspect('key_board'); ui.click('东街 9 号');
+    ui.inspect('clerk');ui.click('这封信是谁寄的？');
+    assert.ok(!ui.scene.story.state.records.includes('forwarding_slip'));
+    ui.click('核对寄件底单');assert.match(ui.$('reader-body').textContent,/0317/);
+    assert.ok(ui.scene.story.state.records.includes('forwarding_slip'));
+    ui.click('还给周师傅'); ui.click('翻看登记簿'); ui.key('KeyE'); ui.inspect('key_board'); ui.click('东街 9 号');
     assert.equal(ui.scene.story.state.arrival,'keys'); ui.click('再选一把'); ui.click('东街 6 号'); ui.click('收好钥匙');
     ui.inspect('front_gate'); ui.click('用六号钥匙开门'); assert.equal(ui.scene.story.state.arrival,'home');
     // Existing hall saves start at their original pose and keep the old discovery history.
@@ -410,7 +414,7 @@ try {
                     ui.choose(medicalFields[0], 'hospital_record'); ui.choose(medicalFields[1], 'hospital_plan'); ui.click('提交推理');
                     assert.match(ui.document.querySelector('.memory-feedback').textContent, /没有读过的一面/);
                     ui.click('回查手记'); ui.click('回到纸张'); ui.$('document-flip').click(); ui.scene.documents.update(1); ui.scene.onFrame(ui.scene.camera.position, true);
-                    ui.$('document-read').click(); ui.expandReading('document'); assert.match(ui.$('reader-body').textContent, /邻居代取药/);
+                    ui.$('document-read').click(); ui.expandReading('document'); assert.match(ui.$('reader-body').textContent, /代取药联系人：周福生（邻居）/);
                 }
                 continue;
             }
@@ -453,6 +457,9 @@ try {
     ui.click('留在现场回看'); ui.$('pause').click(); ui.click('回到厨房');
     ui.inspect('road_exit'); ui.click('去候车棚'); ui.inspect('bus_notice'); ui.key('KeyE'); ui.inspect('stop_signal');
     ui.click('转向老宅'); ui.click('再转一次'); ui.click('转向石桥'); ui.click('去站牌'); ui.inspect('road_exit'); ui.click('坐车下山'); assert.equal(ui.scene.story.state.departure, 'leave');
+    assert.doesNotMatch(ui.$('reader-body').textContent,/周叔/);
+    ui.click('留在现场回看');ui.inspect('clerk');ui.click('这封信是谁寄的？');ui.click('核对寄件底单');ui.click('告辞');
+    ui.inspect('road_exit');ui.click('坐车下山');assert.match(ui.$('reader-body').textContent,/周叔/);
     ui.inspect('medicine_letter'); ui.click('今晚留下，给自己煮碗饭'); assert.equal(ui.scene.story.state.departure, 'stay');
     ui.click('返回标题'); ui.$('restart').click(); ui.click('保留进度'); assert.equal(ui.scene.story.state.waterSolved, true);
     ui.$('restart').click(); ui.click('确认重新开始');
