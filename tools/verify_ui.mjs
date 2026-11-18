@@ -413,6 +413,14 @@ try {
     ui.choose(fields[2], 1); ui.click('提交推理');
     assert.equal(ui.scene.story.state.deductions.school, true); assert.equal(ui.scene.story.state.memory, 'school');
     ui.click('回到厨房'); assert.deepEqual({ ...ui.scene.controls.snapshot() }, returnPose);
+    ui.inspect('paper_mask');assert.ok(ui.document.querySelector('img[src$="paper-mask-front.webp"]'));
+    assert.doesNotMatch(ui.$('reader-actions').textContent,/比一比/);ui.key('KeyE');
+    assert.ok(!ui.scene.story.state.records.includes('mask_strap'));
+    ui.inspect('wiper_print');ui.click('比一比两处红印');assert.ok(ui.scene.story.state.records.includes('mask_transfer'));ui.key('KeyE');
+    ui.inspect('paper_mask');ui.click('翻看背面');assert.ok(ui.document.querySelector('img[src$="paper-mask-back.webp"]'));
+    ui.click('挂到门边的木钉上');assert.equal(JSON.parse(ui.window.localStorage.getItem(saveKey)).maskHung,true);
+    assert.equal(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).state.maskHung,true);
+    ui.inspect('paper_mask');ui.click('翻看背面');assert.doesNotMatch(ui.$('reader-actions').textContent,/挂到/);ui.key('KeyE');
     for (const id of ['hospital', 'crash']) {
         ui.inspect('memory_album'); ui.click(`翻入记忆 · ${ui.window.Huisha3D.MEMORIES[id].title}`);
         const definition = ui.window.Huisha3D.MEMORY_CASES[id];

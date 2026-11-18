@@ -471,6 +471,12 @@ camera.position.set(0, 1.6, -12.9); camera.lookAt(new THREE.Vector3(0, 1.25, -13
 interaction.update(); assert.equal(interaction.current?.id, 'threshold');
 interaction.activate(); assert.ok(story.state.records.includes('threshold')); assert.equal(story.state.ending, false, 'reaching or reading the threshold must not auto-finish');
 for (const item of game.WORLD_MAP.interactables.filter(item => item.requiresOpen && !item.requiresState && !item.requiresWater)) verifyReachable(item, yardPoints);
+story.state.crossedYard=true;
+for(const hung of [false,true]){
+    story.state.maskHung=hung;house.courtyard.syncMask();house.scene.updateMatrixWorld(true);
+    verifyReachable(house.courtyard.maskSite,yardPoints);
+}
+story.state.maskHung=false;story.state.crossedYard=false;house.courtyard.syncMask();
 assert.ok(yardPoints.some(point => point.x > 7 && point.z < -20), 'the kitchen must connect physically to the hall and yard');
 assert.ok(!yardPoints.some(point => point.z < -28), 'the courtyard gate stays shut until the water mechanism is operated');
 assert.equal(story.depart('leave'), false, 'unlocking the first door is not the final ending');

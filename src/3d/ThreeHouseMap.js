@@ -35,6 +35,8 @@
             { id: 'pillar_right', xMin: 3.85, xMax: 4.35, zMin: -1.75, zMax: -1.25 }
         ],
         interactables: [
+            { id:'wiper_print',title:'雨刷边的红印',area:'lane',location:'村口',position:{x:-1.71,y:1.095,z:28.90},radius:2.1,
+                text:'我沿着雨刷刮过的弧线看过去。胶条跟前留下两团红，边缘叠在一起，一团实，一团虚。我用指甲在边上刮了一下，沾了点油红色。风挡上其余的地方都叫雨冲干净了。' },
             { id: 'car_envelope', title: '随身来信', inventoryOnly: true, location: '村口', area: 'lane', position: {x: -1.11, y: 1.08, z: 29.8}, radius: 2.4,
                 text: '外封打印着我现在的地址，单号末四位 0317。县城投递章是七月十三。里面还有一只小信封，妈用圆珠笔写了「李明收」。背面是家里的旧门牌：槐树巷十四号。\n\n「明，十四回来吃饭。你要是到得早，就上老周那儿拿钥匙。走廊漏风，端灯记得拢着手。妈」\n\n落款没写年。' },
             { id:'forwarding_slip', title:'值班室的寄件底单', inventoryOnly:true, location:'村口', area:'lane', position:{x:2.98,y:1.08,z:21.15},

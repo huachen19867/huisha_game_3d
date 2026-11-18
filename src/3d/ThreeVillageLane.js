@@ -85,6 +85,13 @@
             h.label('wagon-registration','槐 A·7316',[.46,.13],[0,.54,side*2.215],[0,side>0?0:Math.PI,0],undefined,car,'#20394a','#c8cebd');
         }
         h.box('rear-bumper',[1.75,.11,.12],[0,.44,2.14],rubber,'car_envelope',car);
+        const transfer=new THREE.MeshStandardMaterial({color:0x99463c,transparent:true,opacity:.82,roughness:.76,depthWrite:false});
+        for(const [x,y,z,opacity] of [[.44,1.085,-.805,.84],[.473,1.081,-.810,.44]]){
+            const ink=transfer.clone();ink.opacity=opacity;
+            const dab=h.mesh('wiper-pigment',new THREE.CircleGeometry(.031,24,0,Math.PI*1.86),ink,[x,y,z],'wiper_print',car,false);
+            dab.rotation.x=-2.25;
+        }
+        transfer.dispose();
         h.box('front-bumper',[1.76,.12,.11],[0,.45,-2.16],rubber,'car_envelope',car);
 
     }

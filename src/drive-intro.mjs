@@ -1,12 +1,13 @@
 const captions = [
     '妈去世十年了。昨天收到一封信，是她的字。叫我十四回来吃饭。',
     '前面就是槐树巷。小时候，每次开到这儿，我妈都要伸手把收音机拧小。',
-    '刚才那人呢？……车门得使劲才能推开。我摸了摸内袋，信还在。'
+    '人呢？我把雨刷拨了一下，胶条刮过去，右下角还有一点红。信还在内袋里。'
 ];
 
 // The 2D IntroScene used an 800 × 600 windscreen, a cubic road scroll and twin wipers.
 export function playDrive(canvas, subtitle, finish, impact) {
     const ctx = canvas.getContext('2d');
+    const mask=new window.Image();mask.src='assets/art/paper-mask-front.webp';
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     let request, previous, elapsed=0, lastCaption=-1, struck=false;
     const polygon = (fill,points) => {
@@ -60,15 +61,27 @@ export function playDrive(canvas, subtitle, finish, impact) {
             const size=reduced ? .8 : .16 + 5.7*rush*rush;
             ctx.save();ctx.translate(vx+12,272-rush*45);ctx.scale(size,size);
             polygon('#777366',[[-22,35],[-51,49],[-66,133],[52,138],[44,46],[17,32]]);
-            polygon('#b3a68b',[[-24,-36],[-13,-57],[13,-55],[25,-38],[22,13],[15,31],[1,42],[-18,26],[-26,6]]);
-            polygon('#dad0b3',[[-22,-37],[0,-51],[1,39],[-19,23],[-25,0]]);
-            polygon('#564f46',[[-24,-32],[-19,-53],[-1,-61],[17,-56],[27,-38],[10,-42],[-3,-47]]);
-            polygon('#292a29',[[-21,-15],[-10,-20],[-3,-15],[-11,-10]]);
-            polygon('#282522',[[4,-15],[15,-19],[22,-15],[14,-11]]);
-            polygon('#867765',[[0,-12],[-4,4],[2,6]]);
-            polygon('#803c39',[[-16,10],[-6,15],[2,16],[16,9],[8,22],[-1,24],[-10,20]]);
-            stroke('#776c5a',.7,-18,-30,-8,7);stroke('#827b6a',.65,4,25,16,-1);
+            if(mask.complete && mask.naturalWidth){
+                ctx.drawImage(mask,-43,-58,86,94);
+            }else{
+                polygon('#b3a68b',[[-24,-36],[-13,-57],[13,-55],[25,-38],[22,13],[15,31],[1,42],[-18,26],[-26,6]]);
+                polygon('#dad0b3',[[-22,-37],[0,-51],[1,39],[-19,23],[-25,0]]);
+                polygon('#564f46',[[-24,-32],[-19,-53],[-1,-61],[17,-56],[27,-38],[10,-42],[-3,-47]]);
+                polygon('#292a29',[[-21,-15],[-10,-20],[-3,-15],[-11,-10]]);
+                polygon('#282522',[[4,-15],[15,-19],[22,-15],[14,-11]]);
+                polygon('#867765',[[0,-12],[-4,4],[2,6]]);
+                polygon('#803c39',[[-16,10],[-6,15],[2,16],[16,9],[8,22],[-1,24],[-10,20]]);
+                stroke('#776c5a',.7,-18,-30,-8,7);stroke('#827b6a',.65,4,25,16,-1);
+                for(const [x,y] of [[-17,5],[15,5],[21,7]]){
+                    ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fillStyle='#a54837';ctx.fill();
+                }
+            }
             ctx.restore();
+        }
+        if(t>=11.65){
+            for(const [x,y,r,alpha] of [[576,401,5,.56],[582,403,4,.31]]){
+                ctx.fillStyle='rgba(150,55,42,'+alpha+')';ctx.beginPath();ctx.ellipse(x,y,r,r*.75,.12,0,Math.PI*2);ctx.fill();
+            }
         }
         const angle=(-50-48*Math.cos(t*4.9))*Math.PI/180;
         for(const x of [185,497]) {

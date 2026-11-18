@@ -196,6 +196,12 @@ function readRecord(item, actions) {
     if(photographs[item.id]){
         $('reader-body').prepend(recordPhoto(photographs[item.id],item.title));
     }
+    if(item.id==='paper_mask' || item.id==='mask_strap'){
+        const image=document.createElement('img');
+        image.className='mask-study';image.width=702;image.height=768;image.alt=item.title;
+        image.src='assets/art/paper-mask-'+(item.id==='paper_mask'?'front':'back')+'.webp';
+        $('reader-body').prepend(image);
+    }
     evidenceJournal.appendPinAction($('reader-actions'), item.id);
 }
 function showMap(resetScope = true) {
@@ -466,6 +472,27 @@ function inspect(item) {
     ['lock', 'water_station'].includes(item.id) ? audio.knock() : audio.paper();
     if (['car_envelope','clerk','duty_book','key_board','front_gate'].includes(item.id) && inspectVillage(item)) return;
     if (household({story,scene,open,close,audio,inspectUniform},item)) return;
+    if(item.id==='paper_mask' || item.id==='wiper_print'){
+        const records=story.state.records;
+        const show=(id,actions)=>{
+            story.record(id);audio.paper();
+            readRecord(game.WORLD_MAP.interactables.find(entry=>entry.id===id),actions);
+        };
+        const leave=['返回',close], actions=[];
+        if(item.id==='paper_mask'){
+            const flip=()=>{
+                const hang=()=>{
+                    story.state.maskHung=true;scene.courtyard.syncMask();close();
+                };
+                show('mask_strap',[['翻回正面',()=>inspect(item)],...(!story.state.maskHung?[['挂到门边的木钉上',hang]]:[]),leave]);
+            };
+            actions.push(['翻看背面',flip]);
+        }
+        if(records.includes('wiper_print') && records.includes('paper_mask')){
+            actions.push(['比一比两处红印',()=>show('mask_transfer',[['再看一眼',()=>inspect(item)],leave])]);
+        }
+        readRecord(item,[...actions,leave]);return;
+    }
     if (item.id === 'lock') { lock(); return; }
     if (item.id === 'water_station') {
         if(!story.state.calibrated){
@@ -704,7 +731,7 @@ try {
         onMechanismEvent: event => { if (event === 'door-release') audio.knock(); },
         onWatchEvent: (kind, pan) => {
             const panel = $('yard-watch');
-            const words = {yard:'院门边，有人正提着灯往这边照。右手厨房里亮着灶火。',still:'灯扫到脚边了。站住，等光过去。',warning:'纸鞋在擦地。别动，或者躲到廊檐下。',caught:'那双鞋在你脚边停下。再睁眼，你又站在刚跨过的门槛上。',safe:'进了厨房。那双鞋在台阶上擦了一下，没跟进来。'};
+            const words = {yard:'院门边，有人正提着灯往这边照。右手厨房里亮着灶火。',still:'灯扫到脚边了。站住，等光过去。',warning:'纸鞋在擦地。别动，或者躲到廊檐下。',caught:'那双鞋在你脚边停下。再睁眼，你又站在刚跨过的门槛上。',safe:'我跨进灶间，背后的灯灭了。有件东西擦着门边的墙滑到了地上。'};
             if (!kind && ['caught','safe'].includes(panel.dataset.cue)) return;
             panel.hidden = !kind; panel.textContent = words[kind] || ''; panel.dataset.cue = kind;
             if (kind === 'still' || kind === 'warning' || kind === 'caught') audio.watchStep(pan,kind!=='still');

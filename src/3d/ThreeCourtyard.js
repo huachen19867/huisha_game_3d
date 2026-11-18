@@ -23,6 +23,7 @@
             h.box('kitchen-roof', [5.3, 0.18, 7.7], [8.5, 3.15, -21.2], m.darkWood);
             h.box('kitchen-lintel', [0.28, 0.24, 4], [6, 2.8, -21.5], m.wood);
             h.label('kitchen-sign', '灶　间', [1.0, 0.32], [5.87, 2.45, -21.4], [0, -Math.PI / 2, 0],undefined,h.scene,'#392d22','#ddbd8a');
+            this.buildMask();
             const wetStone = m.paving.clone(); wetStone.color.setHex(0x83887d); wetStone.roughness=.43;
             for (let i = 0; i < 6; i++) {
                 const slab=h.box(`yard-step-${i}`, [1.62+i%3*.13,.045,.61], [Math.sin(i*2)*.08,-.005,-18-i*1.5],wetStone);
@@ -73,6 +74,39 @@
             h.cylinder('kitchen-lamp-chain',.009,.009,.34,[9.83,2.94,-23.47],m.darkWood);
             this.dressEaves();
             this.dressStove();
+        }
+        buildMask() {
+            const h=this.house, geometry=new THREE.PlaneGeometry(.315,.345,24,26);
+            const vertices=geometry.attributes.position;
+            for(let i=0;i<vertices.count;i++){
+                const x=vertices.getX(i)/.158,y=vertices.getY(i)/.173;
+                vertices.setZ(i,.075*Math.max(0,1-x*x-.78*y*y)+.023*Math.exp(-22*x*x-11*y*y));
+            }
+            geometry.computeVertexNormals();
+            const makeMaterial=(side)=>{
+                const material=new THREE.MeshStandardMaterial({color:0xe6d7b8,roughness:.94,alphaTest:.36,side:side==='front'?THREE.FrontSide:THREE.BackSide});
+                if(h.renderer?.isWebGLRenderer){
+                    material.map=new THREE.TextureLoader().load('assets/art/paper-mask-'+side+'.webp',undefined,undefined,()=>h.onAssetError?.('纸面具'));
+                    material.map.colorSpace=THREE.SRGBColorSpace;
+                    if(side==='back'){material.map.repeat.x=-1;material.map.offset.x=1;}
+                    h.textures.push(material.map);
+                }
+                return material;
+            };
+            this.mask=new THREE.Group();this.mask.name='paper-mask';h.scene.add(this.mask);
+            this.mask.rotation.order='YXZ';
+            h.mesh('mask-printed-face',geometry,makeMaterial('front'),[0,0,.002],'paper_mask',this.mask,false);
+            h.mesh('mask-check-strap',geometry,makeMaterial('back'),[0,0,0],'paper_mask',this.mask,false);
+            this.maskSite=h.map.interactables.find(item=>item.id==='paper_mask');
+            h.cylinder('mask-peg',.015,.017,.115,[5.85,1.46,-19.15],h.materials.wood).rotation.z=Math.PI/2;
+            this.syncMask();
+        }
+        syncMask() {
+            const {crossedYard,maskHung}=this.house.story.state;
+            this.mask.visible=crossedYard;
+            this.mask.position.set(5.78,maskHung?1.35:.21,-19.15);
+            this.mask.rotation.set(maskHung ? 0 : -.47,-Math.PI/2,maskHung ? .06 : -.28);
+            Object.assign(this.maskSite.position,{x:this.mask.position.x,y:this.mask.position.y,z:this.mask.position.z});
         }
         buildWell() {
             const h=this.house,m=h.materials, blocks=[], count=11, step=Math.PI*2/count;
@@ -271,6 +305,7 @@
             place('chinese_cabinet', [1.45, 1.9, 0.7], [7.75, 0, -24.3], 0);
         }
         sync(immediate) {
+            this.syncMask();
             const s = this.house.story.state;
             this.busLights.visible = s.busCalled;
             this.signalBoard.rotation.y = s.busCalled ? -.64 : Math.PI / 2;

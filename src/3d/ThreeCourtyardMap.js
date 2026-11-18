@@ -32,6 +32,12 @@
                 xMin: side * 4.75 - 0.09, xMax: side * 4.75 + 0.09, zMin: -16 - i * 3.1 - 0.09, zMax: -16 - i * 3.1 + 0.09 })))
         ],
         interactables: [...hall.interactables,
+            {id:'paper_mask',title:'灶间门边的纸脸',area:'yard',location:'雨庭',requiresOpen:true,requiresState:'crossedYard',position:{x:5.78,y:.21,z:-19.15},radius:2.1,
+                text:'我捏住纸边，鼻梁咔地响了一下。对着我这边，左脸一个红圆，右脸却有两个，第二下颜色浅，还压到了头一下的边。我记得这印子。小时候我拿汽水瓶盖蘸印泥，手一滑，想盖住它，反而印成了三个。' },
+            {id:'mask_strap',title:'纸脸背后的格子布带',area:'yard',location:'雨庭',requiresState:'crossedYard',inventoryOnly:true,position:{x:5.78,y:.21,z:-19.15},
+                text:'眼洞后面横着一条红格子布带，一头还留着个活扣。我用两根指头撑开它。轮到爸戴，就得把这截放长。\n\n那年十五，我戴着它举手电照人，谁动谁就换我。妈端着一碗刚盛的热汤从我面前走过去，我一路追到灶间。爸在背后拉住我：「厨房里头不抓人，让你妈把汤搁下。」' },
+            {id:'mask_transfer',title:'两处叠在一起的红印',area:'yard',location:'村口与雨庭',inventoryOnly:true,position:{x:5.78,y:.21,z:-19.15},
+                text:'纸脸上多印的那一下浅，风挡上也是一深一浅。刚才我还当是雨刷蹭花的。纸脸拿在手里，那重出来的半个圆，怎么擦也擦不掉。' },
             { id: 'yard_well', title: '雨庭旧井', location: '雨庭', position: { x: -3, y: 0.92, z: -21.5 }, radius: 2,
                 requiresOpen: true, text: '井沿磨出了两道提桶的凹槽，一宽一窄。水面映着厨房的灯。\n\n母亲曾让你把三升、五升提桶里的水倒来倒去。你只记得，那时候做错了，也不必重新打水。' },
             { id: 'kitchen_note', title: '灶旁校秤纸', location: '厨房', position: { x: 10.45, y: 1.55, z: -18.2 }, radius: 1.8,

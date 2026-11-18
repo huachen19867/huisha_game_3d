@@ -21,3 +21,4 @@
 .hud.inspecting #yard-watch,.hud:has(.prompt:not([hidden])) #yard-watch{bottom:28%}
 @media(pointer:coarse){#yard-watch,.hud:has(.prompt:not([hidden])) #yard-watch{bottom:auto;top:24%;font-size:12px}}
 @media(pointer:coarse){.lamp-hand{bottom:107px;right:16px}}
+.mask-study{display:block;width:auto;height:clamp(125px,33vh,285px);max-width:100%;object-fit:contain;margin:0 auto 1rem}

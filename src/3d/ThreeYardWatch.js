@@ -40,15 +40,12 @@
                 const shoe=put('cloth-shoe',new T.SphereGeometry(.12,12,9),m.cloth,[side*.16,.08,.07]);
                 shoe.scale.set(.65,.56,1.6);
             }
-            const head=put('pasteboard-mask',new T.SphereGeometry(.17,16,12),skin,[0,1.57,.07]);
-            head.scale.set(.83,1.27,.76);
+            const head=house.courtyard.mask.clone();
+            head.name='worn-paper-mask';head.visible=true;head.position.set(0,1.59,.117);
+            head.rotation.set(0,0,.035);this.body.add(head);
             const hood=put('folded-funeral-hood',robe(.24,.46,[[.96,0],[1,.16],[.75,.63],[.16,1]]),fabric,[0,1.41,-.045]);
             hood.rotation.x=-.18;
             for(const side of [-1,1]) {
-                const eye=put('ink-eye',new T.SphereGeometry(.024,10,6),m.cloth,[side*.056,1.61,.187]);
-                eye.scale.set(1.18,.32,.34);eye.rotation.z=side*.22;
-                const blush=put('vermilion-cheek',new T.SphereGeometry(.031,12,8),m.red,[side*.083,1.55,.164]);
-                blush.scale.set(1,.67,.22);
                 const lapel=put('folded-paper-lapel',new T.BoxGeometry(.084,.42,.016),skin,[side*.075,1.17,.192]);
                 lapel.rotation.z=side*-.35;
                 const tail=put('mourning-tie',new T.BoxGeometry(.038,.29,.014),skin,[side*.064,.77,.175]);
@@ -105,6 +102,7 @@
             }
             if (kitchen(p)) {
                 s.crossedYard=true;h.story.save(h.controls.snapshot());
+                h.courtyard.syncMask();
                 this.root.visible=false;this.previous=null;this.alarm=0;this.cue('safe');return;
             }
             if (!this.previous) {this.time=-1.2;this.alarm=0;this.previous={x:p.x,z:p.z};}
