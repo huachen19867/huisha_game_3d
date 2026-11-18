@@ -75,6 +75,7 @@ async function boot(saved, preferences) {
                     }
                     labelMaterial() { return new THREE.MeshBasicMaterial(); } // No real canvas text or photo decoding in jsdom.
                     syncState(immediate) {
+                        this.wardrobe.position.z=this.story.state.wardrobeOpen?-16.01:-18;
                         this.portrait?.sync(immediate);
                         if (immediate) this.door.rotation.y = this.story.state.opened ? this.map.door.openAngle : 0;
                         this.doorMechanism?.sync(immediate);
@@ -99,6 +100,7 @@ async function boot(saved, preferences) {
     const inspect = id => {
         if ($('reader').open) $('reader-close').click();
         if (scene.inspectionReturn) $({ water: 'water-leave', portrait: 'portrait-leave', phone: 'phone-leave', document: 'document-leave' }[scene.inspectionKind] || 'lock-leave').click();
+        scene.scene.updateMatrixWorld(true);
         const item = scene.map.interactables.find(item => item.id === id); assert.ok(item);
         for (let x = item.position.x - item.radius; x <= item.position.x + item.radius; x += 0.2) {
             for (let z = item.position.z - item.radius; z <= item.position.z + item.radius; z += 0.2) {
@@ -161,14 +163,14 @@ try {
     assert.equal(ui.scene.camera.position.y,1.6);
     ui.window.dispatchEvent(new ui.window.KeyboardEvent('keyup',{code:'KeyW'})); assert.ok(!movement.sprinting);
     movement.teleport(roadPose);
-    ui.key('KeyE'); assert.equal(ui.$('reader-title').textContent,'车窗上的信封');
+    ui.key('KeyH'); assert.match(ui.$('reader-body').textContent,/按 B/);ui.key('KeyE');ui.key('KeyB'); ui.click('随身来信'); assert.equal(ui.$('reader-title').textContent,'随身来信');
     ui.key('KeyE'); assert.equal(ui.$('reader').open,false);
     const roadsideSave = ui.window.localStorage.getItem(saveKey);
     ui.destroy(); ui = await boot(roadsideSave,savedPreferences);
     ui.$('replay-drive').click(); ui.$('skip-drive').click(); assert.equal(ui.$('title-screen').hidden,false);
     assert.equal(ui.window.localStorage.getItem(saveKey),roadsideSave); ui.$('begin').click();
     assert.equal(ui.$('drive').hidden,true); assert.equal(ui.scene.story.state.arrival,'ledger');
-    ui.inspect('duty_book'); ui.key('KeyE'); ui.inspect('key_board'); ui.click('东街 9 号');
+    ui.inspect('clerk'); ui.click('翻看登记簿'); ui.key('KeyE'); ui.inspect('key_board'); ui.click('东街 9 号');
     assert.equal(ui.scene.story.state.arrival,'keys'); ui.click('再选一把'); ui.click('东街 6 号'); ui.click('收好钥匙');
     ui.inspect('front_gate'); ui.click('用六号钥匙开门'); assert.equal(ui.scene.story.state.arrival,'home');
     // Existing hall saves start at their original pose and keep the old discovery history.
@@ -235,7 +237,7 @@ try {
     ui.$('reader-close').click(); const beforeMapRecords = [...ui.scene.story.state.records]; ui.$('map').click();
     assert.ok(ui.document.querySelector('[data-map-point="letter"]'));
     assert.equal(ui.document.querySelector('[data-map-point="coffin"]'), null);
-    ui.document.querySelector('[data-map-record="letter"]').click(); assert.equal(ui.$('reader-title').textContent, '门边来信');
+    ui.document.querySelector('[data-map-record="letter"]').click(); assert.equal(ui.$('reader-title').textContent, '门边的全家福');
     ui.click('回到地图'); assert.deepEqual([...ui.scene.story.state.records], beforeMapRecords);
     ui.click('继续探索');
     ui.inspect('coffin'); ui.click('放入摘记');
@@ -243,7 +245,7 @@ try {
     assert.equal(ui.document.querySelector('#reader-actions [data-pin-record]').disabled, true, 'a full comparison requires an explicit removal');
     ui.click('打开手记');
     assert.equal(ui.document.querySelector('.evidence-filter option[value="school"]'), null, 'the journal does not reveal unobserved memory locations');
-    ui.document.querySelector('.evidence-journal [aria-label="移除摘记：门边来信"]').click();
+    ui.document.querySelector('.evidence-journal [aria-label="移除摘记：门边的全家福"]').click();
     assert.ok(ui.document.querySelector('.evidence-journal').contains(ui.document.activeElement), 'removing a comparison card restores focus inside the journal');
     ui.document.querySelector('[data-record="wall_marks"] [data-pin-record]').click();
     assert.deepEqual([...ui.scene.story.state.pinnedRecords], ['coffin', 'wall_marks']);
@@ -258,7 +260,7 @@ try {
     assert.deepEqual({ ...ui.scene.playerSnapshot() }, lockMapPose);
     ui.choose(ui.document.querySelector('[data-map-focus]'), 'all'); assert.equal(ui.document.querySelector('.map-floor').getAttribute('viewBox'), wholeMapBounds);
     ui.click('回到字轮'); assert.deepEqual({ ...ui.scene.playerSnapshot() }, lockMapPose);
-    assert.match(ui.document.querySelector('#lock-inspector .inspection-notes-body').textContent, /左位留灯/);
+    assert.match(ui.document.querySelector('#lock-inspector .inspection-notes-body').textContent, /三根红绳/);
     assert.match(ui.document.querySelector('#lock-inspector .inspection-notes-body').textContent, /灯和门之间/);
     ui.$('lock-attempt').click(); assert.equal(ui.scene.story.state.opened, false);
     assert.equal(ui.scene.doorMechanism.progress, 0, 'an incorrect UI attempt never starts a release');
@@ -273,7 +275,12 @@ try {
     ui.click('继续探索'); ui.scene.moveDoor(1); assert.ok(ui.scene.door.rotation.y > 0);
     ui.$('map').click(); assert.match(ui.document.querySelector('[data-map-area-notes="corridor"]').textContent, /已解开/);
     assert.equal(ui.document.querySelector('[data-map-area="path"]'), null, 'unlocking alone does not draw a room that has not been entered'); ui.click('继续探索');
-    ui.inspect('water_station'); ui.$('water-weigh').click(); assert.equal(ui.scene.story.state.waterSolved, false);
+    ui.inspect('wardrobe'); ui.click('沿滑轨推向床尾'); ui.inspect('brass_weight'); ui.click('拿走铜秤砣');
+    ui.inspect('matchbox');ui.click('拿走火柴盒');ui.inspect('rice_bowl');ui.click('拿走一碗白饭');
+    ui.inspect('wedding_photo');ui.key('KeyE');ui.inspect('wedding_chest');ui.document.querySelector('[inputmode=numeric]').value='1986';ui.click('拨开锁扣');ui.click('拿走纸元宝');
+    ui.inspect('altar');ui.click('摆饭');ui.click('点香');ui.click('烧纸');ui.key('KeyE');
+    ui.inspect('coffin');ui.click('推开棺盖');ui.key('KeyE');assert.ok(ui.scene.story.carried().includes('uniform'));
+    ui.inspect('water_station');ui.click('装上铜砣'); ui.$('water-weigh').click(); assert.equal(ui.scene.story.state.waterSolved, false);
     assert.equal(ui.$('water-fill').disabled, true); ui.key('KeyF'); assert.deepEqual([...ui.scene.story.state.buckets], [0, 0]);
     ui.scene.courtyard.update(0.55); assert.match(ui.$('water-status').textContent, /偏轻/);
     const trialTime = ui.scene.courtyard.weighing.time;
@@ -332,7 +339,7 @@ try {
     ui.click('回查手记');
     assert.equal(ui.document.querySelector('.evidence-filter select').value, 'school', 'the journal opens on the current memory');
     assert.equal(ui.document.querySelector('.evidence-records [data-record="coffin"]'), null);
-    ui.document.querySelector('.evidence-journal [aria-label="移除摘记：棺上刻痕"]').click();
+    ui.document.querySelector('.evidence-journal [aria-label="移除摘记：棺上的红绳"]').click();
     ui.document.querySelector('.evidence-journal [aria-label="移除摘记：墙上身高线"]').click();
     ui.document.querySelector('[data-record="school_notice"] [data-pin-record]').click();
     const scope = ui.document.querySelector('.evidence-filter select'); ui.choose(scope, 'all');

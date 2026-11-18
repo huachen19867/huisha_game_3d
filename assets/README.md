@@ -1,5 +1,13 @@
 # 3D 美术与许可
 
+## 0.19.0 村口与西厢
+
+Poly Haven 的六组 glTF 为旧铁床、台钳、木提灯、倒木、灌木与蕨类。砖墙、瓦面、提花被面与牛仔工作服使用 1K 颜色、法线、粗糙度。资源按 CC0 分发，游戏调整尺寸、方向、单株选择和材质颜色。下载原始路径、URL 和摘要在 [sources.json](sources.json)。[铁床](https://polyhaven.com/a/old_bed_frame) · [台钳](https://polyhaven.com/a/bench_vice_01) · [提灯](https://polyhaven.com/a/wooden_lantern_01) · [倒木](https://polyhaven.com/a/dead_tree_trunk_02) · [灌木](https://polyhaven.com/a/shrub_02) · [蕨](https://polyhaven.com/a/fern_02) · [砖](https://polyhaven.com/a/brick_wall_001) · [灰瓦](https://polyhaven.com/a/grey_roof_tiles) · [织物](https://polyhaven.com/a/quatrefoil_jacquard_fabric) · [牛仔布](https://polyhaven.com/a/denim_fabric)
+
+值班员头部使用 Infinite, 3D Head Scan by Lee Perry-Smith，原作者 Lee Perry-Smith / Infinite-Realities，来源为 Three.js 示例的 LeePerrySmith.glb 和 Map-COL.jpg。按 CC BY 3.0 Unported 署名，游戏调整尺寸、方向、颜色采样和材质，并搭配自制工作服、眼镜和帽子。[上游目录](https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf/LeePerrySmith) · [随包署名原文](models/night-clerk/LeePerrySmith_License.txt) · [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)
+
+两张游戏道具照片由内置 ImageGen 生成，出图后按显示尺寸缩小，虚构人物。银婚照的提示词描述中国乡镇照相馆、深蓝外套与枣红开衫的中年夫妇、褪色彩印和无字底片；春节照指定马灯在左、全家居中、木门在右，采用家用胶片直闪。相框、年份和交互由游戏绘制。[银婚照](art/silver-wedding.jpg) · [春节全家福](art/family-new-year.jpg)
+
 雨庭的分层砌井使用 Rock Face 03 的颜色、法线与粗糙度贴图，井中木桶使用 James Ray Cock 的 Wooden Bucket 01 实体模型，地面使用 Cobblestone Floor 05。夜空由 Greg Zaal 的 Moonless Golf 色调映射全景缩小为 2048×1024。四项资源均为 Poly Haven CC0，运行时从项目本地加载。原始下载校验与全景衍生文件摘要见 [资源清单](sources.json)。[井石](https://polyhaven.com/a/rock_face_03) · [木桶](https://polyhaven.com/a/wooden_bucket_01) · [地面](https://polyhaven.com/a/cobblestone_floor_05) · [夜空](https://polyhaven.com/a/moonless_golf)
 
 本版不使用旧原型的场景照片、家具照片或棋盘底贴片。圈椅、条案、木柜、学校课桌/椅与轮椅为实际 glTF 网格，带 1K PBR 贴图，随包离线分发。原始来源元数据保存于每个模型目录的 `source.json`，几何和贴图未修改；导入时调整尺寸、位置与朝向。

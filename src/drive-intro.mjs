@@ -1,14 +1,14 @@
 const captions = [
     '妈去世十年了。昨天收到一封信，是她的字。叫我十四回来吃饭。',
     '前面就是槐树巷。小时候，每次开到这儿，我妈都要伸手把收音机拧小。',
-    '车轮蹭到护栏了。先靠边。信还夹在车窗上，拿上再进村。'
+    '刚才那人呢？……车门得使劲才能推开。我摸了摸内袋，信还在。'
 ];
 
 // The 2D IntroScene used an 800 × 600 windscreen, a cubic road scroll and twin wipers.
-export function playDrive(canvas, subtitle, finish) {
+export function playDrive(canvas, subtitle, finish, impact) {
     const ctx = canvas.getContext('2d');
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    let request, previous, elapsed=0, lastCaption=-1;
+    let request, previous, elapsed=0, lastCaption=-1, struck=false;
     const polygon = (fill,points) => {
         ctx.fillStyle=fill; ctx.beginPath(); ctx.moveTo(...points[0]);
         for (const point of points.slice(1)) ctx.lineTo(...point);
@@ -54,6 +54,22 @@ export function playDrive(canvas, subtitle, finish) {
             const x=(i*151.73-t*72)%850, y=((Math.sin(i*61.73)*4973)%494+988+t*(305+i%7*11))%494;
             stroke('rgba(189,212,221,.27)',1,(x+850)%850,y,(x+850)%850-4,y+12);
         }
+        if(t>=9.05 && t<11.65) {
+            // Red-ink mouth and folded paper collar from the 2D paper figure.
+            const rush=Math.max(0,Math.min(1,(t-10.56)/.27));
+            const size=reduced ? .8 : .16 + 5.7*rush*rush;
+            ctx.save();ctx.translate(vx+12,272-rush*45);ctx.scale(size,size);
+            polygon('#777366',[[-22,35],[-51,49],[-66,133],[52,138],[44,46],[17,32]]);
+            polygon('#b3a68b',[[-24,-36],[-13,-57],[13,-55],[25,-38],[22,13],[15,31],[1,42],[-18,26],[-26,6]]);
+            polygon('#dad0b3',[[-22,-37],[0,-51],[1,39],[-19,23],[-25,0]]);
+            polygon('#564f46',[[-24,-32],[-19,-53],[-1,-61],[17,-56],[27,-38],[10,-42],[-3,-47]]);
+            polygon('#292a29',[[-21,-15],[-10,-20],[-3,-15],[-11,-10]]);
+            polygon('#282522',[[4,-15],[15,-19],[22,-15],[14,-11]]);
+            polygon('#867765',[[0,-12],[-4,4],[2,6]]);
+            polygon('#803c39',[[-16,10],[-6,15],[2,16],[16,9],[8,22],[-1,24],[-10,20]]);
+            stroke('#776c5a',.7,-18,-30,-8,7);stroke('#827b6a',.65,4,25,16,-1);
+            ctx.restore();
+        }
         const angle=(-50-48*Math.cos(t*4.9))*Math.PI/180;
         for(const x of [185,497]) {
             const dx=Math.cos(angle),dy=Math.sin(angle);
@@ -84,6 +100,7 @@ export function playDrive(canvas, subtitle, finish) {
         previous=now;
         const index=elapsed<5.4?0:elapsed<11?1:2;
         if(index!==lastCaption){subtitle.textContent=captions[index];lastCaption=index;}
+        if(!struck && elapsed>=10.69){struck=true;impact?.();}
         if(elapsed>=17){finish();return;}
         if(ctx) draw(elapsed);
         request=window.requestAnimationFrame(frame);

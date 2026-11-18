@@ -45,8 +45,9 @@
         <div class="drive-heading"><span>七月十四　·　槐树巷</span><button id="skip-drive">跳过片头 <kbd>Esc</kbd></button></div>
         <p id="drive-caption" aria-live="polite"></p>
     </section>
+    <aside id="acquisitions" role="status" aria-live="polite" aria-relevant="additions"></aside>
     <section id="hud" class="hud" hidden aria-label="探索界面">
-        <div class="hud-top"><div class="chapter"><span id="chapter-number">壹</span><p><span id="chapter-name">归 门</span><small id="objective"></small></p></div><nav><button id="map">地图 <kbd>M</kbd></button><button id="journal">手记 <kbd>J</kbd></button><button id="pause">暂停 <kbd>Esc</kbd></button></nav></div>
+        <div class="hud-top"><div class="chapter"><span id="chapter-number">壹</span><p><span id="chapter-name">归 门</span><small id="objective"></small></p></div><nav><button id="backpack">背包 <kbd>B</kbd></button><button id="hints">查看提示 <kbd>H</kbd></button><button id="map">地图 <kbd>M</kbd></button><button id="journal">手记 <kbd>J</kbd></button><button id="pause">暂停 <kbd>Esc</kbd></button></nav></div>
         <div class="reticle" aria-hidden="true"></div>
         <span id="focus-marker" class="focus-marker" hidden aria-hidden="true"></span>
         <button id="prompt" class="prompt" hidden>调查</button>
@@ -67,18 +68,19 @@
         <div class="lock-actions"><button id="lock-hang" type="button" hidden>照着活扣，挑起门闩</button><button id="lock-attempt" type="button">压下门闩</button><button id="lock-records" type="button">回查手记 <kbd>J</kbd></button><button id="lock-hint" type="button">需要提示</button><button id="lock-leave" type="button">退回门前 <kbd>E</kbd></button></div>
     </section>
     <section id="water-inspector" class="lock-inspector water-inspector" hidden aria-labelledby="water-title">
-        <div class="lock-heading"><h2 id="water-title">量水秤</h2><span>三升与五升 · 留下四升水</span></div>
-        <p id="water-levels" class="water-levels"></p>
-        <div class="water-controls" aria-label="选桶与量水操作">
-            <button type="button" data-bucket="0" aria-pressed="true">选三升桶 <kbd>1</kbd></button>
-            <button type="button" data-bucket="1" aria-pressed="false">选五升桶 <kbd>2</kbd></button>
-            <button id="water-fill" type="button">添满选中的桶 <kbd>F</kbd></button>
-            <button id="water-empty" type="button">倒空选中的桶 <kbd>X</kbd></button>
-            <button id="water-pour" type="button">选中桶倒入另一桶 <kbd>P</kbd></button>
-            <button id="water-weigh" type="button">五升桶放上秤盘</button>
+        <div class="water-heading"><h2 id="water-title">量水秤</h2><button id="water-leave" aria-label="退出量水秤">返回</button></div>
+        <p class="water-goal">目标：五升桶里留下四升水</p>
+        <div class="bucket-pair" aria-label="选择水桶">
+            <button type="button" data-bucket="0" aria-pressed="true"><strong>三升桶</strong><span id="level-small">0 / 3 升</span></button>
+            <button type="button" data-bucket="1" aria-pressed="false"><strong>五升桶</strong><span id="level-large">0 / 5 升</span></button>
         </div>
+        <div class="water-controls">
+            <button id="water-fill">添满</button><button id="water-empty">倒空</button>
+            <button id="water-pour">倒入五升桶</button>
+        </div>
+        <button id="water-weigh">放上秤盘</button>
         <p id="water-status" role="status"></p>
-        <div class="lock-actions"><button id="water-records" type="button">回查手记 <kbd>J</kbd></button><button id="water-hint" type="button">需要提示</button><button id="water-leave" type="button">退回桌前 <kbd>E</kbd></button></div>
+        <div class="water-links"><button id="water-records">手记</button><button id="water-hint">查看提示</button></div>
     </section>
     <section id="portrait-inspector" class="lock-inspector portrait-inspector" hidden aria-labelledby="portrait-title">
         <div class="lock-heading"><h2 id="portrait-title">母亲的旧相框</h2><span>揭开黑布 · 拿近 · 翻到背面</span></div>

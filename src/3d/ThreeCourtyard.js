@@ -6,7 +6,7 @@
         build() {
             const h = this.house, m = h.materials;
             h.box('yard-floor', [12, 0.12, 13.6], [0, -0.1, -20.6], m.paving);
-            h.box('yard-left-wall', [0.2, 3.1, 13.4], [-6, 1.5, -20.7], m.plaster);
+            game.buildWestRoom(h);
             for (const side of [-1, 1]) {
                 h.box(`yard-front-wall-${side}`, [4.65, 3.1, 0.2], [side * 3.7, 1.5, -14.1], m.plaster);
                 h.box(`yard-back-wall-${side}`, [5, 3.1, 0.2], [side * 3.5, 1.5, -27.5], m.plaster);
@@ -35,7 +35,7 @@
             h.cylinder('well-water', 0.54, 0.54, 0.015, [-3, 0.18, -22], water, 'yard_well');
             h.box('kitchen-stove', [1.25, 0.85, 1.1], [10, 0.4, -18.6], m.stone, 'kitchen_note');
             h.cylinder('stove-pot', 0.31, 0.25, 0.2, [10, 0.91, -18.6], m.darkWood, 'kitchen_note');
-            h.label('calibration-note', '五升　与　三升\n四升水压秤\n不许嫌孩子慢', [0.72, 0.55], [10.45, 1.55, -17.62], [0, Math.PI, 0], 'kitchen_note');
+            h.label('calibration-note', '四升台秤\n左盘校准　右盘盛水', [0.72, 0.55], [10.45, 1.55, -17.62], [0, Math.PI, 0], 'kitchen_note');
             this.buildWater(water);
             const door = h.map.extraDoors[0];
             this.gate = new THREE.Group(); this.gate.position.set(door.hingeX, 0, door.hingeZ); h.scene.add(this.gate);
@@ -70,7 +70,7 @@
             for (const [color, intensity, distance, position] of [
                 [0xaec7db, 15, 17, [0, 5, -21]], [0xffc38a, 12, 9, [8.6, 2.4, -21]], [0xd3dfdb, 10, 9, [0, 3, -30]]
             ]) { const light = new THREE.PointLight(color, intensity, distance, 1.6); light.position.set(...position); h.scene.add(light); }
-            h.cylinder('kitchen-lantern', 0.16, 0.13, 0.36, [8.6, 2.55, -21], m.paper);
+            h.cylinder('kitchen-lamp-chain',.009,.009,.34,[9.83,2.94,-23.47],m.darkWood);
             this.dressEaves();
             this.dressStove();
         }
@@ -265,6 +265,7 @@
             this.linkLead.quaternion.setFromUnitVectors(this.linkUp, this.linkDirection.normalize()); this.renderedRelease = this.releaseProgress;
         }
         placeFurniture(place) {
+            place('wooden_lantern_01',[.29,.44,.29],[9.83,2.34,-23.47],.25);
             place('wooden_bucket_01',[.48,.60,.48],[-3,.389,-22.045],.09,'yard_well');
             place('chinese_console_table', [2.75, 0.98, 1.05], [8.5, 0, -22.75], 0, 'water_station', true);
             place('chinese_cabinet', [1.45, 1.9, 0.7], [7.75, 0, -24.3], 0);

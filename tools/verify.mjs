@@ -19,13 +19,20 @@ const canvasContext = { fillRect() {}, strokeRect() {}, fillText() {} };
 const document = { ...eventTarget, createElement() { return { getContext() { return canvasContext; } }; }, hidden: false };
 const window = { ...eventTarget, THREE, Huisha3D: {} };
 const context = vm.createContext({ window, document, console });
-for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeAudio', 'ThreeControls', 'ThreeInteraction', 'ThreeWindowWall', 'ThreeCourtyard', 'ThreePhone', 'ThreeDocument', 'ThreeMemoryScenes', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeVillageLane', 'ThreeHouseScene']) {
+for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeWestRoom', 'ThreeClerk', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeAudio', 'ThreeControls', 'ThreeInteraction', 'ThreeWindowWall', 'ThreeCourtyard', 'ThreePhone', 'ThreeDocument', 'ThreeMemoryScenes', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeVillageLane', 'ThreeHouseScene']) {
     vm.runInContext(await text(`src/3d/${name}.js`), context, { filename: `${name}.js` });
 }
 const game = window.Huisha3D;
 vm.runInContext(await text('src/3d/ThreeYardWatch.js'), context);
 game.mergeGeometries = mergeGeometries;
 let mapWrites = 0; const mapStorage = new Map(), mapAdapter = { getItem: key => mapStorage.get(key), setItem: (key, value) => { mapStorage.set(key, value); mapWrites++; } };
+{
+    let serialized=JSON.stringify({version:1,arrival:'home',opened:true,waterSolved:true});
+    const oldSlot={getItem:()=>serialized,setItem:(_,value)=>{serialized=value;}};
+    const migrated=new game.ThreeStory(oldSlot);
+    migrated.save();
+    assert.ok(new game.ThreeStory(oldSlot).state.coffinOpen,'a migrated accident photo survives the next reload');
+}
 const mapStory = new game.ThreeStory(mapAdapter);
 assert.equal(mapStory.visitPosition(game.WORLD_MAP.playerStart), true); assert.deepEqual([...mapStory.state.visitedAreas], ['hall']);
 for (let frame = 0; frame < 120; frame++) mapStory.visitPosition(game.WORLD_MAP.playerStart);
@@ -99,12 +106,9 @@ assert.doesNotMatch(story.guidance(1).text, /已经确定|说的是中轮|说明
 assert.equal(JSON.stringify(story.state), untouched, 'asking for help must not observe clues or move a wheel');
 assert.match(story.guidance(2).text, /灯 · 人 · 门/, 'only the explicit answer tier reveals the combination');
 story.record('letter'); assert.match(story.guidance().text, /红绳/);
-story.record('lock'); assert.match(story.guidance().text, /棺沿/);
-story.record('coffin'); assert.match(story.guidance().text, /身高刻线/);
-assert.match(story.guidance(1).text, /已经确定/);
-assert.doesNotMatch(story.guidance(1).text, /说的是中轮/, 'unobserved height marks must not be quoted as known evidence');
-story.record('wall_marks'); assert.match(story.guidance().text, /供桌/);
-story.record('altar'); assert.match(story.guidance(1).text, /说明雨字/);
+story.record('lock'); assert.match(story.guidance().text, /全家福/);
+story.record('coffin'); assert.doesNotMatch(story.guidance(1).text,/棺沿|修锁/);
+assert.match(story.guidance(1).text,/左边是灯/);
 story.reset(); story.state.arrival = 'home';
 assert.equal(story.finish(), false, 'cannot finish through a closed door');
 for (const item of game.MAIN_HALL_MAP.interactables) story.record(item.id);
@@ -164,7 +168,7 @@ console.log('Story: optional guidance, observed evidence, incorrect attempt, fre
 // omit their material bindings here because Node has no browser image decoder or WebGL.
 globalThis.ProgressEvent ??= class { constructor(type, values) { Object.assign(this, { type }, values); } };
 const parsedModels = new Map();
-for (const id of ['chinese_armchair', 'chinese_console_table', 'chinese_cabinet', 'SchoolDesk_01', 'SchoolChair_01', 'wheelchair_01','wooden_bucket_01']) {
+for (const id of ['chinese_armchair', 'chinese_console_table', 'chinese_cabinet', 'SchoolDesk_01', 'SchoolChair_01', 'wheelchair_01','wooden_bucket_01','old_bed_frame','bench_vice_01','wooden_lantern_01','fern_02','shrub_02','dead_tree_trunk_02']) {
     const directory = `assets/models/${id}`;
     const gltf = JSON.parse(await text(`${directory}/model.gltf`));
     for (const buffer of gltf.buffers) {
@@ -245,7 +249,7 @@ for (const [id, paper] of house.documents.papers) {
     const gap = new THREE.Box3().setFromObject(paper.root).min.y - new THREE.Box3().setFromObject(desk).max.y;
     assert.ok(gap >= 0 && gap < 0.01, 'paper rests just above the actual imported desk surface');
 }
-console.log('Assets: all seven glTF models, binary buffers, texture dependencies and scene placement passed.');
+console.log('Assets: all thirteen glTF models, binary buffers, texture dependencies and scene placement passed.');
 for (const prefix of ['hall', 'school', 'hospital']) for (const side of [-1, 1]) {
     const name = `${prefix}-window-wall-${side}`, wall = house.scene.getObjectByName(name), opening = wall.userData.windowOpening;
     const pointX = opening.left + (opening.right - opening.left) / (prefix === 'hall' ? 12 : 6);
@@ -433,7 +437,7 @@ function flood(origin = game.MEMORIES[story.state.memory]?.start || game.WORLD_M
 }
 const roadside = flood(game.WORLD_MAP.roadStart);
 assert.ok(roadside.every(p => p.z > 4.4), 'the locked front door blocks entry');
-for (const item of game.WORLD_MAP.interactables.filter(item => ['lane','porch'].includes(item.area))) verifyReachable(item,roadside);
+for (const item of game.WORLD_MAP.interactables.filter(item => !item.inventoryOnly && ['lane','porch'].includes(item.area))) verifyReachable(item,roadside);
 story.state.arrival = 'home'; house.syncState(true); house.scene.updateMatrixWorld(true);
 const reachable = flood();
 assert.ok(reachable.some(p => p.z > 30), 'both porch seams are walkable after unlocking');
@@ -453,7 +457,7 @@ function verifyReachable(item, points) {
     if (item.position.z < focusPoint.z) { interaction.update(); assert.notEqual(interaction.current?.id, item.id, 'looking away must not inspect behind the player'); }
     return focusPoint;
 }
-for (const item of game.WORLD_MAP.interactables.filter(item => !item.space && !item.requiresOpen && !item.requiresWater)) verifyReachable(item, reachable);
+for (const item of game.WORLD_MAP.interactables.filter(item => !item.inventoryOnly && !item.space && !item.requiresOpen && !item.requiresWater)) verifyReachable(item, reachable);
 story.state.wheels = [3, 2, 1]; story.unlock(); house.syncState(true); house.scene.updateMatrixWorld(true);
 const yardPoints = flood();
 const outside = yardPoints.find(p => p.z < -13.5);
@@ -461,11 +465,16 @@ assert.ok(outside, 'door opening must make the ending area physically reachable'
 camera.position.set(0, 1.6, -12.9); camera.lookAt(new THREE.Vector3(0, 1.25, -13.9)); camera.updateMatrixWorld(true);
 interaction.update(); assert.equal(interaction.current?.id, 'threshold');
 interaction.activate(); assert.ok(story.state.records.includes('threshold')); assert.equal(story.state.ending, false, 'reaching or reading the threshold must not auto-finish');
-for (const item of game.WORLD_MAP.interactables.filter(item => item.requiresOpen && !item.requiresWater)) verifyReachable(item, yardPoints);
+for (const item of game.WORLD_MAP.interactables.filter(item => item.requiresOpen && !item.requiresState && !item.requiresWater)) verifyReachable(item, yardPoints);
 assert.ok(yardPoints.some(point => point.x > 7 && point.z < -20), 'the kitchen must connect physically to the hall and yard');
 assert.ok(!yardPoints.some(point => point.z < -28), 'the courtyard gate stays shut until the water mechanism is operated');
 assert.equal(story.depart('leave'), false, 'unlocking the first door is not the final ending');
 story.enterCourtyard();
+assert.ok(!yardPoints.some(p=>p.x<-13 && p.z<-14),'hidden workshop is sealed');
+story.state.wardrobeOpen=true; house.syncState(true); house.scene.updateMatrixWorld(true);
+const workshopPoints=flood();
+for(const item of game.WORLD_MAP.interactables.filter(i=>i.requiresState==='wardrobeOpen')) verifyReachable(item,workshopPoints);
+assert.ok(story.takeGear('weight')); story.state.calibrated=true;
 const kitchenPose = { x: 8.5, z: -20.4, yaw: Math.PI, pitch: -0.1 };
 camera.position.set(kitchenPose.x, 1.6, kitchenPose.z); controls.yaw = kitchenPose.yaw; controls.pitch = kitchenPose.pitch; controls.applyLook();
 for (const [width, height] of [[1280, 720], [390, 844], [844, 390], [390, 640], [680, 720], [667, 375]]) {
@@ -599,6 +608,7 @@ for (const [id, definition] of Object.entries(game.MEMORY_CASES)) {
         assert.ok(source && source.space === id);
         assert.ok(fact.quote.split('…').every(fragment => source.text.includes(fragment)), 'timeline fragments must come from their actual source record');
     }
+    if(id==='crash'){assert.equal(story.enterMemory(id,controls.snapshot()),false); story.state.coffinOpen=true;}
     assert.equal(story.enterMemory(id, controls.snapshot()), true);
     controls.teleport(story.state.position); house.syncState(true);
     assert.equal(house.homeRoot.visible, false);

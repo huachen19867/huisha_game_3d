@@ -35,7 +35,7 @@
             { id: 'yard_well', title: '雨庭旧井', location: '雨庭', position: { x: -3, y: 0.92, z: -21.5 }, radius: 2,
                 requiresOpen: true, text: '井沿磨出了两道提桶的凹槽，一宽一窄。水面映着厨房的灯。\n\n母亲曾让你把三升、五升提桶里的水倒来倒去。你只记得，那时候做错了，也不必重新打水。' },
             { id: 'kitchen_note', title: '灶旁校秤纸', location: '厨房', position: { x: 10.45, y: 1.55, z: -18.2 }, radius: 1.8,
-                requiresOpen: true, text: '父亲留在灶边的字条：\n\n「大桶五升，小桶三升。四升水压秤，旧抽屉才松。水缸可添，水槽可倒，两桶可互倒。」\n\n下面另有母亲添的一句：「不许嫌孩子慢。」' },
+                requiresOpen: true, text: '一块沾着米浆的旧秤铭牌。额定四升，左盘校准，右盘盛水。校准盘的凹槽里缺了一枚铜砣。' },
             { id: 'water_station', title: '三升五升量水秤', location: '厨房', position: { x: 8.5, y: 1.25, z: -22 }, radius: 2,
                 requiresOpen: true, text: '两只提桶刻着三升、五升。秤盘与桌下的抽屉由一根铜杆连着。旁边有添水的水缸和倒水槽。' },
             { id: 'medicine_letter', title: '没有寄出的家书', location: '厨房', position: { x: 8.5, y: 0.63, z: -21.9 }, radius: 1.7,

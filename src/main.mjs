@@ -1,10 +1,11 @@
+import { equipment, household } from './chapter-ui.mjs';
 import { playDrive } from './drive-intro.mjs';
 import * as THREE from '../vendor/three.module.mjs';
 import { GLTFLoader } from '../vendor/GLTFLoader.mjs';
 import { mergeGeometries } from '../vendor/BufferGeometryUtils.mjs';
 window.THREE = THREE;
 window.Huisha3D = { GLTFLoader, mergeGeometries };
-const sceneModules = ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeSettings', 'ThreeControls', 'ThreeInteraction', 'ThreeWindowWall', 'ThreeCourtyard', 'ThreePhone', 'ThreeDocument', 'ThreeMemoryScenes', 'ThreeMemoryTimeline', 'ThreeMemoryJournal', 'ThreeEvidenceJournal', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeVillageLane', 'ThreeHouseScene', 'ThreeAudio', 'ThreeYardWatch'];
+const sceneModules = ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeWestRoom', 'ThreeClerk', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeSettings', 'ThreeControls', 'ThreeInteraction', 'ThreeWindowWall', 'ThreeCourtyard', 'ThreePhone', 'ThreeDocument', 'ThreeMemoryScenes', 'ThreeMemoryTimeline', 'ThreeMemoryJournal', 'ThreeEvidenceJournal', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeVillageLane', 'ThreeHouseScene', 'ThreeAudio', 'ThreeYardWatch'];
 // Fetch in parallel. Registration still follows map, story, controls and scene order.
 for (const name of sceneModules) {
     const link = document.createElement('link');
@@ -28,7 +29,7 @@ const explorationMap = new game.ThreeExplorationMap({ story, knownRecords, open,
 const memoryJournal = new game.ThreeMemoryJournal({ story, open, close, knownRecords,
     journal: () => journal(!!scene?.inspectionReturn), onReturn: returnMemory,
     onSolved: () => { audio.chime(); scene.syncState(); updateStatus(); } });
-const inputGuide = 'WASD 或方向键移动，鼠标转头。连按两次 W 并按住第二下疾跑，也可以按住 Shift。空格跳跃。\n\n靠近物品，按 E 或用鼠标左键查看。再按 E 或点「返回」即可继续走。J 打开手记，M 查看地图，Esc 暂停。\n\n触屏：左下方向键移动，连点两次「前」并按住可跑，点「跳」跨障碍；拖动画面转头，点物品调查。';
+const inputGuide = 'WASD 或方向键移动，鼠标转头。连按两次 W 并按住第二下疾跑，也可以按住 Shift。空格跳跃。\n\n靠近物品，按 E 或用鼠标左键查看。再按 E 或点击空白处返回。B 打开背包，H 查看提示，J 打开手记，M 查看地图，Esc 暂停。\n\n触屏：左下方向键移动，连点两次「前」并按住可跑，点「跳」跨障碍；拖动画面转头，点物品调查。';
 let stopDrive, replayOnly = false, restoreMouse = false;
 let mode = 'title', scene, lastFocus, saveTimer, portraitUiState, documentUiState;
 const isPaused = () => mode !== 'game' || reader.open || document.hidden || !!scene?.inspectionReturn;
@@ -38,7 +39,7 @@ function updateLoadStatus() {
         : story.saveAvailable ? '进度会自动保存 · 可随时暂停' : '此浏览器暂不支持保存，可在当前页面游玩';
 }
 function updateStatus() {
-    $('objective').textContent = story.objective();
+    $('objective').textContent = story.headline();
     $('shield-flame').hidden = story.state.lamp !== 'lit' || !!scene?.inspectionReturn;
     $('shield-flame').setAttribute('aria-pressed', String(story.state.shielded));
     $('shield-flame').textContent = story.state.shielded ? '松开手掌 [F]' : '拢住灯火 [F]';
@@ -101,15 +102,48 @@ function open(title, text, actions = [], eyebrow = '旧宅 · 观察记录') {
         button.addEventListener('click', callback); $('reader-actions').append(button);
     }
     if (!reader.open) reader.showModal();
+    if (noticeHost.parentNode!==reader) reader.append(noticeHost);
     $('reader-title').focus();
     reader.scrollTop = 0;
     updateStatus();
 }
 function close() {
-    reader.close(); scene?.controls?.clear();
+    reader.close(); document.body.append(noticeHost); scene?.controls?.clear();
     if (mode === 'game' && !scene.inspectionReturn) resumeWorld();
     else if (lastFocus?.isConnected) lastFocus.focus?.({ preventScroll: true });
     save();
+}
+const noticeHost = $('acquisitions');
+function progressSignature() {
+    const entries = new Map(story.carried().map(id => ['item.'+id,'“'+equipment[id][0]+'”已加入道具']));
+    for(const id of story.state.records) {
+        const title = id==='portrait_back' ? game.PORTRAIT_BACK_RECORD.title : game.WORLD_MAP.interactables.find(item=>item.id===id)?.title;
+        if(!title) continue;
+        const pages = story.state.documentViews[id] || (id==='crash_phone' ? story.state.phoneViews : []);
+        entries.set('record.'+id+'.'+pages.length,'手记已更新：“'+title+'”');
+    }
+    return entries;
+}
+let seenProgress=progressSignature();
+story.onProgress=()=>{
+    const current=progressSignature();
+    if(mode==='game') for(const [key,message] of current) {
+        if(seenProgress.has(key)) continue;
+        const notice=document.createElement('div');notice.textContent=message;noticeHost.append(notice);
+        audio.tone(key.startsWith('item.')?660:480,.13,.065);
+        window.setTimeout(()=>notice.remove(),4200);
+    }
+    seenProgress=current;
+};
+function pocketLetter() {
+    const item=game.WORLD_MAP.interactables.find(entry=>entry.id==='car_envelope');
+    story.record(item.id);story.advanceArrival('letter','ledger');
+    readRecord(item,[['回到背包',backpack],['收好来信',close]]);
+}
+function backpack() {
+    const choices=story.carried().map(id=>[equipment[id][0],id==='envelope'?pocketLetter:
+        ()=>open(equipment[id][0],equipment[id][1],[['回到背包',backpack],['返回探索',close]],'随身背包')]);
+    open('背包',choices.length?'':'包里暂时没有东西。',[...choices,['收起背包',close]],'随身物品');
 }
 function knownRecords() {
     return story.state.records.map(id => id === 'portrait_back'
@@ -134,6 +168,12 @@ function readRecord(item, actions) {
     const choices = [...actions];
     if (!choices.some(([label]) => label === '打开手记')) choices.push(['打开手记', () => journal(!!scene?.inspectionReturn)]);
     open(item.title, item.text, choices);
+    const photographs={letter:'family-new-year',wedding_photo:'silver-wedding'};
+    if(photographs[item.id]){
+        const photo=document.createElement('img');
+        photo.className='record-photo';photo.src='assets/art/'+photographs[item.id]+'.jpg';photo.alt=item.title;
+        $('reader-body').prepend(photo);
+    }
     evidenceJournal.appendPinAction($('reader-actions'), item.id);
 }
 function showMap(resetScope = true) {
@@ -144,11 +184,15 @@ function showMap(resetScope = true) {
 }
 function album() {
     const item = game.WORLD_MAP.interactables.find(item => item.id === 'memory_album');
-    open(item.title, item.text, [...Object.entries(game.MEMORIES).map(([id, definition]) => [
+    const text=story.state.coffinOpen ? '校服里的照片补齐了最后一页。相角下分别写着：录取、复诊、归途。' : '前两页各夹着一张照片：学校、医院。第三页写着「归途」，四个相角里空着。';
+    open(item.title, text, [...Object.entries(game.MEMORIES).map(([id, definition]) => [
         `翻入记忆 · ${definition.title}`, () => enterMemory(id)
     ]), ['合上相册，继续观察', close]], '回煞 · 厨房相册');
 }
 function enterMemory(id) {
+    if(id==='crash' && !story.state.coffinOpen){
+        open('缺了一张照片','相册最后一页只剩四个相角。页脚上有母亲的字：「山路那张，放在明明校服内袋里了。」',[['回到相册',album],['返回',close]]);return;
+    }
     leaveInspection(false);
     if (!story.enterMemory(id, scene.playerSnapshot())) return;
     scene.controls.teleport(story.state.position); scene.syncState(true); audio.resetPosition();
@@ -164,7 +208,7 @@ function guidance(stage = 0, backToLock = !!scene?.inspectionReturn) {
     const hint = story.guidance(stage);
     const actions = [['回查手记', () => journal(backToLock)], [backToLock ? inspectionLabel() : '继续观察', backToLock ? resumeInspection : close]];
     if (hint.next) actions.push([hint.next, () => guidance(stage + 1, backToLock)]);
-    open('一点头绪', hint.text, actions, stage >= 2 ? '解谜答案 · 按需查看' : '探索提示 · 按需查看');
+    open('查看提示', hint.text, actions, stage >= 2 ? '解谜答案 · 按需查看' : '探索提示 · 按需查看');
 }
 function inspectionLabel() { return { water: '回到量水桌', portrait: '回到相框', phone: '回到手机', document: '回到纸张' }[scene.inspectionKind] || '回到字轮'; }
 function resumeInspection() { ({ water, portrait, phone, lock, document: () => documentInspect(scene.documents.activeId) }[scene.inspectionKind] || lock)(); }
@@ -276,7 +320,8 @@ function lock() {
 }
 function updateWater(message) {
     const [small, large] = story.state.buckets;
-    $('water-levels').textContent = `三升桶 ${small} / 3 升　·　五升桶 ${large} / 5 升`;
+    $('level-small').textContent=small+' / 3 升'; $('level-large').textContent=large+' / 5 升';
+    $('water-pour').textContent=scene.courtyard.selected?'倒入三升桶':'倒入五升桶';
     if (message) $('water-status').textContent = message;
     document.querySelectorAll('[data-bucket]').forEach(button => {
         button.setAttribute('aria-pressed', String(Number(button.dataset.bucket) === scene.courtyard.selected));
@@ -291,7 +336,7 @@ function water() {
     touches.clear(); updateTouch(); scene.beginWaterInspection();
     $('water-inspector').hidden = false; $('hud').classList.add('inspecting');
     updateWater(story.state.waterSolved ? '秤盘已经压平，桌下的抽屉打开了。退回桌前，可以低头查看家书。'
-        : '点桶选中，再点水缸添满、水槽倒空。两桶互倒也可用下方按钮；把五升桶放上秤盘后，指针会显示偏轻、四升或偏重。');
+        : '选一只桶再操作。上秤用五升桶。');
     evidenceJournal.sync();
     (story.state.waterSolved ? $('water-leave') : document.querySelector('[data-bucket]')).focus();
 }
@@ -299,7 +344,7 @@ function waterAction(action) {
     if (reader.open || scene.inspectionKind !== 'water' || story.state.waterSolved || scene.courtyard.weighing) return;
     if (/^bucket[01]$/.test(action)) {
         scene.courtyard.selected = Number(action.slice(-1));
-        updateWater(`已选${scene.courtyard.selected ? '五' : '三'}升桶。可以添满、倒空，或倒入另一桶。`); return;
+        updateWater(`已选${scene.courtyard.selected ? '五' : '三'}升桶。`); return;
     }
     const index = scene.courtyard.selected;
     let changed = false, message;
@@ -307,7 +352,7 @@ function waterAction(action) {
     else if (action === 'empty') { changed = story.emptyBucket(index); message = changed ? '水倒进了槽里，桶空了。' : '这个桶已经是空的。'; }
     else if (action === 'pour') { const amount = story.pourBucket(index); changed = amount > 0; message = amount ? `向另一桶倒入 ${amount} 升水。` : '倒不进去：选中的桶是空的，或另一桶已经满了。'; }
     else if (action === 'weigh') {
-        if (scene.courtyard.beginWeigh() && scene.courtyard.weighing) updateWater('正在把五升桶放上秤盘。指针中央的红刻线是四升。');
+        if (scene.courtyard.beginWeigh() && scene.courtyard.weighing) updateWater('称量中……');
         return;
     } else return;
     if (changed) audio.water(action);
@@ -329,7 +374,15 @@ function ending(choice) {
 }
 function inspectVillage(item) {
     const phase = story.state.arrival;
-    if (item.id === 'car_envelope') story.advanceArrival('letter', 'ledger');
+    if (item.id === 'clerk') {
+        const after=phase==='letter'?'老周把眼镜往上一推。「你说你是李家的？信给我瞧瞧，村里的门牌去年都换过了。」':
+            phase==='ledger'?'周师傅翻开登记簿。「十四号我记得。新号在这页上，你自己对一下，省得拿错人家的钥匙。」':
+            '「你爸修秤那间屋还在，」周师傅把搪瓷缸挪到炉边，「后来他在门口挡了个大衣柜。你小时候老往里钻。」';
+        open('值夜的周师傅',after,phase==='letter'?[['拿出内袋里的信',pocketLetter],['告辞',close]]:[['翻看登记簿',()=>{
+            const book=game.WORLD_MAP.interactables.find(i=>i.id==='duty_book');story.record(book.id);inspectVillage(book);
+        }],['告辞',close]]);return true;
+    }
+    if (item.id === 'car_envelope') {pocketLetter();return true;}
     else if (item.id === 'duty_book') story.advanceArrival('ledger', 'keys');
     else if (item.id === 'key_board' && phase === 'keys') {
         const choose = number => {
@@ -348,16 +401,24 @@ function inspectVillage(item) {
         }], ['返回路上', close]]);
         return true;
     } else if (!['key_board','front_gate'].includes(item.id)) return false;
-    const note = phase === 'home' ? '前门已经打开。' : story.objective();
+    const note = item.id==='front_gate' ? (phase==='home'?'前门已经打开。':'门还锁着。') : '';
     readRecord({...item, text: item.text + '\n\n' + note}, [['返回', close]]);
     return true;
 }
 function inspect(item) {
     item = presentRecord(item);
     ['lock', 'water_station'].includes(item.id) ? audio.knock() : audio.paper();
-    if (['car_envelope','duty_book','key_board','front_gate'].includes(item.id) && inspectVillage(item)) return;
+    if (['car_envelope','clerk','duty_book','key_board','front_gate'].includes(item.id) && inspectVillage(item)) return;
+    if (household({story,scene,open,close,audio},item)) return;
     if (item.id === 'lock') { lock(); return; }
-    if (item.id === 'water_station') { water(); return; }
+    if (item.id === 'water_station') {
+        if(!story.state.calibrated){
+            const has=story.carried().includes('weight');
+            open('量水秤',has?'铜砣底下的圆榫和左盘的凹槽一样大。':'左盘空着，指针顶死在一边。秤脚的铜牌上刻着「李记修秤 · 西厢」。',
+                has?[['装上铜砣',()=>{story.state.calibrated=true;story.save();audio.latch();water();}],['返回',close]]:[['返回',close]]);
+        }else water();
+        return;
+    }
     if (item.id === 'memory_album') { album(); return; }
     if (item.id === 'crash_phone') { phone(); return; }
     if (Object.hasOwn(game.DOCUMENTS, item.id)) { documentInspect(item.id); return; }
@@ -409,7 +470,7 @@ function title() {
     audio.pause(); updateStatus(); $('begin').focus();
 }
 function pause() {
-    open('暂停', story.objective() + '\n\n' + inputGuide, [
+    open('暂停', story.headline() + '\n\n' + inputGuide, [
         ['继续探索', close], ['回查手记', () => journal(!!scene.inspectionReturn)], ['查看地图', () => showMap()],
         ...(story.state.memory ? [['回到厨房', returnMemory]] : []), ['返回标题', title]
     ], '回煞 · 暂停');
@@ -417,6 +478,13 @@ function pause() {
     if (!story.saveAvailable) { const p = document.createElement('p'); p.textContent = '浏览器未允许保存。当前页面内可以继续，关闭页面后进度可能丢失。'; $('reader-body').append(p); }
 }
 $('reader-close').addEventListener('click', close);
+reader.addEventListener('close',()=>{ if(!reader.open) document.body.append(noticeHost); });
+let blankPress=false;
+function blankReader(e) {
+    return [reader,$('reader-body'),$('reader-actions')].includes(e.target);
+}
+reader.addEventListener('pointerdown',e=>{blankPress=e.button===0 && blankReader(e);});
+reader.addEventListener('click',e=>{if(blankPress && blankReader(e)) close();blankPress=false;});
 reader.addEventListener('cancel', event => { event.preventDefault(); close(); });
 function enterWorld() {
     mode = 'game'; $('hud').hidden = false;
@@ -432,15 +500,15 @@ function leaveDrive() {
     scene.controls.teleport(scene.map.roadStart);
     // Commit the checkpoint and the roadside pose together, including when the player skips.
     story.state.position = scene.playerSnapshot();
-    story.advanceArrival('intro','letter'); enterWorld();
+    enterWorld(); story.advanceArrival('intro','letter');
     restoreMouse = !!window.matchMedia?.('(pointer:fine)').matches;
-    open('下车', '先去身旁的车窗取信，看清旧门牌。\n\n' + inputGuide, [['开始探索', close]], '回煞 · 村口');
+    open('下车', inputGuide, [['开始探索', close]], '回煞 · 村口');
 }
 $('skip-drive').addEventListener('click', leaveDrive);
 function startDrive() {
     $('title-screen').hidden = true; audio.start();
     mode = 'drive'; scene.showingFilm = true; audio.startEngine(); audio.update(scene.map.roadStart,true); $('drive').hidden = false; $('skip-drive').focus();
-    stopDrive = playDrive($('windscreen'), $('drive-caption'), leaveDrive);
+    stopDrive = playDrive($('windscreen'), $('drive-caption'), leaveDrive, ()=>audio.knock());
 }
 $('replay-drive').addEventListener('click', () => {replayOnly = true; startDrive();});
 $('begin').addEventListener('click', () => {
@@ -455,6 +523,8 @@ $('restart').addEventListener('click', () => {
         scene.syncState(true); evidenceJournal.sync(); close(); updateStatus();
     }]], '开始新的归门');
 });
+$('backpack').addEventListener('click',backpack);
+$('hints').addEventListener('click',()=>guidance());
 $('journal').addEventListener('click', () => journal(!!scene.inspectionReturn));
 $('map').addEventListener('click', () => showMap());
 $('pause').addEventListener('click', pause);
@@ -527,6 +597,11 @@ window.addEventListener('keydown', event => {
     if (event.code === 'KeyE' && (reader.open || scene.inspectionReturn) && !/INPUT|TEXTAREA|SELECT/.test(event.target?.tagName)) {
         event.preventDefault(); reader.open ? close() : leaveInspection(); return;
     }
+    if ((event.code==='KeyB' || event.code==='KeyH') && !/INPUT|SELECT|TEXTAREA/.test(event.target?.tagName)) {
+        event.preventDefault();
+        if(event.code==='KeyB') reader.open && $('reader-title').textContent==='背包' ? close() : backpack();
+        else guidance(); return;
+    }
     if (reader.open) return;
     if (scene.inspectionKind === 'phone' && /^(Digit|Numpad)[12]$/.test(event.code)) {
         event.preventDefault(); phonePage(Number(event.code.slice(-1)) === 1 ? 'calls' : 'recording');
@@ -593,8 +668,8 @@ try {
                 return;
             }
             event.success ? audio.release() : audio.knock();
-            updateWater(event.success ? '指针对准四升红线，秤盘压平。抽屉和院门的铜索松开了，退回桌前可以低头看信。'
-                : `指针偏${event.amount < 4 ? '轻' : '重'}，还没有对准四升红线。五升桶会放回桌上，水量保留；可以继续调整。`);
+            updateWater(event.success ? '对准四升。桌下的抽屉开了。'
+                : `指针偏${event.amount < 4 ? '轻' : '重'}，当前 ${event.amount} 升。`);
         },
         onAssetError: name => { assetErrors.add(name); updateLoadStatus(); },
         onFrame: (position, paused) => {
@@ -614,7 +689,7 @@ try {
     scene.renderer.domElement.addEventListener('pointerdown', event => {
         if (wheelPress && wheelPress.id !== event.pointerId) return;
         if (event.pointerType === 'mouse' && event.button !== 0) return;
-        wheelPress = scene.inspectionReturn && !reader.open ? { x: event.clientX, y: event.clientY, id: event.pointerId } : null;
+        wheelPress = scene.inspectionReturn && !reader.open ? { x: event.clientX, y: event.clientY, originX:event.clientX, originY:event.clientY, dragged:false, id: event.pointerId } : null;
         if (wheelPress && ['portrait', 'document'].includes(scene.inspectionKind)) {
             try { scene.renderer.domElement.setPointerCapture?.(event.pointerId); } catch (_) { /* release is also handled on the canvas */ }
         }
@@ -622,20 +697,31 @@ try {
     scene.renderer.domElement.addEventListener('pointermove', event => {
         if (!['portrait', 'document'].includes(scene.inspectionKind) || reader.open || wheelPress?.id !== event.pointerId) return;
         if (event.pointerType === 'mouse' && event.buttons === 0) { wheelPress = null; return; }
+        wheelPress.dragged ||= Math.hypot(event.clientX-wheelPress.originX,event.clientY-wheelPress.originY)>6;
         (scene.inspectionKind === 'portrait' ? scene.portrait : scene.documents).drag(event.clientX - wheelPress.x, event.clientY - wheelPress.y);
         wheelPress.x = event.clientX; wheelPress.y = event.clientY; scene.inspectionKind === 'portrait' ? updatePortrait() : updateDocument();
     });
     scene.renderer.domElement.addEventListener('pointerup', event => {
         const press = wheelPress; wheelPress = null;
-        if (!press || press.id !== event.pointerId || Math.hypot(event.clientX - press.x, event.clientY - press.y) > 8) return;
-        if (['portrait', 'document'].includes(scene.inspectionKind)) return;
+        if (!press || press.dragged || press.id !== event.pointerId || Math.hypot(event.clientX - press.originX, event.clientY - press.originY) > 8) return;
+        const kind=scene.inspectionKind;
+        if (['portrait','document','phone'].includes(kind)) {
+            const object=kind==='portrait' ? scene.portrait.root : kind==='phone' ? scene.phone.root : scene.documents.papers.get(scene.documents.activeId)?.root;
+            const rect=scene.renderer.domElement.getBoundingClientRect();
+            if(rect.width && rect.height && object){
+                const ray=new THREE.Raycaster();
+                ray.setFromCamera(new THREE.Vector2(2*(event.clientX-rect.left)/rect.width-1,1-2*(event.clientY-rect.top)/rect.height),scene.camera);
+                if(!ray.intersectObject(object,true).length) {leaveInspection();return;}
+            }
+            if(kind!=='phone') return;
+        }
         if (scene.inspectionKind === 'phone') {
             const page = scene.phone.pick(event.clientX, event.clientY); if (page) phonePage(page);
         } else if (scene.inspectionKind === 'water') {
-            const action = scene.courtyard.pick(event.clientX, event.clientY); if (action) waterAction(action);
+            const action = scene.courtyard.pick(event.clientX, event.clientY); if (action) waterAction(action); else leaveInspection();
         } else {
             const index = scene.pickWheel(event.clientX, event.clientY);
-            if (Number.isInteger(index)) rotateLock(index);
+            if (Number.isInteger(index)) rotateLock(index); else leaveInspection();
         }
     });
     scene.renderer.domElement.addEventListener('pointercancel', () => { wheelPress = null; });

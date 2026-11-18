@@ -100,7 +100,7 @@
         update(dt) {
             const h=this.house,s=h.story.state,p=h.camera.position;
             if (h.isPaused()) return;
-            if (!s.opened || s.memory || s.crossedYard || s.waterSolved || p.z > -15.25) {
+            if (!s.opened || s.memory || s.crossedYard || s.waterSolved || p.x < -6 || p.z > -15.25) {
                 this.root.visible=false;this.alarm=0;this.previous=null;this.cue('');return;
             }
             if (kitchen(p)) {

@@ -2,9 +2,11 @@
     const { THREE, Huisha3D: game } = global;
 
     function buildCar(h) {
-        const body = new THREE.MeshStandardMaterial({ color: 0x566b68, metalness: .48, roughness: .38 });
-        const glass = new THREE.MeshStandardMaterial({ color: 0x273d47, metalness: .32, roughness: .16 });
-        const rubber = h.materials.cloth, trim = h.materials.stone;
+        const body = new THREE.MeshStandardMaterial({ color: 0x536765, metalness: .62, roughness: .26 });
+        const glass = new THREE.MeshStandardMaterial({ color: 0x405153, metalness: .18, roughness: .13, transparent:true, opacity:.52, depthWrite:false });
+        const rubber = new THREE.MeshStandardMaterial({ color:0x202224, roughness:.91 });
+        const trim = new THREE.MeshStandardMaterial({ color:0xb1b6b4, metalness:.75, roughness:.27 });
+        const inside = new THREE.MeshStandardMaterial({color:0x333531,roughness:.94});
         const car = new THREE.Group();
         car.position.set(-2.15, 0, 29.7);
         h.scene.add(car);
@@ -25,10 +27,38 @@
             geometry.setIndex(indices); geometry.computeVertexNormals();
             h.mesh(name, geometry, material, [0,0,0], 'car_envelope', car);
         }
-        shell('station-wagon', [[-2.18,.38,.73,.83,.87],[-1.64,.34,.91,.94,.96],[-.82,.32,.99,.95,.96],[1.68,.32,.96,.95,.94],[2.15,.43,.87,.85,.86]], body);
+        shell('station-wagon', [[-2.18,.38,.73,.83,.87],[-1.64,.64,.91,.83,.94],[-.82,.65,.99,.82,.94],[1.68,.64,.96,.82,.93],[2.15,.43,.87,.85,.86]], body);
         shell('wagon-windows', [[-.91,.95,.99,.94,.92],[-.27,.95,1.51,.95,.76],[1.44,.93,1.53,.93,.78],[1.95,.9,1,.87,.86]], glass);
         h.box('car-roof',[1.57,.08,1.78],[0,1.54,.6],body,'car_envelope',car);
+        const panel = new THREE.Shape();
+        panel.moveTo(-2.14,.43); panel.lineTo(-1.72,.38);
+        panel.absarc(-1.29,.37,.43,Math.PI,0,true);
+        panel.lineTo(.87,.37); panel.absarc(1.3,.37,.43,Math.PI,0,true);
+        panel.lineTo(2.12,.43); panel.lineTo(2.11,.83); panel.lineTo(1.67,.935);
+        panel.lineTo(-.83,.966); panel.lineTo(-1.67,.89); panel.lineTo(-2.14,.70); panel.closePath();
+        const wing=new THREE.ExtrudeGeometry(panel,{depth:.025,bevelEnabled:true,bevelSize:.017,bevelThickness:.016,bevelSegments:3,curveSegments:18});
+        const bar=(name,a,b,r,material)=>{
+            const start=new THREE.Vector3(...a),delta=new THREE.Vector3(...b).sub(start);
+            const mesh=h.mesh(name,new THREE.CylinderGeometry(r,r,delta.length(),10),material,start.addScaledVector(delta,.5).toArray(),undefined,car);
+            mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),delta.normalize());
+        };
+        for (const row of [-.17,.86]) for (const x of [-.45,.45]) {
+            h.box('seat-back',[.48,.42,.14],[x,1.12,row+.21],inside,undefined,car).rotation.x=.12;
+            h.box('headrest',[.26,.18,.14],[x,1.39,row+.22],inside,undefined,car);
+        }
+        h.box('dash',[1.64,.16,.32],[0,1.02,-.67],inside,undefined,car);
+        h.mesh('steering-wheel',new THREE.TorusGeometry(.172,.021,9,30),rubber,[-.45,1.145,-.49],undefined,car).rotation.x=-.5;
         for (const side of [-1,1]) {
+            h.mesh('arched-fender',wing,body,[side*.926,0,0],undefined,car).rotation.y=-Math.PI/2;
+            for(const [a,b] of [
+                [[side*.937,.96,-.90],[side*.76,1.515,-.27]],[[side*.76,1.515,-.27],[side*.78,1.515,1.44]],
+                [[side*.78,1.515,1.44],[side*.875,.94,1.95]],[[side*.94,.96,-.87],[side*.90,.94,1.93]]
+            ]) bar('window-surround',a,b,.024,trim);
+            for(const pillar of [.33,1.04]){
+                bar('door-pillar',[side*.94,.96,pillar],[side*.775,1.52,pillar+.045],.035,rubber);
+                bar('door-shut-line',[side*.95,.46,pillar],[side*.95,.929,pillar+.02],.009,rubber);
+                h.box('recessed-handle',[.035,.045,.14],[side*.96,.86,pillar-.12],trim,undefined,car);
+            }
             h.box('car-rub-strip',[.04,.06,3.65],[side*.958,.61,.08],rubber,'car_envelope',car);
             h.box('side-mirror',[.24,.12,.21],[side*1.025,1.04,-.62],body,'car_envelope',car);
             h.box('roof-rail',[.045,.055,1.52],[side*.69,1.61,.58],trim,'car_envelope',car);
@@ -36,20 +66,83 @@
                 const wheel = h.cylinder('road-tire',.36,.36,.19,[side*.91,.36,z],rubber,'car_envelope',car);
                 wheel.rotation.z = Math.PI/2;
                 h.mesh('rim-edge',new THREE.TorusGeometry(.2,.019,6,24),trim,[side*1.024,.36,z],'car_envelope',car).rotation.y=Math.PI/2;
-                h.cylinder('wheel-hub',.19,.19,.018,[side*1.01,.36,z],trim,'car_envelope',car).rotation.z = Math.PI/2;
+                h.cylinder('hub',.069,.069,.035,[side*1.025,.36,z],trim,undefined,car).rotation.z=Math.PI/2;
+                for(let k=0;k<6;k++){
+                    const t=k*Math.PI/3;
+                    bar('alloy-spoke',[side*1.025,.36+Math.cos(t)*.064,z+Math.sin(t)*.064],
+                        [side*1.028,.36+Math.cos(t+.23)*.19,z+Math.sin(t+.23)*.19],.018,trim);
+                }
             }
-            h.box('car-window-divider',[.07,.55,.09],[side*.85,1.23,.66],body,'car_envelope',car).rotation.z=side*.3;
-            h.box('car-handle',[.03,.045,.18],[side*.96,.86,.43],trim,'car_envelope',car);
+            const beam=new THREE.SpotLight(0xffebbc,24,12,.31,.78,1.45);
+            beam.position.set(side*.65,.66,-2.21);beam.target.position.set(side*.92,-.27,-9.2);
+            car.add(beam,beam.target);
             h.box('headlight',[.48,.15,.05],[side*.57,.67,-2.17],new THREE.MeshBasicMaterial({color:0xffe6a6}),'car_envelope',car);
             h.box('rear-light',[.31,.18,.05],[side*.67,.71,2.14],new THREE.MeshBasicMaterial({color:0xb54032}),'car_envelope',car);
         }
+        for (let slot=0;slot<4;slot++) h.box('grille-louvre',[.66,.017,.037],[0,.57+slot*.04,-2.183],rubber,undefined,car);
+        for (const side of [-1,1]) {
+            bar('windscreen-wiper',[side*.67,1.034,-.814],[side*.11,1.08,-.77],.012,rubber);
+            h.label('wagon-registration','槐 A·7316',[.46,.13],[0,.54,side*2.215],[0,side>0?0:Math.PI,0],undefined,car,'#20394a','#c8cebd');
+        }
         h.box('rear-bumper',[1.75,.11,.12],[0,.44,2.14],rubber,'car_envelope',car);
         h.box('front-bumper',[1.76,.12,.11],[0,.45,-2.16],rubber,'car_envelope',car);
-        h.label('car-address','李 明 收',[.42,.22],[.98,1.07,.1],[0,Math.PI/2,0],'car_envelope',car);
+
+    }
+
+    // Bake the small timber and masonry details together per building for frustum culling.
+    function buildHouse(h, side, x, z, index) {
+        const m=h.materials, batches=new Map();
+        const root=new THREE.Group();root.position.set(x,0,z);h.scene.add(root);
+        const eaves=[3.3,2.82,4.15,3.06][index]+(side>0?.19:0);
+        const half=[2.1,1.85,2.28,1.94][index], length=[4.95,5.18,4.64,5.31][index];
+        const brick=m.brick||m.plaster, roof=m.roof||m.darkWood;
+        function piece(dimensions,position,material,tilt=0) {
+            const mesh=h.box('joinery',dimensions,position,material,undefined,root);
+            mesh.rotation.z=tilt;mesh.updateMatrix();mesh.geometry.applyMatrix4(mesh.matrix);
+            root.remove(mesh);
+            if (!batches.has(material)) batches.set(material,[]);
+            batches.get(material).push(mesh.geometry);
+        }
+        piece([half*2,eaves,length],[0,eaves/2,0],index===1?brick:m.plaster);
+        piece([half*2+.09,.82,length+.09],[0,.41,0],brick);
+        const pitch=.39, ridge=eaves+half*Math.tan(pitch), reach=half+.40;
+        for(const slope of [-1,1]) {
+            piece([reach/Math.cos(pitch),.16,length+.67],[slope*reach*.5,ridge-reach*.5*Math.tan(pitch)+.08,0],roof,-slope*pitch);
+            piece([.12,.16,length+.72],[slope*reach,eaves-.10,0],m.darkWood);
+        }
+        piece([.21,.20,length+.84],[0,ridge+.14,0],roof);
+        for (const end of [-1,1]) {
+            // Stepped brick firewalls close the gables and carry their own rain caps.
+            for (let j=-2;j<=2;j++) {
+                const width=half*2/5, top=ridge+.28-Math.abs(j)*width*Math.tan(pitch);
+                piece([width,top-eaves+.1,.19],[j*width,(top+eaves-.1)*.5,end*length*.5],brick);
+                piece([width+.05,.085,.28],[j*width,top+.035,end*length*.5],roof);
+            }
+        }
+        const front=-side*half, timber=m.darkWood;
+        for(const edge of [-1,1]) piece([.14,eaves,.14],[front,eaves/2,edge*(length*.5-.09)],timber);
+        for (let r=0;r<14;r++) piece([.48,.08,.073],[front-side*.19,eaves-.12,-length*.5+r*length/13],timber,-side*pitch);
+        const glazing=h.villageGlass[(index+(side>0?1:0))%3];
+        for(const bay of [-1,1]) {
+            const along=bay*length*.245, center=eaves*.62;
+            piece([.07,1.23,1.48],[front-side*.038,center,along],timber);
+            piece([.05,1.02,1.28],[front-side*.083,center,along],glazing);
+            for (const offset of [-.45,0,.45]) piece([.065,1.07,.045],[front-side*.11,center,along+offset],timber);
+            for (const offset of [-.27,.26]) piece([.07,.045,1.32],[front-side*.11,center+offset,along],timber);
+            piece([.32,.09,1.62],[front-side*.12,center-.64,along],brick);
+        }
+        for (const [material,geometries] of batches) {
+            const merged=game.mergeGeometries(geometries);
+            h.mesh('village-facade',merged,material,[0,0,0],undefined,root);
+            geometries.forEach(geometry=>geometry.dispose());
+        }
     }
 
     game.buildVillageLane = function (h) {
         const m = h.materials;
+        h.villageGlass=[0x997447,0x435253,0x4e4c3d].map((color,i)=>new THREE.MeshStandardMaterial({
+            color, emissive:color, emissiveIntensity:i===0?.52:.08, roughness:.32, metalness:.18
+        }));
         const wetPaving = m.paving.clone(); wetPaving.color.setHex(0x878f90); wetPaving.roughness = .46;
         h.box('lane-paving',[7.4,.15,29],[0,-.08,19.55],wetPaving);
         const drops = [];
@@ -61,17 +154,34 @@
         rainGeometry.setAttribute('position', new THREE.Float32BufferAttribute(drops,3));
         h.laneRain = new THREE.LineSegments(rainGeometry, new THREE.LineBasicMaterial({color:0xadbdc7,transparent:true,opacity:.23,depthWrite:false}));
         h.scene.add(h.laneRain);
+        const moon=new THREE.DirectionalLight(0xabc6da,.83);
+        moon.position.set(-12,16,30);moon.target.position.set(0,0,19);
+        moon.castShadow=true;moon.shadow.mapSize.set(1024,1024);
+        Object.assign(moon.shadow.camera,{left:-14,right:14,top:17,bottom:-17,far:55});
+        moon.shadow.camera.updateProjectionMatrix();moon.shadow.bias=-.0005;moon.shadow.normalBias=.035;
+        h.scene.add(moon,moon.target);
         h.box('porch-step',[2,.15,1.1],[0,-.07,4.65],m.stone);
         for (const side of [-1,1]) {
             h.box('front-plaster',[4,3.4,.22],[side*3,1.6,4.43],m.plaster);
             h.box('front-stoop-wing',[2.65,.68,.75],[side*2.325,.31,4.75],m.wellStone || m.stone);
-            h.box('lane-wall',[.22,1.12,29],[side*3.72,.54,19.55],m.plaster);
-            h.box('lane-wall-cap',[.36,.1,29],[side*3.72,1.13,19.55],m.darkWood);
+            h.box('lane-wall',[.22,1.12,29],[side*3.72,.54,19.55],m.brick||m.plaster);
+            h.box('lane-wall-cap',[.36,.1,29],[side*3.72,1.13,19.55],m.roof||m.darkWood);
             for (let i=0; i<4; i++) {
                 const z = 8+i*6.5+side*.7, x = side*(6.1+i%2);
-                h.box('village-house',[3.8,2.9,4.3],[x,1.38,z],m.plaster);
-                for (const slope of [-1,1]) h.box('village-roof',[2.5,.16,4.85],[x+slope*1.1,3.18,z],m.darkWood).rotation.z=-slope*.3;
-                h.box('closed-shutter',[.06,.83,.77],[x-side*1.91,1.72,z],m.wood);
+                buildHouse(h, side, x, z, i);
+            }
+        }
+        const cable=new THREE.MeshStandardMaterial({color:0x23282a,roughness:.88});
+        for (const poleZ of [8.3,20,32]) {
+            h.cylinder('utility-pole',.084,.16,6.1,[-4.03,3.03,poleZ],m.stone);
+            h.box('crossarm',[1.47,.1,.12],[-4.03,5.74,poleZ],m.darkWood);
+            for (const dx of [-.54,.05,.59]) {
+                h.cylinder('porcelain-insulator',.067,.087,.17,[-4.03+dx,5.87,poleZ],m.paper);
+                if (poleZ===32) continue;
+                const end=poleZ===8.3?20:32, wireX=-4.03+dx;
+                const curve=new THREE.QuadraticBezierCurve3(new THREE.Vector3(wireX,5.94,poleZ),
+                    new THREE.Vector3(wireX+.12,4.85,(poleZ+end)/2),new THREE.Vector3(wireX,5.94,end));
+                h.mesh('service-wire',new THREE.TubeGeometry(curve,14,.014,5,false),cable,[0,0,0],undefined,undefined,false);
             }
         }
         h.box('front-lintel',[2,.52,.28],[0,3.08,4.45],m.darkWood);
@@ -80,11 +190,29 @@
         h.box('front-handle',[.08,.23,.06],[.45,-.15,.12],m.brass,'front_gate',h.frontDoor);
         h.box('landslide-barrier',[7.3,.82,.24],[0,.4,34.14],m.stone);
         h.label('landslide-sign','前方塌方　封路',[2,.4],[0,.58,34],[0,Math.PI,0],undefined,undefined,'#593c31','#ffdfa5');
-        h.box('fallen-beam',[4.5,.29,.26],[-1.35,.145,16.13],m.wood);
+        for (const slope of [-1,1]) {
+            h.box('gate-eave',[10.45,.18,1.07],[0,3.51,4.4+slope*.48],m.roof||m.darkWood).rotation.x=slope*.36;
+            h.box('gate-fascia',[10.46,.12,.14],[0,3.32,4.4+slope*.96],m.darkWood);
+        }
+        h.box('gate-ridge',[10.61,.18,.21],[0,3.73,4.4],m.brick||m.stone);
+        for (const x of [-1.14,1.14]){
+            h.box('gate-doorpost',[.21,2.96,.27],[x,1.46,4.60],m.wood,'front_gate');
+            h.box('gate-foot',[.33,.42,.37],[x,.21,4.62],m.wellStone||m.stone,'front_gate');
+        }
         h.box('duty-counter',[1,1.02,2.4],[3.1,.51,21],m.wood,'duty_book');
-        h.box('duty-canopy',[2.4,.15,3.4],[3.52,2.7,21],m.darkWood);
-        h.label('duty-sign','村口值班室',[1.64,.42],[3.49,2.16,21],[0,-Math.PI/2,0],'duty_book');
-        h.label('open-ledger','旧牌　新牌\n换牌登记',[.69,.46],[2.99,1.035,21.1],[-Math.PI/2,0,Math.PI/2],'duty_book');
+        h.box('booth-back',[.16,2.67,3.13],[4.22,1.33,21],m.brick||m.plaster);
+        for (const end of [-1,1]) {
+            h.box('booth-post',[.13,2.66,.13],[2.62,1.33,21+end*1.55],m.darkWood);
+            h.box('booth-side',[1.52,1.02,.12],[3.47,.5,21+end*1.53],m.brick||m.plaster);
+        }
+        h.box('counter-edge',[1.12,.09,2.55],[3.1,1,21],m.darkWood,'duty_book');
+        h.box('logbook-cover',[.56,.025,.84],[2.99,1.063,21.1],m.cloth,'duty_book');
+        h.cylinder('tea-mug',.074,.068,.14,[3.22,1.12,21.73],m.paper,'duty_book');
+        h.mesh('mug-handle',new THREE.TorusGeometry(.048,.011,7,16),m.paper,[3.22,1.13,21.81],'duty_book').rotation.y=Math.PI/2;
+        game.buildClerk(h);
+        h.box('duty-canopy',[2.4,.15,3.4],[3.52,2.79,21],m.roof||m.darkWood);
+        h.label('duty-sign','村口值班室',[1.64,.42],[2.66,2.55,21],[0,-Math.PI/2,0],'duty_book');
+        h.label('open-ledger','旧牌　新牌\n换牌登记',[.69,.46],[2.99,1.079,21.1],[-Math.PI/2,0,Math.PI/2],'duty_book');
         h.box('key-board',[.27,1.22,1.32],[-3.49,1.38,11.5],m.darkWood,'key_board');
         h.label('key-sign','钥 匙 寄 存',[1.18,.24],[-3.33,1.81,11.5],[0,Math.PI/2,0],'key_board');
         for (let i=0;i<3;i++) {
@@ -94,8 +222,8 @@
         }
         for (const [x,z] of [[2.94,21],[-3.26,11.5],[1.2,4.85]]) {
             const light = new THREE.PointLight(0xffca83,5,7,1.65);
-            light.position.set(x,2.22,z); h.scene.add(light);
-            h.box('porch-lamp',[.18,.22,.2],[x,2.36,z],new THREE.MeshBasicMaterial({color:0xffda9a}));
+            light.position.set(x-.26,2.14,z); h.scene.add(light);
+            h.box('porch-lamp',[.09,.14,.09],[x,2.37,z],new THREE.MeshBasicMaterial({color:0xffda9a}));
         }
         buildCar(h);
     };

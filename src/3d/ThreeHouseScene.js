@@ -76,8 +76,16 @@
             const sky = new THREE.TextureLoader().load('assets/materials/night-court.jpg', texture => {
                 texture.mapping = THREE.EquirectangularReflectionMapping;
                 texture.colorSpace = THREE.SRGBColorSpace;
+                // Grade the LDR panorama once; r160 also samples this texture for indirect light.
+                const skyCanvas=document.createElement('canvas'), source=texture.image;
+                skyCanvas.width=source.width; skyCanvas.height=source.height;
+                const skyContext=skyCanvas.getContext('2d'); skyContext.drawImage(source,0,0);
+                skyContext.globalCompositeOperation='multiply';skyContext.fillStyle='#687d99';
+                skyContext.fillRect(0,0,source.width,source.height);
+                texture.image=skyCanvas;texture.needsUpdate=true;
                 this.nightSky = texture;
-                this.scene.backgroundIntensity = .38;
+                this.scene.environment = texture;
+                this.scene.backgroundIntensity = .19;
                 if (!this.story.state.memory) this.scene.background = texture;
                 this.materials.paving.envMap = texture; this.materials.paving.envMapIntensity = .57;
                 this.materials.paving.needsUpdate = true;
@@ -89,11 +97,15 @@
                 portrait: new THREE.MeshStandardMaterial({ map: portrait, roughness: 0.85 }),
                 wall: mat(0x9b8d7c, this.texture('木墙', [2.5, 1])),
                 floor: planks,
+                quilt: this.pbr('quilt',[3,2],0x949f9d),
+                denim: this.pbr('denim',[1.4,1.4],0xa5a9a6),
+                brick: this.pbr('brick', [1,1], 0xb5aca2, [2.1,2.1]),
+                roof: this.pbr('roof', [1,1], 0xaeb8b8, [2.4,2.4]),
                 plaster: this.pbr('plaster', [2.5, 1.2], 0xa7a69a),
                 paving: this.pbr('paving', [1, 1], 0xffffff, [2, 2]),
                 wellStone: this.pbr('well', [1, 1], 0xaaa89c, [1.8, 1.8]),
                 wood: mat(0x7d5036, this.texture('木梁', [1, 1])),
-                darkWood: oldWood, brass: mat(0xa98b54), red: mat(0x862f24),
+                darkWood: oldWood, brass: new THREE.MeshStandardMaterial({color:0xab8654,roughness:.47,metalness:.62}), red: mat(0x862f24),
                 cloth: mat(0x17171b), paper: mat(0xc6b689), stone: mat(0x555f63),
                 wax: mat(0xbfa77b), ash: mat(0x8c8a80)
             };
@@ -126,18 +138,19 @@
         cylinder(name, top, bottom, height, position, material, item, parent) {
             return this.mesh(name, new THREE.CylinderGeometry(top, bottom, height, 20), material, position, item, parent);
         }
-        labelMaterial(text, background = '#c9ba96', color = '#30261f') {
-            const key = [text, background, color].join('|');
+        labelMaterial(text, background = '#c9ba96', color = '#30261f', aspect = 1.5) {
+            const key = [text, background, color, aspect].join('|');
             if (this.labelCache.has(key)) return this.labelCache.get(key);
             const canvas = document.createElement('canvas');
-            canvas.width = 768; canvas.height = 512;
+            canvas.width = 768; canvas.height = Math.max(96,Math.min(1024,Math.round(768/aspect)));
+            const height=canvas.height, inset=Math.max(5,Math.min(20,height*.05));
             const ctx = canvas.getContext('2d');
-            ctx.fillStyle = background; ctx.fillRect(0, 0, 768, 512);
-            ctx.strokeStyle = color; ctx.lineWidth = 5; ctx.strokeRect(22, 22, 724, 468);
+            ctx.fillStyle = background; ctx.fillRect(0, 0, 768, height);
+            ctx.strokeStyle = color; ctx.lineWidth = Math.max(2,inset*.2); ctx.strokeRect(inset,inset,768-2*inset,height-2*inset);
             const lines = text.split('\n');
-            const fontSize = Math.min(158, 340/lines.length, 640/Math.max(1,...lines.map(line=>line.length)));
+            const fontSize = Math.floor(Math.min(height*.7/lines.length, 670/Math.max(1,...lines.map(line=>line.length))));
             ctx.fillStyle = color; ctx.font = `bold ${fontSize}px "KaiTi", "SimSun", serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            lines.forEach((line, i) => ctx.fillText(line, 384, 256 + (i - (lines.length - 1) / 2) * fontSize * 1.18, 670));
+            lines.forEach((line, i) => ctx.fillText(line, 384, height*.5 + (i - (lines.length - 1) / 2) * fontSize * 1.18, 670));
             const texture = new THREE.CanvasTexture(canvas);
             texture.colorSpace = THREE.SRGBColorSpace;
             this.textures.push(texture);
@@ -146,7 +159,7 @@
             return material;
         }
         label(name, text, size, position, rotation, item, parent, background, color) {
-            const mesh = this.mesh(name, new THREE.PlaneGeometry(...size), this.labelMaterial(text, background, color), position, item, parent, false);
+            const mesh = this.mesh(name, new THREE.PlaneGeometry(...size), this.labelMaterial(text, background, color,size[0]/size[1]), position, item, parent, false);
             mesh.rotation.set(...rotation);
             return mesh;
         }
@@ -228,7 +241,6 @@
         createProps() {
             const m = this.materials;
             const altar = new THREE.Group(); altar.position.set(-2.75, 0, -3.12); this.scene.add(altar);
-            this.label('altar-note', '修锁便条\n三个字轮\n不用雨字', [0.67, 0.48], [0, 1.1, 0.3], [-Math.PI / 2.7, 0, 0], 'altar', altar);
             const profile = [new THREE.Vector2(0.1, 0), new THREE.Vector2(0.2, 0.06), new THREE.Vector2(0.26, 0.18), new THREE.Vector2(0.29, 0.25)];
             this.mesh('incense-bowl', new THREE.LatheGeometry(profile, 24), m.brass, [0, 1.1, -0.18], 'altar', altar);
             this.cylinder('incense-ash', 0.24, 0.24, 0.02, [0, 1.29, -0.18], m.ash, 'altar', altar);
@@ -242,6 +254,12 @@
             const body = new THREE.ExtrudeGeometry(outline, { depth: 0.54, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.045, bevelThickness: 0.04 });
             body.rotateX(-Math.PI / 2);
             this.mesh('coffin-body', body, m.darkWood, [0, 0.17, 0.65], 'coffin');
+            this.coffinLid = new THREE.Group(); this.coffinLid.position.set(0,.714,.09); this.scene.add(this.coffinLid);
+            this.uniform = this.box('folded-school-jacket',[.65,.07,.44],[0,.78,.64],m.cloth,'coffin');
+            this.uniformTag = this.label('uniform-name','李明　初二',[.24,.09],[.14,.82,.68],[-Math.PI/2,0,0],'coffin');
+            this.offeringRice = this.cylinder('offered-rice',.18,.12,.13,[-.66,1.17,.14],m.paper,'altar',altar);
+            this.offeringEmber = this.mesh('incense-ember',new THREE.SphereGeometry(.024,8,6),new THREE.MeshBasicMaterial({color:0xff813a}),[0,1.62,-.18],'altar',altar);
+            this.paperAsh = this.box('offering-ash',[.2,.025,.18],[.47,1.11,.2],m.ash,'altar',altar);
             for (const [name,width,depth,y,thickness,material] of [
                 ['coffin-lid-lip',1.039,1.12,.714,.045,m.darkWood],
                 ['coffin-lid',1.025,1.09,.787,.070,m.wood],
@@ -250,7 +268,7 @@
                 const lid = new THREE.ExtrudeGeometry(outline,{depth:thickness,bevelEnabled:true,bevelSegments:3,
                     steps:1,bevelSize:.038,bevelThickness:.012});
                 lid.rotateX(-Math.PI/2); lid.scale(width,1,depth);
-                this.mesh(name,lid,material,[0,y,.65],'coffin');
+                this.mesh(name,lid,material,[0,y-.714,.56],'coffin',this.coffinLid);
             }
             for (const x of [-.86,.69]) {
                 this.box('coffin-trestle',[.18,.15,1.22],[x,.077,.65],m.darkWood,'coffin');
@@ -260,9 +278,13 @@
                     this.mesh('coffin-carry-ring',new THREE.TorusGeometry(.076,.012,8,26),m.brass,[x,.43,z+side*.024],'coffin');
                 }
             }
-            this.label('coffin-inscription', '左位留灯　右位留门', [1.75, 0.33], [0, 0.899, 0.65], [-Math.PI / 2, 0, 0], 'coffin', undefined, '#5c3b2c', '#c5b38c');
             this.box('letter-shelf', [0.95, 0.1, 0.35], [2.65, 0.95, 4.07], m.wood, 'letter');
-            this.label('letter', '明，十四\n回来吃饭', [0.6, 0.4], [2.65, 1.15, 3.98], [0, Math.PI, 0], 'letter');
+            const print=this.label('letter', '春节留影', [0.6, 0.4], [2.65, 1.15, 3.98], [0, Math.PI, 0], 'letter');
+            if (this.renderer?.isWebGLRenderer) {
+                const photo=new THREE.TextureLoader().load('assets/art/family-new-year.jpg');
+                photo.colorSpace=THREE.SRGBColorSpace;this.textures.push(photo);
+                print.material=new THREE.MeshStandardMaterial({map:photo,roughness:.67,side:THREE.DoubleSide});
+            }
             const door = this.map.door;
             this.door = new THREE.Group(); this.door.position.set(door.hingeX, 0, door.hingeZ); this.scene.add(this.door);
             this.box('sealed-door', [door.width, 2.8, door.thickness], [door.width / 2, 1.4, 0], m.darkWood, 'lock', this.door);
@@ -345,12 +367,13 @@
         async loadModels() {
             const loader = new game.GLTFLoader();
             const instances = new Map();
-            const place = (id, size, position, rotation, item, stretch = false) => {
+            const place = (id, size, position, rotation, item, stretch = false, variant) => {
                 const group = new THREE.Group();
                 group.name = id; group.position.set(...position); group.rotation.y = rotation; this.scene.add(group);
                 const proxy = new THREE.Group(); group.add(proxy);
                 const [w,h,d] = size;
-                if (/table|Desk/.test(id)) {
+                if (variant) { /* Vegetation fills in without a solid proxy. */ }
+                else if (/table|Desk/.test(id)) {
                     this.box('tabletop',[w,.09,d],[0,h-.045,0],this.materials.wood,item,proxy);
                     for (const side of [-1,1]) this.box('trestle',[.1,h-.09,d*.78],[side*w*.39,(h-.09)/2,0],this.materials.darkWood,item,proxy);
                 } else if (/chair/i.test(id)) {
@@ -359,11 +382,11 @@
                 } else if (id.includes('bucket')) this.cylinder('bucket',w/2,w*.4,h,[0,h/2,0],this.materials.wood,item,proxy);
                 else this.box('cabinet',size,[0,h/2,0],this.materials.wood,item,proxy);
                 if (!instances.has(id)) instances.set(id,[]);
-                instances.get(id).push({group,proxy,size,stretch,item});
+                instances.get(id).push({group,proxy,size,stretch,item,variant});
                 return group;
             };
-            const install = ({group,proxy,size,stretch,item}, source) => {
-                const model = source.clone(true);
+            const install = ({group,proxy,size,stretch,item,variant}, source) => {
+                const model = (variant ? source.getObjectByName(variant) : source).clone(true);
                 const bounds = new THREE.Box3().setFromObject(model), dimensions = bounds.getSize(new THREE.Vector3());
                 const center = bounds.getCenter(new THREE.Vector3());
                 const ratios = size.map((n, i) => n / [dimensions.x, dimensions.y, dimensions.z][i]);
@@ -390,6 +413,18 @@
             place('chinese_armchair', [0.78, 1.22, 0.78], [-3.5, 0, 0.8], 0.15);
             place('chinese_armchair', [0.78, 1.22, 0.78], [3.5, 0, 0.8], -0.15);
             place('chinese_cabinet', [1.45, 2.15, 0.85], [3.4, 0, -3.4], 0);
+            place('dead_tree_trunk_02',[4.5,.36,.49],[-1.35,0,16.13],0,undefined,true);
+            for(const [x,z,width,variant] of [[-3.49,28.7,.63,'a'],[3.58,25.8,.64,'c'],[-3.52,15.32,.63,'b'],[3.45,10.5,.56,'d'],[-3.53,7.7,.71,'a']])
+                place('fern_02',[width,.5,width],[x,.006,z],z,undefined,false,'fern_02_'+variant);
+            for(const [x,z,width,height,variant] of [[-4.12,25.4,2.7,2.5,'a'],[4.23,27,2.4,2.6,'b'],[4.38,15.45,3,3.15,'c'],[-4.32,11.83,2.7,2.85,'d'],[-2.9,3.7,2.6,3.3,'a'],[4,4,2.8,3.65,'b']])
+                place('shrub_02',[width,height,width],[x,.025,z],z*.5,undefined,true,'shrub_02_'+variant);
+            place('old_bed_frame', [1.46,1.02,2.02], [-9.7,0,-20.19], Math.PI/2, undefined, true);
+            const slidingCabinet=place('chinese_cabinet',[1.95,2.4,.71],[0,0,0],Math.PI/2,'wardrobe',true);
+            this.wardrobe.add(slidingCabinet);
+            place('bench_vice_01', [.45,.31,.33], [-16.87,.98,-18.59], -Math.PI/2);
+            for (const [x,z] of [[2.94,21],[-3.26,11.5],[1.2,4.85]]) {
+                place('wooden_lantern_01', [.34,.53,.34], [x,2.22,z], 0);
+            }
             this.courtyard?.placeFurniture(place);
             this.memories?.placeFurniture(place); this.memories?.sealHome();
             await Promise.all([...instances].map(async ([id, placements]) => {
@@ -402,7 +437,8 @@
             }));
         }
         createLights() {
-            this.scene.add(new THREE.HemisphereLight(0xb1bec8, 0x51402e, 1.8));
+            this.hemisphere=new THREE.HemisphereLight(0xb1bec8,0x51402e,1.8);
+            this.scene.add(this.hemisphere);
             const add = (color, intensity, distance, position, shadow = false) => {
                 const light = new THREE.PointLight(color, intensity, distance, 1.6);
                 light.position.set(...position); light.castShadow = shadow;
@@ -419,6 +455,17 @@
         }
         syncState(immediate = false) {
             const s = this.story.state;
+            this.wardrobe.position.z = s.wardrobeOpen ? -16.01 : -18;
+            this.wardrobeSite.position.z = this.wardrobe.position.z;
+            this.westLid.rotation.x = s.chestOpen ? -1.05 : 0;
+            this.spareWeight.visible = !s.gear.includes('weight');
+            this.matchTin.visible = !s.gear.includes('matches');
+            this.riceBowl.visible = !s.gear.includes('rice');
+            this.offeringRice.visible = s.vigil >= 1;
+            this.offeringEmber.visible = s.vigil >= 2;
+            this.paperAsh.visible = s.vigil >= 3;
+            this.coffinLid.rotation.x = s.coffinOpen ? -1.37 : 0;
+            this.uniform.visible = this.uniformTag.visible = s.coffinOpen;
             this.frontDoor.visible = s.arrival !== 'home';
             this.portrait.sync(immediate);
             this.wheels.forEach((wheel, i) => {
@@ -513,8 +560,16 @@
             const delta = Math.min(this.clock.getDelta(), 0.05);
             if (this.showingFilm) return;
             this.laneRain.visible = this.camera.position.z > 3.8 && !this.story.state.memory;
+            this.hemisphere.intensity = this.laneRain.visible ? .79 : 1.8;
             if (this.laneRain.visible && !this.reducedMotion?.matches) this.laneRain.position.y = -((-this.laneRain.position.y+delta*4.8)%1.3);
             this.controls.update(delta); this.syncState(); this.moveWheels(delta);
+            if (this.clerkHead && this.laneRain.visible && !this.isPaused()) {
+                const dx=this.camera.position.x-this.clerk.position.x, dz=this.camera.position.z-this.clerk.position.z;
+                const nearby=dx*dx+dz*dz<22;
+                const turn=nearby ? THREE.MathUtils.clamp(Math.atan2(dz,-dx),-.65,.65) : .13;
+                this.clerkHead.rotation.y=THREE.MathUtils.damp(this.clerkHead.rotation.y,turn,4,delta);
+                this.clerkHead.rotation.x=THREE.MathUtils.damp(this.clerkHead.rotation.x,nearby?0:.21,3,delta);
+            }
             this.watch.update(delta);
             this.portrait.update(delta);
             this.documents?.update(delta);

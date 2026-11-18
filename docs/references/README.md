@@ -1,5 +1,7 @@
 # 3D 参考与来源
 
+0.19.0 村口和西厢使用 Poly Haven CC0 模型与材质、Three.js 示例保留署名的人头扫描。运行时直接读取随仓库发布的美术资源。[来源、许可与使用处](../../assets/README.md) · [逐文件下载索引](../../assets/sources.json)
+
 雨夜镜头移植自封存 2D 版的 [IntroScene](https://github.com/huachen19867/huisha_game_AI/blob/main/src/scenes/IntroScene.js)。跳跃复用 Three.js r160 示例中的着地判定、垂直速度与重力积分思路，村路保留本作的门扇碰撞和连续地面判定。[本地参考](games_fps-r160.html) · [上游原文](https://github.com/mrdoob/three.js/blob/r160/examples/games_fps.html) · [MIT 许可](../../vendor/THREE-LICENSE.txt)
 
 雨庭的守夜纸人复用本地引擎及 Kenney 脚步声，灯扫过来的方位随玩家朝向变换。聚光灯目标、锥角和边缘衰减参照 Three.js r160 官方实现，渲染与玩法共用扫灯转角、半角和距离。[本地参考](SpotLight-r160.js) · [上游代码](https://github.com/mrdoob/three.js/blob/r160/src/lights/SpotLight.js)

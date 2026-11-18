@@ -186,6 +186,7 @@
             return inside && !this.blocksDoor(x, z) && !this.map.obstacles.some(rect => {
                 if ((rect.space || 'house') !== space) return false;
                 if (rect.requiresState && !this.story.state[rect.requiresState]) return false;
+                if (rect.untilState && this.story.state[rect.untilState]) return false;
                 if (rect.closedUntilHome && this.story.state.arrival === 'home') return false;
                 if (rect.height && this.height >= rect.height) return false;
                 return this.overlaps(rect,x,z);

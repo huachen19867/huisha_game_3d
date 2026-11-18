@@ -2,7 +2,7 @@
     const game = global.Huisha3D || (global.Huisha3D = {});
     const SAVE_KEY = 'huisha.3d.homecoming.v1';
     const symbols = ['雨', '门', '人', '灯'];
-    const freshState = () => ({ arrival: 'intro', busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
+    const freshState = () => ({ arrival: 'intro', chapterEdition: 1, gear: [], wardrobeOpen: false, chestOpen: false, calibrated: false, vigil: 0, coffinOpen: false, busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
         courtyard: false, crossedYard: false, buckets: [0, 0], waterSolved: false, departure: null, position: null, lamp: 'altar', shielded: false,
         memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, reasoningRevision: 2, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
@@ -37,6 +37,13 @@
                     }
                     this.state.waterSolved = saved.waterSolved === true && this.state.opened;
                     this.state.busCalled = this.state.waterSolved && (saved.busCalled === true || saved.departure === 'leave');
+                    const legacy = saved.chapterEdition !== 1 && this.state.waterSolved;
+                    this.state.wardrobeOpen = this.state.opened && saved.wardrobeOpen === true;
+                    this.state.chestOpen = this.state.opened && saved.chestOpen === true;
+                    this.state.gear = [...new Set((Array.isArray(saved.gear) ? saved.gear : []).filter(id => ['weight','rice','matches','paper'].includes(id)))];
+                    this.state.calibrated = this.state.waterSolved || (this.state.opened && saved.calibrated === true);
+                    this.state.vigil = legacy ? 3 : Number.isInteger(saved.vigil) ? Math.max(0, Math.min(3, saved.vigil)) : 0;
+                    this.state.coffinOpen = legacy || (this.state.vigil === 3 && saved.coffinOpen === true);
                     if (this.state.waterSolved) this.state.buckets[1] = 4;
                     if (!this.state.waterSolved) this.state.records = this.state.records.filter(id =>
                         !(game.WORLD_MAP || game.MAIN_HALL_MAP).interactables.find(item => item.id === id)?.requiresWater);
@@ -184,8 +191,32 @@
             if (!amount) return 0;
             this.state.buckets[index] -= amount; this.state.buckets[target] += amount; this.save(); return amount;
         }
+        carried() {
+            const s=this.state, ids=[];
+            if(s.arrival !== 'intro') ids.push('envelope');
+            if(s.arrival === 'gate' || (s.arrival === 'home' && s.records.includes('key_board'))) ids.push('key');
+            if(['lit','out'].includes(s.lamp)) ids.push('lamp');
+            if(s.records.includes('medicine_letter')) ids.push('familyLetter');
+            for(const id of s.gear) {
+                if(id==='weight' && s.calibrated || id==='rice' && s.vigil>=1 || id==='paper' && s.vigil>=3) continue;
+                ids.push(id);
+            }
+            if(s.coffinOpen && s.vigil===3) ids.push('uniform');
+            return ids;
+        }
+        takeGear(id) {
+            const s=this.state;
+            if(!s.opened || s.memory || s.gear.includes(id)) return false;
+            if(!({weight:s.wardrobeOpen,matches:s.wardrobeOpen,rice:true,paper:s.chestOpen})[id]) return false;
+            s.gear.push(id); this.save(); return true;
+        }
+        offer(id) {
+            const s=this.state;
+            if (!s.opened || ['rice','matches','paper'][s.vigil] !== id || !this.carried().includes(id)) return false;
+            s.vigil++; this.save(); return true;
+        }
         weighWater() {
-            if (!this.state.opened || this.state.waterSolved || this.state.buckets[1] !== 4) return false;
+            if (!this.state.calibrated || !this.state.opened || this.state.waterSolved || this.state.buckets[1] !== 4) return false;
             this.state.waterSolved = true; this.save(); return true;
         }
         signalBus(direction) {
@@ -202,6 +233,7 @@
         }
         enterMemory(id, pose) {
             if (!this.state.waterSolved || this.state.memory || typeof id !== 'string' || !Object.hasOwn(game.MEMORIES || {}, id) || !validPose(pose)) return false;
+            if (id === 'crash' && !this.state.coffinOpen) return false;
             this.state.memoryReturn = { ...pose }; this.state.memory = id;
             this.state.position = { ...game.MEMORIES[id].start }; this.markArea(id); this.save(); return true;
         }
@@ -255,8 +287,8 @@
         arrivalTask() {
             return {
                 intro: '开车回村，查清是谁寄了这封信。',
-                letter: '走到身旁的车窗前，查看信封上的旧门牌。',
-                ledger: '沿路往老宅走，在右手亮灯的值班室查换牌登记簿。',
+                letter: '按 B 打开背包，查看随身来信上的旧门牌。',
+                ledger: '去路边亮灯的值班室，找周师傅问钥匙。他手边有换牌登记簿。',
                 keys: '去前门对面的木柜，按登记簿上的新门牌取钥匙。横木可以跳过，也可以从旁边绕过去。',
                 gate: '拿钥匙打开路尽头挂着「十四号」牌子的老宅前门。'
             }[this.state.arrival];
@@ -266,6 +298,15 @@
             this.state.arrival = to;
             this.save();
             return true;
+        }
+        headline() {
+            const s=this.state;
+            if(this.arrivalTask()) return {intro:'回村',letter:'找到老宅',ledger:'找值班员',keys:'取备用钥匙',gate:'打开家门'}[s.arrival];
+            if(s.departure) return this.objective();
+            if(s.memory) return game.MEMORIES[s.memory].title;
+            if(s.waterSolved) return s.coffinOpen ? '查清雨夜的事，或下山' : '查清棺里放着什么，或下山';
+            if(s.courtyard) return !s.calibrated ? '找回灶间的秤砣' : '打开量水桌的抽屉';
+            return s.opened ? '穿过雨庭' : '打开老宅后门';
         }
         objective() {
             if (this.arrivalTask()) return this.arrivalTask();
@@ -277,16 +318,18 @@
             }
             if (this.state.departure) return { leave: '归路 · 你已走出旧宅，可以继续回看', stay: '余温 · 今晚留下是你的选择，可以继续回看',
                 wake: '破茧 · 你回应了救护灯，可以继续回看', remember: '回煞 · 你选择留在记忆，可以继续回看' }[this.state.departure];
+            if(this.state.waterSolved && !this.state.coffinOpen && !this.state.records.includes('bus_notice') && !this.state.busCalled)
+                return this.state.vigil === 3 ? '回正厅查看松动的棺盖。' : '正厅供桌还空着。到厨房取饭，西厢找火柴和纸元宝；守完夜再看棺木。厨房相册里也能先查学校、医院。';
             if (this.state.waterSolved && this.state.busCalled) return '接驳车停在山路尽头。去站牌旁上车，或回厨房翻相册。';
             if (this.state.waterSolved && this.state.records.includes('bus_notice')) return '沿护栏走到候车棚。按接驳通知，把反光牌转向来车方向。';
             if (this.state.waterSolved) return this.state.records.includes('medicine_letter')
                 ? '要查车祸，翻厨房柜边的相册，里面有三段记忆。要下山，出院门看路口的接驳通知。' : '量水秤压平了 · 查看打开的抽屉，院门也已松开';
+            if(this.state.courtyard && !this.state.calibrated) return this.state.gear.includes('weight') ? '带铜砣回厨房，装在量水秤上。' : '雨庭西侧是父母的卧房。衣柜脚下有滑轨，柜后是修秤的地方。';
             if (this.state.courtyard) return this.state.crossedYard ? '去厨房量水桌，用三升、五升桶量出四升水，再把五升桶放上秤。' : '走到右边有灶火的厨房。院里的灯扫过来时，先停步。';
             if (this.state.ending || this.state.opened) return '后门已开。穿过走廊进雨庭，往右手亮灯的厨房走。';
             if (this.state.lamp === 'out') return '灯芯灭了。回供桌借烛火，或用门上的字轮开门。';
             if (this.state.lamp === 'lit') return '端灯走到走廊尽头。经过左手破窗时按 F 护火，到门前调查门闩。';
-            if (this.state.records.includes('lock')) return !this.state.records.includes('coffin') ? '去正厅查看棺沿刻字，找出左右两个字轮的位置。'
-                : !this.state.records.includes('wall_marks') ? '沿走廊看右墙身高线，找出中间那个字，再去门上转字轮。' : '对照棺沿和身高线，把走廊尽头的三个字轮调好，压下门闩。';
+            if (this.state.records.includes('lock')) return '查看门边架上的全家福，把照片里的灯、人和门与字轮对照。';
             return '进正厅，绕过棺木，去左侧供桌端灯。走廊尽头的后门锁着。';
         }
         memoryTask(id) {
@@ -307,6 +350,7 @@
         guidance(stage = 0) {
             if (this.arrivalTask()) return { text: this.arrivalTask() };
             if (this.state.memory) return this.memoryGuidance(stage);
+            if (this.state.waterSolved && !this.state.coffinOpen || this.state.courtyard && !this.state.calibrated) return { text: this.objective() };
             if (this.state.waterSolved) return { text: '打开桌下抽屉看家书。想查当晚的事就翻厨房柜边的相册。要下山就出院门看通知，到候车棚把反光牌转向来车，再去尽头上车。' };
             if (this.state.courtyard) return this.waterGuidance(stage);
             if (this.state.opened) return { text: '门闩已经松开。沿走廊走到门外的石路，再走入雨庭。右手边的厨房还亮着一盏灯。' };
@@ -314,20 +358,15 @@
             const read = id => this.state.records.includes(id);
             if (stage <= 0) {
                 let text;
-                if (!read('letter')) text = '回头看看入口右手边的小木架，那里留着一封信。靠近并看向它，再按 E 或点击调查提示。';
-                else if (!read('lock')) text = '地上的红绳一直延进走廊。沿着它走，先看看尽头的门被什么扣住了。';
-                else if (!read('coffin')) text = '沿红绳回到正厅，绕到棺木旁，低头看看棺沿刻下的字。';
-                else if (!read('wall_marks')) text = '回到走廊时，留意右侧木墙上的身高刻线。刻线旁还有一行小字。';
-                else if (!read('altar')) text = '供桌香炉旁压着一张旧纸。把它和已经见到的刻字放在一起想。';
-                else text = '棺沿说了左右两位，身高线旁的小字说了中间。回查手记，把它们对应到门上的三个铜轮。';
+                if (!read('letter')) text = '入口右手边的小木架上有一张全家福。看看是谁站在中间，两侧各有什么。';
+                else if (!read('lock')) text = '沿地上的红绳去走廊尽头，把门上三个字轮和照片对照。';
+                else text = '看全家福里从左到右的排列，再回来转轮。也可以从供桌端灯照门闩。';
                 return { text, next: '对照已读字迹' };
             }
             if (stage === 1) {
                 const evidence = [];
-                if (read('coffin')) evidence.push('棺沿的「左位留灯，右位留门」，已经确定了左右两轮。');
-                if (read('wall_marks')) evidence.push('身高线旁的「站在灯和门之间的，是回家的人」，说的是中轮。');
-                if (read('altar')) evidence.push('供桌上的修锁便条写着「三个字轮不用雨字」，说明雨字可以排除。');
-                if (!evidence.length) evidence.push('手记里还没有能确定字轮位置的字迹。先找正厅的棺沿、供桌旧纸，或走廊右侧的身高线。');
+                if (read('letter')) evidence.push('全家福左边是灯，中间是人，右边是门。');
+                if (!evidence.length) evidence.push('先看门边架上的全家福。');
                 return { text: evidence.join('\n\n') + '\n\n转轮之后还要主动压下门闩；读完字迹不会自动开门。', next: '直接查看字轮答案' };
             }
             return { text: '从左到右调成「灯 · 人 · 门」，再压下门闩。\n\n每轮依次经过雨、门、人、灯。如果三轮都还停在雨字，左轮转三格，中轮转两格，右轮转一格。' };
@@ -353,6 +392,7 @@
         }
         save(position) {
             if (position) this.state.position = position;
+            this.onProgress?.();
             try { this.storage.setItem(SAVE_KEY, JSON.stringify({ version: 1, ...this.state })); this.saveAvailable = true; }
             catch (_) { this.saveAvailable = false; }
         }

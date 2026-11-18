@@ -1,24 +1,29 @@
-.water-levels { color: #e3cf9b; font-size: 14px; letter-spacing: 1px; margin: 10px 0; }
-.water-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.water-controls button { padding: 7px 9px; font-size: 12px; min-height: 44px; }
-.water-controls button[aria-pressed="true"] { border-color: #d7b875; background: #76613b70; }
-.water-controls #water-weigh { border-color: #ab7953; background: #71392a80; }
-.water-controls button:disabled { cursor: default; }
-#water-status { font-size: 12px; line-height: 1.7; color: var(--muted); margin: 9px 0; }
-@media(max-width: 680px) {
-    .water-controls button { padding: 6px; font-size: 11px; }
-    .water-levels { font-size: 12px; margin: 7px 0; }
-    #water-status { font-size: 11px; }
+#water-inspector {
+    width: min(430px, calc(100vw - 24px)); max-height: 55dvh; overflow: auto;
+    padding: 16px 20px; background: #192018f7; border-color: #847758;
 }
-@media(max-height: 520px) and (min-width: 681px) {
-    .water-inspector { max-height: none; }
-    .water-controls button { font-size: 11px; padding: 5px; }
-    .water-levels { font-size: 12px; }
+.water-heading, .water-links { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.water-heading h2 { margin:0; font-size:25px; letter-spacing:.16em; }
+.water-heading button, .water-links button { background:transparent; border:0; padding:6px 10px; min-height:44px; font-size:15px; }
+.water-goal { margin:0 0 14px; color:#ddd5bc; font-size:16px; }
+.bucket-pair, .water-controls { display:grid; gap:8px; }
+.bucket-pair { grid-template-columns:1fr 1fr; }
+.bucket-pair button { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px; min-height:60px; padding:10px 12px; text-align:left; border:1px solid #756e59; }
+.bucket-pair strong { font-size:17px; } .bucket-pair span { font:15px system-ui,sans-serif; }
+.bucket-pair button[aria-pressed="true"] { background:#4a412b; border-color:#e4c77c; box-shadow:inset 0 -3px #e4c77c; }
+.water-controls { margin:12px 0 8px; grid-template-columns:1fr 1fr 1.55fr; }
+.water-controls button, #water-weigh { min-height:50px; padding:8px 6px; font-size:17px; }
+#water-weigh { width:100%; background:#694934; border-color:#ab865c; }
+#water-status { min-height:1.5em; margin:10px 0 2px; font-size:15px; line-height:1.5; color:#dfd6bf; }
+.water-links { border-top:1px solid var(--line); } .water-links button { color:#d9caab; }
+@media(min-width:900px), (max-height:520px) and (min-width:681px) {
+    #water-inspector { left:auto; right:16px; top:auto; bottom:16px; transform:none; width:clamp(326px,32vw,420px); max-height:calc(100dvh - 82px); }
 }
-.water-inspector { max-height: 43dvh; overflow-y: auto; }
-@media(min-width: 900px) {
-    .water-inspector { left: auto; right: 18px; top: 90px; bottom: 20px; transform: none; width: 320px; padding: 12px; max-height: none; }
-    .water-inspector .lock-heading { display: block; }
-    .water-inspector .lock-heading span { display: block; margin-top: 5px; }
-    .water-inspector kbd { display: none; }
-}
+@media(max-width:600px) { #water-inspector { padding:10px 14px; } .water-goal { margin-bottom:8px; } }
+#acquisitions { position:fixed; z-index:12; right:max(16px, env(safe-area-inset-right)); bottom:max(22px,env(safe-area-inset-bottom)); max-width: min(82vw,360px); pointer-events:none; display:grid; gap:6px; }
+#acquisitions div { padding:10px 15px; background:#182019f2; color:#f0dfb2; border-left:3px solid #c8a760; box-shadow:0 2px 10px #0007; font-size:15px; line-height:1.45; animation: notice-appear .18s ease-out; }
+@keyframes notice-appear { from {opacity:0;transform:translateY(5px);} to {opacity:1;transform:none;} }
+@media(max-width:680px){.hud .hud-top {flex-wrap:wrap;gap:6px;} .hud .hud-top nav {flex-wrap:wrap;} .hud .chapter small {max-width:none;} }
+#reader-body input[inputmode="numeric"] { font:22px monospace; letter-spacing:.3em; padding:8px 12px; max-width:100%; }
+
+.record-photo { display:block; width:min(100%,440px); max-height:36dvh; object-fit:contain; margin:0 auto 16px; }

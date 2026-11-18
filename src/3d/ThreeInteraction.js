@@ -43,7 +43,7 @@
             this.camera.getWorldDirection(this.direction);
             const candidates = [];
             for (const item of this.map.interactables) {
-                if ((item.space || 'house') !== space) continue;
+                if (item.inventoryOnly || (item.space || 'house') !== space || (item.requiresState && !this.story.state[item.requiresState])) continue;
                 if (item.targetObject && !this.visible(item.targetObject)) continue;
                 if (item.requiresOpen && !this.story.state.opened) continue;
                 if (item.requiresWater && !this.story.state.waterSolved) continue;
