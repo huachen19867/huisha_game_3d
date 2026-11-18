@@ -30,7 +30,9 @@
             const h = this.house, m = h.materials, root = this.rooms.school;
             const chalk = new THREE.MeshStandardMaterial({ color: 0x253933, roughness: 1 });
             h.box('school-blackboard', [5.6, 1.45, 0.08], [0, 1.9, -4.7], chalk, 'school_rules', root);
-            h.label('school-board-writing', '二〇一四年　七月\n你的志愿，由谁决定', [3.5, 0.9], [0, 1.95, -4.65], [0, 0, 0], 'school_rules', root, '#253933', '#c9cdb8');
+            h.label('school-board-writing', '毕业班　志愿填报\n交表前核对院校、专业代码。草表自己留。', [3.6, 0.82], [0, 1.95, -4.65], [0, 0, 0], 'school_rules', root, '#253933', '#c9cdb8');
+            h.box('chalk-tray',[5.65,.055,.15],[0,1.17,-4.64],m.wood,'school_rules',root);
+            h.box('board-eraser',[.16,.047,.065],[.72,1.219,-4.615],m.darkWood,'school_rules',root);
             h.documents = new game.ThreeDocument(h); h.documents.build(root);
         }
         hospital() {

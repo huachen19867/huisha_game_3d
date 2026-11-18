@@ -506,6 +506,7 @@
         }
         syncState(immediate = false, delta = 0) {
             const s = this.story.state;
+            this.documents?.syncTear();
             game.syncStoreys(this,s,this.storeysReady ? delta : undefined);this.storeysReady=true;
             this.wardrobe.position.z = s.wardrobeOpen ? -16.01 : -18;
             this.wardrobeSite.position.z = this.wardrobe.position.z;

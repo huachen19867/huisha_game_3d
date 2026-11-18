@@ -3,7 +3,7 @@
     const SAVE_KEY = 'huisha.3d.homecoming.v1';
     const symbols = ['雨', '门', '人', '灯'];
     const freshState = () => ({ arrival: 'intro', chapterEdition: 2, basketDown:false, cellarOpen:false, filterClear:false, sumpDrained:false, oldCoffinLatch:false, gear: [], wardrobeOpen: false, chestOpen: false, calibrated: false, vigil: 0, coffinOpen: false, photoFiled:false, busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
-        courtyard: false, crossedYard: false, maskHung:false, buckets: [0, 0], waterSolved: false, departure: null, rememberPlace:null, position: null, lamp: 'altar', shielded: false,
+        courtyard: false, crossedYard: false, maskHung:false, formJoined:false, buckets: [0, 0], waterSolved: false, departure: null, rememberPlace:null, position: null, lamp: 'altar', shielded: false,
         memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, reasoningRevision: 2, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
     class ThreeStory {
@@ -73,6 +73,7 @@
                         if (!this.state.documentViews[id].length) this.state.records = this.state.records.filter(record => record !== id);
                         else if (!this.state.records.includes(id)) this.state.records.push(id);
                     }
+                    this.state.formJoined=this.state.waterSolved && (saved.formJoined===true || this.state.records.includes('school_draft'));
                     this.state.pinnedRecords = [...new Set((Array.isArray(saved.pinnedRecords) ? saved.pinnedRecords : [])
                         .filter(id => this.state.records.includes(id)))].slice(0, 2);
                     for (const [id, definition] of Object.entries(game.MEMORY_CASES || {})) {
@@ -118,6 +119,7 @@
         missingDocumentFaces(definition) { return Object.entries(definition.requiredFaces || {}).flatMap(([record, faces]) =>
             faces.filter(face => !this.hasDocumentFace(record, face)).map(face => ({ record, face }))); }
         readDocumentFace(id, face) {
+            if(id==='school_draft' && !this.state.formJoined) return false;
             const definition = typeof id === 'string' && Object.hasOwn(game.DOCUMENTS, id) ? game.DOCUMENTS[id] : null;
             if (!definition || !this.state.waterSolved || this.state.memory !== definition.space || typeof face !== 'string' || !Object.hasOwn(definition.faces, face)) return false;
             const views = this.state.documentViews[id] ||= []; if (!views.includes(face)) views.push(face);
@@ -273,10 +275,15 @@
             if (typeof id !== 'string' || !Object.hasOwn(game.MEMORY_CASES || {}, id)) return;
             this.state.drafts[id] = this.cleanDraft(id, evidence, interpretation, timeline === undefined ? this.state.drafts[id]?.timeline : timeline, this.state.drafts[id]?.questionChanged); this.save();
         }
+        conclusionFor(id){
+            const base=game.MEMORY_CASES[id].conclusion;
+            if(id!=='school' || !this.hasDocumentFace('school_draft','front')) return base;
+            return base+'\n\n草表上爸的蓝字挤在格子外面。「第一志愿」里是我填的铁道车辆。七月寄到家里的录取通知上，也是这四个字。';
+        }
         deduce(id) {
             const definition = typeof id === 'string' && Object.hasOwn(game.MEMORY_CASES || {}, id) ? game.MEMORY_CASES[id] : null, draft = this.state.drafts[id];
             if (!definition || !draft) return { success: false, message: '先选出两份记录，再试着解释它们。' };
-            if (this.state.deductions[id]) return { success: true, message: definition.conclusion };
+            if (this.state.deductions[id]) return { success: true, message: this.conclusionFor(id) };
             const evidence = draft.evidence;
             if (!evidence[0] || !evidence[1] || evidence[0] === evidence[1]) return { success: false, message: '需要两份不同的已读记录。草稿仍保留着。' };
             const mismatch = { success: false, message: '这两份记录与判断还不能相互支持。留意日期、签字和原文；可以保留草稿，回去再看。' };
@@ -299,7 +306,7 @@
                     + (id === 'crash' ? '文件保存的旧语音与今夜拨出的电话也要分开。' : '') + '草稿仍保留着。' };
             }
             if (draft.interpretation !== definition.answer) return { success: false, message: '时间已经排好，但当前判断与两份原文还不能相互支持。留意日期、签字和原话，不把猜想当成已经发生的事实。' };
-            this.state.deductions[id] = true; this.save(); return { success: true, message: definition.conclusion };
+            this.state.deductions[id] = true; this.save(); return { success: true, message: this.conclusionFor(id) };
         }
         truthSolved() { return ['school', 'hospital', 'crash'].every(id => this.state.deductions[id]); }
         arrivalTask() {
@@ -421,7 +428,7 @@
         memoryGuidance(stage) {
             const id = this.state.memory, definition = game.MEMORY_CASES[id];
             if (id === 'crash' && this.truthSolved()) return { text: '三段记忆已经核对。继续走向路尽头的红蓝救护灯，靠近后主动决定是否回应。也可以先回厨房。' };
-            if (this.state.deductions[id]) return { text: definition.conclusion + '\n\n可以继续观察，或从门边、暂停菜单回到厨房。' };
+            if (this.state.deductions[id]) return { text: this.conclusionFor(id) + '\n\n可以继续观察，或从门边、暂停菜单回到厨房。' };
             if (stage === 0) return { text: { school: '近处左侧课桌留着录取通知，远处右侧课桌有家长回执。拿近并翻看正反面，再用“整理记忆”核对。',
                 hospital: '看看右前方桌上的初诊病历，再去左侧轮椅旁拿近复诊安排。比较年份，核对签字和背面的复诊办法。',
                 crash: '来路左侧石块上有手机，前方右侧放着救护交接单。拿近手机，分别查看通话记录和本地录音资料，留意日期。' }[id], next: '再想一想原文' };

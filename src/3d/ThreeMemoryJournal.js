@@ -21,9 +21,11 @@
             const actions = [['继续观察', this.close], ['回查手记', this.journal]];
             if (this.story.state.memory) actions.push(['回到厨房', this.onReturn]);
             if (this.story.state.deductions[id]) {
-                this.open(definition.title, definition.conclusion, actions, '已经核对的记忆');
+                this.open(definition.title, this.story.conclusionFor(id), actions, '已经核对的记忆');
                 const container = document.getElementById('reader-body');
-                for (const record of this.knownRecords().filter(record => definition.records.includes(record.id))) {
+                const originals=[...definition.records];
+                if(id==='school' && this.story.hasDocumentFace('school_draft','front')) originals.push('school_draft');
+                for (const record of this.knownRecords().filter(record => originals.includes(record.id))) {
                     const detail = document.createElement('details'), summary = document.createElement('summary'), text = document.createElement('p');
                     detail.className = 'record'; summary.textContent = record.title; text.textContent = record.text;
                     detail.append(summary, text); container.append(detail);

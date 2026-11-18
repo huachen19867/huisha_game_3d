@@ -268,12 +268,15 @@ function updateObjectReading(kind, record, space) {
 function updateDocument() {
     const id = scene.documents.activeId; if (!id) return;
     const face = scene.documents.visibleFace, targetBack = Math.cos(scene.documents.angle) < 0;
-    const state = `${id}:${face}:${targetBack}:${(story.state.documentViews[id] || []).join(',')}`;
+    const loose=id==='school_draft' && !story.state.formJoined;
+    const state = `${id}:${face}:${targetBack}:${loose}:${(story.state.documentViews[id] || []).join(',')}`;
     if (state === documentUiState) return; documentUiState = state;
     $('document-title').textContent = game.DOCUMENTS[id].title;
-    $('document-read').disabled = !face;
+    $('document-join').hidden = !loose;
+    $('document-read').hidden = loose;
+    $('document-read').disabled = !face || loose;
     $('document-flip').textContent = targetBack ? '转回正面' : '翻到背面';
-    $('document-status').textContent = face ? `${game.DOCUMENTS[id].faces[face].title} · ${story.hasDocumentFace(id, face) ? '已记入手记' : '尚未记下'}。可以主动阅读，或翻到另一面。`
+    $('document-status').textContent = loose ? '拖动错开的半张纸，对齐撕口后松手，也可以用下方按钮合上。' : face ? `${game.DOCUMENTS[id].faces[face].title} · ${story.hasDocumentFace(id, face) ? '已记入手记' : '尚未记下'}。可以主动阅读，或翻到另一面。`
         : '等纸张转到眼前，再阅读这一面。可以拖动纸张调整角度。';
     const definition = game.DOCUMENTS[id], page = face && definition.faces[face];
     updateObjectReading('document', page && story.hasDocumentFace(id, face)
@@ -284,7 +287,7 @@ function documentInspect(id) {
     if (reader.open) reader.close(); releaseMouse();
     touches.clear(); updateTouch(); scene.beginDocumentInspection(id);
     $('document-inspector').hidden = false; $('hud').classList.add('inspecting'); documentUiState = null; updateDocument();
-    ($('document-read').disabled ? $('document-flip') : $('document-read')).focus();
+    (!$('document-join').hidden ? $('document-join') : $('document-read').disabled ? $('document-flip') : $('document-read')).focus();
 }
 function updatePhone() {
     const page = scene.phone.page;
@@ -672,6 +675,12 @@ $('phone-read').addEventListener('click', () => {
 });
 $('document-leave').addEventListener('click', () => leaveInspection());
 $('document-records').addEventListener('click', () => journal(true));
+function joinDraft(){
+    if(reader.open || scene.inspectionKind!=='document' || scene.documents.activeId!=='school_draft' || story.state.formJoined) return;
+    story.state.formJoined=true;scene.documents.syncTear();audio.paper();save();updateDocument();
+    ($('document-read').disabled ? $('document-flip') : $('document-read')).focus();
+}
+$('document-join').addEventListener('click',joinDraft);
 $('document-flip').addEventListener('click', () => {
     if (reader.open || scene.inspectionKind !== 'document') return;
     scene.documents.flip(); audio.paper(); updateDocument();
@@ -789,18 +798,25 @@ try {
         if (event.pointerType === 'mouse' && event.button !== 0) return;
         wheelPress = scene.inspectionReturn && !reader.open ? { x: event.clientX, y: event.clientY, originX:event.clientX, originY:event.clientY, dragged:false, id: event.pointerId } : null;
         if (wheelPress && ['portrait', 'document'].includes(scene.inspectionKind)) {
+            wheelPress.tear=scene.inspectionKind==='document' && scene.documents.grabTear(event.clientX,event.clientY);
             try { scene.renderer.domElement.setPointerCapture?.(event.pointerId); } catch (_) { /* release is also handled on the canvas */ }
         }
     });
     scene.renderer.domElement.addEventListener('pointermove', event => {
         if (!['portrait', 'document'].includes(scene.inspectionKind) || reader.open || wheelPress?.id !== event.pointerId) return;
-        if (event.pointerType === 'mouse' && event.buttons === 0) { wheelPress = null; return; }
+        if (event.pointerType === 'mouse' && event.buttons === 0) { if(wheelPress.tear) scene.documents.releaseTear();wheelPress = null; return; }
         wheelPress.dragged ||= Math.hypot(event.clientX-wheelPress.originX,event.clientY-wheelPress.originY)>6;
+        if(wheelPress.tear){scene.documents.slideTear(event.clientX,event.clientY);return;}
         (scene.inspectionKind === 'portrait' ? scene.portrait : scene.documents).drag(event.clientX - wheelPress.x, event.clientY - wheelPress.y);
         wheelPress.x = event.clientX; wheelPress.y = event.clientY; scene.inspectionKind === 'portrait' ? updatePortrait() : updateDocument();
     });
     scene.renderer.domElement.addEventListener('pointerup', event => {
-        const press = wheelPress; wheelPress = null;
+        const press = wheelPress;if(press?.id!==event.pointerId) return;wheelPress = null;
+        if(press.tear){
+            scene.documents.slideTear(event.clientX,event.clientY);
+            if(scene.documents.releaseTear() && !reader.open) joinDraft();
+            return;
+        }
         if (!press || press.dragged || press.id !== event.pointerId || Math.hypot(event.clientX - press.originX, event.clientY - press.originY) > 8) return;
         const kind=scene.inspectionKind;
         if (['portrait','document','phone'].includes(kind)) {
@@ -822,8 +838,13 @@ try {
             if (Number.isInteger(index)) rotateLock(index); else leaveInspection();
         }
     });
-    scene.renderer.domElement.addEventListener('pointercancel', () => { wheelPress = null; });
-    scene.renderer.domElement.addEventListener('lostpointercapture', () => { wheelPress = null; });
+    const cancelPress=event=>{
+        if(wheelPress?.id!==event.pointerId) return;
+        if(wheelPress.tear) scene.documents.releaseTear();
+        wheelPress=null;
+    };
+    scene.renderer.domElement.addEventListener('pointercancel',cancelPress);
+    scene.renderer.domElement.addEventListener('lostpointercapture',cancelPress);
     updateStatus(); $('begin').disabled = false; $('title-settings').disabled = false;
     updateLoadStatus();
     saveTimer = setInterval(() => { if (mode === 'game' && !reader.open) save(); }, 5000);

@@ -16,10 +16,16 @@
     };
     game.DOCUMENTS = {
         school_notice: { title: '录取通知', space: 'school', position: [-2, 0.954, 1], faces: {
-            front: { title: '正面 · 录取日期', lines: ['录取通知', '二〇一四年', '七月十日'], text: '二〇一四年七月十日。' },
+            front: { title: '正面 · 录取专业与日期', lines: ['录取通知', '李明　铁道车辆专业', '二〇一四年七月十日'], text: '二〇一四年七月十日。通知上印着我的名字，录取专业是铁道车辆。' },
             back: { title: '背面 · 写给自己的话', lines: ['九月一日到校。', '六点四十，第一班车。', '一张票。'],
                 text: '背面是我查的车次：「九月一日到校。六点四十，第一班车。一张票。」我用拇指擦了擦，铅笔字还会蹭掉。' }
         } },
+        school_draft: { title:'撕开的志愿草表',space:'school',position:[-2,.954,-1.5],style:'torn',faces:{
+            front:{title:'正面 · 第一志愿',lines:['毕业班志愿填报草表','考生姓名　李明','第一志愿','省铁路职业学院','铁道车辆'],
+                text:'第一志愿：省铁路职业学院，铁道车辆。「车」字的末笔拖得长，是我的铅笔字。格子外面挤着一行蓝字：「县里的机修班也招人。」是爸那支总漏墨的圆珠笔。'},
+            back:{title:'背面 · 旧胶带印',lines:[],
+                text:'背面有一道发黄的胶印，两头都沾着纸毛。我把指腹搁上去，想起自己在教室门口问同桌借胶带。爸撕了草表，我把两半揣进书包，第二天还得照着抄学校代码。\n\n班主任递给我一张干净的正式表，只问了句：「专业再看一遍，填好了？」我把表转回来，看了一遍才交。'}
+        }},
         school_receipt: { title: '家长回执', space: 'school', position: [2, 0.954, -1.5], faces: {
             front: { title: '正面 · 日期与签名', lines: ['家长回执', '二〇一四年', '七月二十日', '家长签字'], signature: '父',
                 text: '二〇一四年七月二十日，家长回执上是父亲的签名。' },
@@ -44,7 +50,7 @@
             facts: [
                 { id: 'notice', record: 'school_notice', documentFace: 'front', title: '收到录取通知', quote: '二〇一四年七月十日。' },
                 { id: 'receipt', record: 'school_receipt', documentFace: 'front', title: '父亲签下回执', quote: '二〇一四年七月二十日，家长回执上是父亲的签名。' },
-                { id: 'rules', record: 'school_rules', title: '记忆里的家规', quote: '黑板上的日期停在你拿到录取通知的那一年。', dated: false }
+                { id: 'rules', record: 'school_rules', title: '毕业班的交表通知', quote: '「交表前核对院校、专业代码。草表自己留。」', dated: false }
             ], timelineOrder: ['notice', 'receipt'],
             conclusion: '七月十日，我已经查好了去学校的头班车。十天后爸才签字。他把车钱放进了抽屉。那张被他撕掉的草表，我记得也没错。' },
         hospital: { title: '初诊与复诊记录能确认什么', records: ['hospital_record', 'hospital_plan'], requiredFaces: { hospital_record: ['front'], hospital_plan: ['front', 'back'] },
@@ -88,11 +94,13 @@
     for (const side of [-1, 1]) obstacles.push({ id: `rescue-post-${side}`, space: 'crash',
         xMin: side * 0.9 - 0.08, xMax: side * 0.9 + 0.08, zMin: -63.08, zMax: -62.92 });
     add('school', 'school_notice', '课桌上的录取通知', -2, 0.96, 1,
-        '二〇一四年七月十日。\n\n背面是我查的车次：「九月一日到校。六点四十，第一班车。一张票。」我用拇指擦了擦，铅笔字还会蹭掉。', { deduction: 'school', journal: false });
+        Object.values(game.DOCUMENTS.school_notice.faces).map(face=>face.text).join('\n\n'), { deduction: 'school', journal: false });
+    add('school','school_draft','前排课桌上的两半草表',-2,.96,-1.5,
+        Object.values(game.DOCUMENTS.school_draft.faces).map(face=>face.text).join('\n\n'),{deduction:'school',journal:false});
     add('school', 'school_receipt', '课桌上的家长回执', 2, 0.96, -1.5,
         '二〇一四年七月二十日，家长回执上是父亲的签名。\n\n回执沿虚线撕开了，家里留下的这一联背面有爸的字：「明，车钱在缝纫机第二个抽屉。那天我把你的志愿草表撕了，这事是我做错。要我送，出门前敲一下门。爸」', { deduction: 'school', journal: false });
-    add('school', 'school_rules', '黑板旁的旧家规', 0, 1.7, -4.45,
-        '六点前回家，不许顶嘴，志愿由父亲决定。\n\n黑板上的日期停在你拿到录取通知的那一年。右下角那一小块擦得发白，我写过要报的学校，刚写了个校名，爸就伸手拿了板擦。', { deduction: 'school' });
+    add('school', 'school_rules', '黑板上的交表通知', 0, 1.7, -4.45,
+        '「交表前核对院校、专业代码。草表自己留。」\n\n粉笔槽里搁着板擦。那天收齐一组，班长就上去擦掉一个组号。轮到我们组，我才发现自己的笔还落在前排桌上。', { deduction: 'school' });
     add('hospital', 'hospital_record', '初诊病历', 2.3, 1.02, -2.85,
         '初诊日期：二〇一二年八月二十三日。\n\n后续栏里是反复检查与长期用药的记录。那时候，你还没有收到录取通知，更没有离家。', { deduction: 'hospital', journal: false });
     add('hospital', 'hospital_plan', '母亲签过字的复诊安排', -2.8, 1.32, -0.8,
