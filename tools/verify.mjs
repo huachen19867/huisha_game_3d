@@ -31,7 +31,7 @@ let mapWrites = 0; const mapStorage = new Map(), mapAdapter = { getItem: key => 
     const oldSlot={getItem:()=>serialized,setItem:(_,value)=>{serialized=value;}};
     const migrated=new game.ThreeStory(oldSlot);
     migrated.save();
-    assert.ok(new game.ThreeStory(oldSlot).state.coffinOpen,'a migrated accident photo survives the next reload');
+    assert.ok(new game.ThreeStory(oldSlot).state.photoFiled,'a migrated accident photo survives the next reload');
 }
 const mapStory = new game.ThreeStory(mapAdapter);
 assert.equal(mapStory.visitPosition(game.WORLD_MAP.playerStart), true); assert.deepEqual([...mapStory.state.visitedAreas], ['hall']);
@@ -615,7 +615,7 @@ for (const [id, definition] of Object.entries(game.MEMORY_CASES)) {
         assert.ok(source && source.space === id);
         assert.ok(fact.quote.split('…').every(fragment => source.text.includes(fragment)), 'timeline fragments must come from their actual source record');
     }
-    if(id==='crash'){assert.equal(story.enterMemory(id,controls.snapshot()),false); story.state.coffinOpen=true;}
+    if(id==='crash'){assert.equal(story.enterMemory(id,controls.snapshot()),false); story.state.coffinOpen=true;assert.equal(story.enterMemory(id,controls.snapshot()),false);story.state.photoFiled=true;}
     assert.equal(story.enterMemory(id, controls.snapshot()), true);
     controls.teleport(story.state.position); house.syncState(true);
     assert.equal(house.homeRoot.visible, false);

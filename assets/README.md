@@ -1,5 +1,7 @@
 # 3D 美术与许可
 
+0.20.2 的石桥学车照由内置 ImageGen 生成。提示词指定阴天的乡间石桥、左前方缺角桥柱、穿两道白条蓝校服学车的孩子，以及刚刚松开后座的父亲。游戏内袋与相册共用同一份 900 × 600 JPEG。[道具照片](art/bridge-bicycle.jpg)
+
 ## 0.20.0 阁楼与地下储水间
 
 藤篮、旧木箱、搪瓷锅、软管卷、带护笼的壁灯和锈铁架来自 Poly Haven，按 CC0 分发。游戏使用本地 1K glTF，按场景比例放置，壁灯取其中一种装配件。完整文件可查下载 URL 和 MD5。[藤篮](https://polyhaven.com/a/wicker_basket_01) · [木箱](https://polyhaven.com/a/wooden_crate_01) · [软管](https://polyhaven.com/a/garden_hose_wall_mounted_01) · [壁灯](https://polyhaven.com/a/industrial_caged_sconce) · [铁架](https://polyhaven.com/a/worn_metal_rack) · [搪瓷锅](https://polyhaven.com/a/pot_enamel_01) · [下载清单](sources.json)

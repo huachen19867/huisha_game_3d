@@ -140,8 +140,20 @@ function pocketLetter() {
     story.record(item.id);story.advanceArrival('letter','ledger');
     readRecord(item,[['回到背包',backpack],['收好来信',close]]);
 }
+function showBridgePhoto(){
+    const record=game.WORLD_MAP.interactables.find(item=>item.id==='bend_photo');
+    if(!story.state.records.includes(record.id)) {story.record(record.id);audio.paper();}
+    readRecord(record,[['收好照片',close]]);
+}
+function inspectUniform(){
+    const collar=game.WORLD_MAP.interactables.find(item=>item.id==='uniform_collar');
+    if(!story.state.records.includes(collar.id)){story.record(collar.id);scene.syncState();audio.paper();}
+    const found=story.state.records.includes('bend_photo');
+    const text=found?collar.text.replace('右边内袋比左边沉。','右边内袋里只剩一点纸屑。'):collar.text;
+    readRecord({...collar,text},[...(!found?[['摸一摸右边内袋',showBridgePhoto]]:[]),['收好校服',close]]);
+}
 function backpack() {
-    const choices=story.carried().map(id=>[equipment[id][0],id==='envelope'?pocketLetter:
+    const choices=story.carried().map(id=>[equipment[id][0],id==='envelope'?pocketLetter:id==='uniform'?inspectUniform:id==='roadPhoto'?showBridgePhoto:
         ()=>open(equipment[id][0],equipment[id][1],[['回到背包',backpack],['返回探索',close]],'随身背包')]);
     open('背包',choices.length?'':'包里暂时没有东西。',[...choices,['收起背包',close]],'随身物品');
 }
@@ -168,7 +180,7 @@ function readRecord(item, actions) {
     const choices = [...actions];
     if (!choices.some(([label]) => label === '打开手记')) choices.push(['打开手记', () => journal(!!scene?.inspectionReturn)]);
     open(item.title, item.text, choices);
-    const photographs={letter:'family-new-year',wedding_photo:'silver-wedding'};
+    const photographs={letter:'family-new-year',wedding_photo:'silver-wedding',bend_photo:'bridge-bicycle'};
     if(photographs[item.id]){
         const photo=document.createElement('img');
         photo.className='record-photo';photo.src='assets/art/'+photographs[item.id]+'.jpg';photo.alt=item.title;
@@ -184,14 +196,23 @@ function showMap(resetScope = true) {
 }
 function album() {
     const item = game.WORLD_MAP.interactables.find(item => item.id === 'memory_album');
-    const text=story.state.coffinOpen ? '校服里的照片补齐了最后一页。相角下分别写着：录取、复诊、归途。' : '前两页各夹着一张照片：学校、医院。第三页写着「归途」，四个相角里空着。';
-    open(item.title, text, [...Object.entries(game.MEMORIES).map(([id, definition]) => [
-        `翻入记忆 · ${definition.title}`, () => enterMemory(id)
-    ]), ['合上相册，继续观察', close]], '回煞 · 厨房相册');
+    const {photoFiled,records}=story.state;
+    const text=photoFiled?'最后一页夹好那张学车照了。桥柱缺的那一角，跟今晚在车灯里看见的一样。':'录取通知和复诊单各占一页。最后一页只剩四个相角，右下角翘起，露出一小块颜色浅些的纸。';
+    const actions=Object.entries(game.MEMORIES).map(([id,definition])=>{
+        if(id==='crash' && !photoFiled && records.includes('bend_photo')) return ['把石桥旧照放进相角',()=>{
+            story.state.photoFiled=true;story.save();audio.paper();album();
+        }];
+        return [id==='crash'&&!photoFiled?'翻看空着的最后一页':`翻入记忆 · ${definition.title}`,()=>enterMemory(id)];
+    });
+    open(item.title,text,[...actions,['合上相册，继续观察',close]],'回煞 · 厨房相册');
+    if(photoFiled){
+        const img=document.createElement('img');img.className='record-photo';img.src='assets/art/bridge-bicycle.jpg';img.alt='父亲在石桥边松开自行车后座';$('reader-body').prepend(img);
+    }
 }
 function enterMemory(id) {
-    if(id==='crash' && !story.state.coffinOpen){
-        open('缺了一张照片','相册最后一页只剩四个相角。页脚上有母亲的字：「山路那张，放在明明校服内袋里了。」',[['回到相册',album],['返回',close]]);return;
+    if(id==='crash' && !story.state.photoFiled){
+        const note=story.state.records.includes('uniform_collar')?'我刚收起的校服里，有一边口袋沉甸甸的。':'我记得这张。妈给我洗校服那天，我怕她把照片一起洗了，一路跑回家去掏口袋。';
+        open('缺了一张照片',note,[['回到相册',album],['返回',close]]);return;
     }
     leaveInspection(false);
     if (!story.enterMemory(id, scene.playerSnapshot())) return;
@@ -371,6 +392,9 @@ function ending(choice) {
             ? '天刚蒙亮，村口卖早点的正在卸炉子。我借了个塑料袋，把信和复诊单套好。\n\n老板问要几个包子。我说两个，想了想，改成了一个。\n\n结局 · 归路'
             : '车开过第一个弯，我才想起厨房的抽屉还开着。我问司机明天还有没有这趟车。\n\n他说有，把第一班车的时间写在了我的票背面。\n\n结局 · 归路';
     let endingText=text;
+    if(choice==='remember' && story.state.records.includes('bridge_post')) {
+        endingText='桥头有人喊「李明」。我扭头，看见妈捧着那台银色的小相机，正拿指甲拨过片轮。\n\n「刚才照上没？」我问。她把相机贴回眼睛：「你再骑一趟，我怕照虚了。」我把脚搁上踏板，听见爸在后面追了两步。桥那头叫我名字的人等了一会儿，声音远了。\n\n结局 · 回煞';
+    }
     if(choice==='leave' && story.state.records.includes('forwarding_slip')) {
         const ride=text.slice(0,text.lastIndexOf('\n\n结局'));
         endingText=ride+'\n\n到了县城，钥匙在口袋里硌了一下。我照底单上的号码给老周发消息：「您哪天值班？我把钥匙给您送回来。」\n\n「周三。别赶早，我上夜班。」我把号码存下来，名字填了个「周叔」。\n\n结局 · 归路';
@@ -420,7 +444,7 @@ function inspect(item) {
     item = presentRecord(item);
     ['lock', 'water_station'].includes(item.id) ? audio.knock() : audio.paper();
     if (['car_envelope','clerk','duty_book','key_board','front_gate'].includes(item.id) && inspectVillage(item)) return;
-    if (household({story,scene,open,close,audio},item)) return;
+    if (household({story,scene,open,close,audio,inspectUniform},item)) return;
     if (item.id === 'lock') { lock(); return; }
     if (item.id === 'water_station') {
         if(!story.state.calibrated){

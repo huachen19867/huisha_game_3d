@@ -288,7 +288,11 @@ try {
     ui.inspect('sump_grate');ui.click('提起棉纱，清掉树叶');ui.inspect('sump_pump');ui.click('压动手柄');ui.key('KeyE');
     ui.inspect('cellar_keyring');ui.click('拿走梅花铜钥匙');
     ui.inspect('altar');ui.click('摆饭');ui.click('点香');ui.click('烧纸');ui.key('KeyE');
-    ui.inspect('coffin');ui.click('推开棺盖');ui.key('KeyE');assert.ok(ui.scene.story.carried().includes('uniform'));
+    ui.inspect('coffin');ui.click('推开棺盖');ui.key('KeyE');assert.ok(!ui.scene.story.carried().includes('uniform'));
+    ui.inspect('coffin');ui.click('拿起校服，翻开衣领');ui.key('KeyE');
+    assert.ok(ui.scene.story.carried().includes('uniform'));assert.ok(!ui.scene.story.state.records.includes('bend_photo'));
+    ui.key('KeyB');ui.click('旧校服');ui.click('摸一摸右边内袋');assert.ok(ui.document.querySelector('img[src$="bridge-bicycle.jpg"]'));
+    ui.click('收好照片');assert.ok(ui.scene.story.carried().includes('roadPhoto'));
     ui.inspect('water_station');ui.click('装上铜砣'); ui.$('water-weigh').click(); assert.equal(ui.scene.story.state.waterSolved, false);
     assert.equal(ui.$('water-fill').disabled, true); ui.key('KeyF'); assert.deepEqual([...ui.scene.story.state.buckets], [0, 0]);
     ui.scene.courtyard.update(0.55); assert.match(ui.$('water-status').textContent, /偏轻/);
@@ -313,7 +317,8 @@ try {
     assert.ok(Math.abs(ui.scene.courtyard.pan.position.y - 0.1) < 1e-9);
     assert.match(ui.$('water-status').textContent, /对准四升/); ui.scene.courtyard.update(1);
     ui.$('water-leave').click();
-    ui.inspect('memory_album'); ui.click('翻入记忆 · 录取那年');
+    ui.inspect('memory_album');ui.click('把石桥旧照放进相角');assert.ok(ui.scene.story.state.photoFiled);
+    assert.ok(!ui.scene.story.carried().includes('roadPhoto'));ui.click('翻入记忆 · 录取那年');
     const returnPose = { ...ui.scene.story.state.memoryReturn };
     const beforeMemoryMap = { ...ui.scene.controls.snapshot() }; ui.key('KeyM');
     assert.ok(ui.document.querySelector('[data-map-area="school"]')); assert.equal(ui.document.querySelector('[data-map-space="hospital"]'), null);
@@ -453,7 +458,9 @@ try {
         if (id === 'hospital') ui.click('回到厨房');
     }
     ui.inspect('rescue_light'); ui.click('回应救护灯，醒来'); assert.equal(ui.$('reader-title').textContent, '破茧');
+    ui.inspect('bridge_post');ui.key('KeyE');
     ui.inspect('rescue_light'); ui.click('留在母亲的记忆里'); assert.equal(ui.$('reader-title').textContent, '回煞');
+    assert.match(ui.$('reader-body').textContent,/过片轮/);
     ui.click('留在现场回看'); ui.$('pause').click(); ui.click('回到厨房');
     ui.inspect('road_exit'); ui.click('去候车棚'); ui.inspect('bus_notice'); ui.key('KeyE'); ui.inspect('stop_signal');
     ui.click('转向老宅'); ui.click('再转一次'); ui.click('转向石桥'); ui.click('去站牌'); ui.inspect('road_exit'); ui.click('坐车下山'); assert.equal(ui.scene.story.state.departure, 'leave');

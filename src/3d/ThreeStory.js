@@ -2,7 +2,7 @@
     const game = global.Huisha3D || (global.Huisha3D = {});
     const SAVE_KEY = 'huisha.3d.homecoming.v1';
     const symbols = ['雨', '门', '人', '灯'];
-    const freshState = () => ({ arrival: 'intro', chapterEdition: 2, basketDown:false, cellarOpen:false, filterClear:false, sumpDrained:false, oldCoffinLatch:false, gear: [], wardrobeOpen: false, chestOpen: false, calibrated: false, vigil: 0, coffinOpen: false, busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
+    const freshState = () => ({ arrival: 'intro', chapterEdition: 2, basketDown:false, cellarOpen:false, filterClear:false, sumpDrained:false, oldCoffinLatch:false, gear: [], wardrobeOpen: false, chestOpen: false, calibrated: false, vigil: 0, coffinOpen: false, photoFiled:false, busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
         courtyard: false, crossedYard: false, buckets: [0, 0], waterSolved: false, departure: null, position: null, lamp: 'altar', shielded: false,
         memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, reasoningRevision: 2, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
@@ -49,6 +49,13 @@
                     this.state.calibrated = this.state.waterSolved || (this.state.opened && saved.calibrated === true);
                     this.state.vigil = legacy ? 3 : Number.isInteger(saved.vigil) ? Math.max(0, Math.min(3, saved.vigil)) : 0;
                     this.state.coffinOpen = legacy || (this.state.vigil === 3 && saved.coffinOpen === true);
+                    // Earlier saves awarded the coat, photograph and album access together.
+                    const hadPhoto=this.state.coffinOpen && !Object.hasOwn(saved,'photoFiled');
+                    if(hadPhoto) {
+                        for(const id of ['uniform_collar','bend_photo'])
+                            if(!this.state.records.includes(id)) this.state.records.push(id);
+                    }
+                    this.state.photoFiled=this.state.coffinOpen && this.state.records.includes('bend_photo') && (hadPhoto || saved.photoFiled===true);
                     if (this.state.waterSolved) this.state.buckets[1] = 4;
                     if (!this.state.waterSolved) this.state.records = this.state.records.filter(id =>
                         !(game.WORLD_MAP || game.MAIN_HALL_MAP).interactables.find(item => item.id === id)?.requiresWater);
@@ -206,7 +213,8 @@
                 if(id==='weight' && s.calibrated || id==='rice' && s.vigil>=1 || id==='paper' && s.vigil>=3) continue;
                 ids.push(id);
             }
-            if(s.coffinOpen && s.vigil===3) ids.push('uniform');
+            if(s.records.includes('uniform_collar')) ids.push('uniform');
+            if(s.records.includes('bend_photo') && !s.photoFiled) ids.push('roadPhoto');
             return ids;
         }
         takeGear(id) {
@@ -238,7 +246,7 @@
         }
         enterMemory(id, pose) {
             if (!this.state.waterSolved || this.state.memory || typeof id !== 'string' || !Object.hasOwn(game.MEMORIES || {}, id) || !validPose(pose)) return false;
-            if (id === 'crash' && !this.state.coffinOpen) return false;
+            if (id === 'crash' && !this.state.photoFiled) return false;
             this.state.memoryReturn = { ...pose }; this.state.memory = id;
             this.state.position = { ...game.MEMORIES[id].start }; this.markArea(id); this.save(); return true;
         }
@@ -314,6 +322,7 @@
             if(area==='cellar'||area==='cellar_steps') return s.gear.includes('coffinKey')?'回正厅查看棺锁':s.sumpDrained?'找回水槽里的钥匙':'排走储水间的积水';
             if(area==='workshop' && !s.gear.includes('weight')) return '找回修秤用的铜砣';
             if(area==='west_room' && !s.wardrobeOpen) return '找出修理间的入口';
+            if(s.waterSolved && s.coffinOpen && !s.photoFiled) return s.records.includes('bend_photo')?'把旧照放回相册，或下山':'查查旧校服，或下山';
             if(s.waterSolved) return s.coffinOpen ? '查清雨夜的事，或下山' : '查清棺里放着什么，或下山';
             if(s.courtyard) return !s.calibrated ? '找回灶间的秤砣' : '打开量水桌的抽屉';
             return s.opened ? '穿过雨庭' : '打开老宅后门';
@@ -328,6 +337,10 @@
             }
             if (this.state.departure) return { leave: '归路 · 你已走出旧宅，可以继续回看', stay: '余温 · 今晚留下是你的选择，可以继续回看',
                 wake: '破茧 · 你回应了救护灯，可以继续回看', remember: '回煞 · 你选择留在记忆，可以继续回看' }[this.state.departure];
+            if(this.state.waterSolved && this.state.coffinOpen && !this.state.photoFiled && !this.state.busCalled) {
+                if(this.state.records.includes('bend_photo')) return '把石桥旧照带到厨房，放进相册最后一页的空相角。';
+                return this.state.records.includes('uniform_collar')?'按 B 打开背包，看看旧校服较沉的右边内袋。':'正厅的棺盖已经开了。查看棺里的衣领。';
+            }
             if(this.state.waterSolved && !this.state.coffinOpen && !this.state.records.includes('bus_notice') && !this.state.busCalled)
                 return this.state.vigil === 3 ? (this.state.oldCoffinLatch || this.state.gear.includes('coffinKey') ? '回正厅查看松动的棺盖。' : '西厢樟木箱保管着地下室的钥匙。穿过修理间，去地下储水间找棺锁钥匙。') : '正厅供桌还空着。到厨房取饭，西厢修理间取火柴、阁楼取纸元宝；守完夜再看棺木。厨房相册里也能先查学校、医院。';
             if (this.state.waterSolved && this.state.busCalled) return '接驳车停在山路尽头。去站牌旁上车，或回厨房翻相册。';
@@ -371,7 +384,7 @@
             }
             if (this.arrivalTask()) return { text: this.arrivalTask() };
             if (this.state.memory) return this.memoryGuidance(stage);
-            if (this.state.waterSolved && !this.state.coffinOpen || this.state.courtyard && !this.state.calibrated) return { text: this.objective() };
+            if (this.state.waterSolved && !this.state.photoFiled || this.state.courtyard && !this.state.calibrated) return { text: this.objective() };
             if (this.state.waterSolved) return { text: '打开桌下抽屉看家书。想查当晚的事就翻厨房柜边的相册。要下山就出院门看通知，到候车棚把反光牌转向来车，再去尽头上车。' };
             if (this.state.courtyard) return this.waterGuidance(stage);
             if (this.state.opened) return { text: '门闩已经松开。沿走廊走到门外的石路，再走入雨庭。右手边的厨房还亮着一盏灯。' };

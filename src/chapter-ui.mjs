@@ -9,10 +9,12 @@ export const equipment = {
     cellarKey:['地下室钥匙','木牌上刻着小水桶，开修理间通往地下室的铁门。'],
     coffinKey:['梅花铜钥匙','在地下水槽找回的钥匙，柄上冲着一朵梅花。'],
     familyLetter: ['未寄出的家书','量水桌抽屉里的家书和母亲的复诊单。'],
+    roadPhoto:['石桥旧照','李明第一次自己骑过石桥时，母亲在桥头拍下的相片。'],
     uniform: ['旧校服','棺里叠着的蓝校服，衣领内侧缝着李明的名字。']
 };
 
-export function household({story,scene,open,close,audio},item) {
+export function household(context,item) {
+    const {story,scene,open,close,audio,inspectUniform}=context;
     const s=story.state, back=['返回',close];
     const redraw=()=>{story.save();scene.syncState(true);};
     function obtain(id) {
@@ -21,7 +23,7 @@ export function household({story,scene,open,close,audio},item) {
     }
     if(item.id==='wardrobe') {
         if(s.wardrobeOpen) open('柜后的门洞','柜子已经挪到轨道尽头，里面是父亲的修理间。',[back]);
-        else open(item.title,item.text,[['往床头推',()=>open('柜子抵住了墙','这头的轨道到头了。另一边有一段发亮的滑轨。',[['换一边试试',()=>household({story,scene,open,close,audio},item)],back])],
+        else open(item.title,item.text,[['往床头推',()=>open('柜子抵住了墙','这头的轨道到头了。另一边有一段发亮的滑轨。',[['换一边试试',()=>household(context,item)],back])],
             ['沿滑轨推向床尾',()=>{s.wardrobeOpen=true;
                 const pose=scene.controls.snapshot();
                 if(!scene.controls.canOccupy(pose.x,pose.z)) scene.controls.teleport({...pose,x:-11.27});
@@ -31,7 +33,7 @@ export function household({story,scene,open,close,audio},item) {
         else {
             function unlock(){
                 if(input.value!=='1986'){ feedback.textContent='锁扣没松。锁旁的双喜已经磨白了。'; input.select(); return; }
-                s.chestOpen=true;redraw();audio.latch();household({story,scene,open,close,audio},item);
+                s.chestOpen=true;redraw();audio.latch();household(context,item);
             }
             open(item.title,item.text,[['拨开锁扣',unlock],back]);
             const input=document.createElement('input'), feedback=document.createElement('p');
@@ -41,7 +43,7 @@ export function household({story,scene,open,close,audio},item) {
         }
     } else if(item.id==='attic_winch'){
         if(!s.basketDown) open(item.title,item.text,[['松开绳结，放下晾篮',()=>{
-            s.basketDown=true;redraw();audio.latch();household({story,scene,open,close,audio},item);
+            s.basketDown=true;redraw();audio.latch();household(context,item);
         }],back]);
         else open('放下的晾篮',s.gear.includes('paper')?'篮底剩下一段扎纸用的棉线。':'掀开盖布，里面躺着一包干燥的纸元宝。',s.gear.includes('paper')?[back]:[['拿走纸元宝',()=>obtain('paper')],back]);
     } else if(item.id==='cellar_door'){
@@ -65,9 +67,9 @@ export function household({story,scene,open,close,audio},item) {
             s.gear.includes(id)?[back]:[[`拿走${equipment[id][0]}`,()=>obtain(id)],back]);
     } else if(item.id==='altar' && s.opened) {
         const offerings=['rice','matches','paper'], names=['摆饭','点香','烧纸'], next=offerings[s.vigil];
-        const description=['香炉前空着一个浅碗印。小时候，爸摆饭，妈点香，轮到我把纸元宝放进盆里。',
-            '饭已经摆上。三根香插在炉里，还没点着。','香头红了。地上的搪瓷盆里只剩往年的灰。','纸烧尽了。身后传来木头碰地的声音，棺盖挪开了一条缝。'][s.vigil];
-        const returnToAltar=()=>household({story,scene,open,close,audio},item);
+        const description=['每年十四，爸摆饭，妈点香，我蹲在盆边烧纸。妈走那年我没赶上。桌上还留着她惯用的那双筷子。我把它们并了并，给饭碗腾出地方。',
+            '碗沿的豁口朝外。我照着妈以前的习惯把碗转了半圈。炉里还有三根没点的香。','香头红了。地上的搪瓷盆里只剩往年的灰。','最后一片纸灰落进盆里。身后响了一声。回头看，棺沿那根绷着的红绳已经垂到了地上。'][s.vigil];
+        const returnToAltar=()=>household(context,item);
         const missing={rice:'灶上还有蒸笼。',matches:'父亲修东西时，总在工作台上放一盒火柴。',paper:'母亲怕纸返潮，一直把它搁在阁楼梁下。楼梯在父母卧房里。'};
         const actions=next ? offerings.slice(s.vigil).map((id,index)=>[names[s.vigil+index],()=>{
             if(id!==next) open('手停了下来',next==='rice'?'桌上空着，香炉前还有个碗印。':'搪瓷盆旁的香还没点，先把手上的纸收好。',[['再看供桌',returnToAltar],back]);
@@ -76,10 +78,12 @@ export function household({story,scene,open,close,audio},item) {
         }]) : [];
         open('正厅守夜',description,[...actions,back]);
     } else if(item.id==='coffin' && s.opened) {
-        if(s.coffinOpen) open('旧校服','里头没有人。那件蓝校服的领口缝着「李明」，内袋压着一张山路上的照片。',[back]);
+        const lookInside=()=>open('棺盖底下',s.records.includes('uniform_collar')?'旧校服已经收进包里。棺底留下一个方方的灰印。':'棺底铺着旧报纸。上面叠着一件蓝外套，两道白条一直通到袖口。衣领折在下面。',[
+            [s.records.includes('uniform_collar')?'再看旧校服':'拿起校服，翻开衣领',inspectUniform],back]);
+        if(s.coffinOpen) lookInside();
         else if(s.vigil===3 && !s.oldCoffinLatch && !s.gear.includes('coffinKey')) open('棺锁还扣着','红绳松了，盖上还有把梅花锁。父亲配的这把钥匙原来挂在地下室水槽上方。',[back]);
-        else if(s.vigil===3) open('松动的棺盖','红线已经垂到了地上。手伸进盖沿，能摸到一角布料。',[['推开棺盖',()=>{
-            s.coffinOpen=true;redraw();audio.knock();open('是我的校服','蓝校服领口缝着我的名字。妈用的是红线。内袋里那张照片拍的是山路弯道，边缘和厨房相册最后一页的缺口正好对上。',[back]);
+        else if(s.vigil===3) open('松动的棺盖','我把手扣进盖沿。木头下面夹着一截蓝布。',[['推开棺盖',()=>{
+            s.coffinOpen=true;redraw();audio.knock();lookInside();
         }],back]);
         else open(item.title,'红绳还绷着。正厅的香炉前留着一个空碗印。',[back]);
     } else return false;

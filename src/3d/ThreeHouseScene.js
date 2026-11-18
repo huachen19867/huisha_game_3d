@@ -260,8 +260,16 @@
             this.coffinLid = new THREE.Group(); this.coffinLid.position.set(0,.714,.09); this.scene.add(this.coffinLid);
             this.coffinPadlock=this.box('coffin-padlock',[.122,.135,.058],[-.48,.713,1.273],m.brass,'coffin');
             this.mesh('lock-shackle',new THREE.TorusGeometry(.043,.012,8,18,Math.PI),m.stone,[0,.071,0],'coffin',this.coffinPadlock);
-            this.uniform = this.box('folded-school-jacket',[.65,.07,.44],[0,.78,.64],m.cloth,'coffin');
-            this.uniformTag = this.label('uniform-name','李明　初二',[.24,.09],[.14,.82,.68],[-Math.PI/2,0,0],'coffin');
+            this.uniform=new THREE.Group();this.uniform.position.set(0,.77,.64);this.scene.add(this.uniform);
+            const twill=(m.denim||m.cloth).clone();twill.color.setHex(0x304265);
+            const fold=this.mesh('folded-school-jacket',new THREE.SphereGeometry(1,24,12),twill,[0,.012,0],'coffin',this.uniform);
+            fold.scale.set(.35,.052,.235);
+            for(const side of [-1,1]){
+                const sleeve=new THREE.Group();sleeve.position.set(side*.19,.046,-.014);sleeve.rotation.y=side*.24;this.uniform.add(sleeve);
+                const cloth=this.mesh('folded-sleeve',new THREE.SphereGeometry(1,20,12),twill,[0,0,0],'coffin',sleeve);
+                cloth.scale.set(.071,.037,.205);
+                for(const offset of [-.018,.018]) this.box('school-stripe',[.012,.006,.306],[offset,.034,0],m.paper,'coffin',sleeve);
+            }
             this.offeringRice = this.cylinder('offered-rice',.18,.12,.13,[-.66,1.17,.14],m.paper,'altar',altar);
             this.offeringEmber = this.mesh('incense-ember',new THREE.SphereGeometry(.024,8,6),new THREE.MeshBasicMaterial({color:0xff813a}),[0,1.62,-.18],'altar',altar);
             this.paperAsh = this.box('offering-ash',[.2,.025,.18],[.47,1.11,.2],m.ash,'altar',altar);
@@ -480,7 +488,7 @@
             this.paperAsh.visible = s.vigil >= 3;
             this.coffinPadlock.visible=!s.coffinOpen;
             this.coffinLid.rotation.x = s.coffinOpen ? -1.37 : 0;
-            this.uniform.visible = this.uniformTag.visible = s.coffinOpen;
+            this.uniform.visible = s.coffinOpen && !s.records.includes('uniform_collar');
             this.frontDoor.visible = s.arrival !== 'home';
             this.portrait.sync(immediate);
             this.wheels.forEach((wheel, i) => {
