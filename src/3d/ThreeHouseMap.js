@@ -12,10 +12,15 @@
             { id: 'hall', title: '正厅', xMin: -4.8, xMax: 4.8, zMin: -4.1, zMax: 4.2 },
             { id: 'corridor', title: '走廊', xMin: -1.25, xMax: 1.25, zMin: -11.5, zMax: -3.3 },
             { id: 'path', title: '门外石路', mapLabel: '石路', xMin: -1.25, xMax: 1.25, zMin: -14.5, zMax: -10.9, requiresState: 'opened' },
+            { id: 'stone_court', title:'门后石坪', xMin:-3.56,xMax:3.56,zMin:-14.08,zMax:-11.67,requiresState:'opened' },
             { id: 'porch', title: '老宅门廊', xMin: -1, xMax: 1, zMin: 4.2, zMax: 5.1 },
             { id: 'lane', title: '村口旧路', xMin: -3.6, xMax: 3.6, zMin: 5.1, zMax: 34 }
         ],
         obstacles: [
+            ...[-1,1].flatMap(side=>[
+                {id:'path-stone-post'+side,xMin:side*1.2-.18,xMax:side*1.2+.18,zMin:-14.38,zMax:-14.02},
+                {id:'path-curb'+side,xMin:side*1.2-.12,xMax:side*1.2+.12,zMin:-14,zMax:-11.7,height:.13}
+            ]),
             { id: 'front-door', xMin: -1, xMax: 1, zMin: 4.32, zMax: 4.52, closedUntilHome: true },
             { id: 'parked-car', xMin: -3.15, xMax: -1.15, zMin: 27.5, zMax: 31.9 },
             { id: 'key-cabinet', xMin: -3.63, xMax: -3.355, zMin: 10.84, zMax: 12.16 },

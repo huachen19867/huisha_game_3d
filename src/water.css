@@ -27,3 +27,16 @@
 #reader-body input[inputmode="numeric"] { font:22px monospace; letter-spacing:.3em; padding:8px 12px; max-width:100%; }
 
 .record-photo { display:block; width:min(100%,440px); max-height:36dvh; object-fit:contain; margin:0 auto 16px; }
+
+body:has(#water-inspector:not([hidden])) .hud-top { visibility:hidden; }
+body:has(#water-inspector:not([hidden])) #acquisitions { bottom:max(6px,env(safe-area-inset-bottom)); }
+body:has(#water-inspector:not([hidden])):has(#acquisitions:not(:empty)) #water-inspector { bottom:56px; max-height:min(55dvh,calc(100dvh - 65px)); }
+body:has(#water-inspector:not([hidden])) #acquisitions div:not(:last-child) { display:none; }
+@media(min-width:900px), (max-height:520px) and (min-width:681px) {
+    body:has(#water-inspector:not([hidden])):has(#acquisitions:not(:empty)) #water-inspector { max-height:calc(100dvh - 66px); }
+}
+@media(max-width:680px){
+    .hud .hud-top { flex-direction:column; align-items:stretch; padding:12px; }
+    .hud .hud-top nav { display:grid;grid-template-columns:repeat(5,1fr);gap:4px; }
+    .hud .hud-top nav button { padding:7px 2px;min-height:38px; }
+}

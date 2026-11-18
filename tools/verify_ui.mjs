@@ -75,6 +75,7 @@ async function boot(saved, preferences) {
                     }
                     labelMaterial() { return new THREE.MeshBasicMaterial(); } // No real canvas text or photo decoding in jsdom.
                     syncState(immediate) {
+                        game.syncStoreys(this,this.story.state);
                         this.wardrobe.position.z=this.story.state.wardrobeOpen?-16.01:-18;
                         this.portrait?.sync(immediate);
                         if (immediate) this.door.rotation.y = this.story.state.opened ? this.map.door.openAngle : 0;
@@ -106,8 +107,8 @@ async function boot(saved, preferences) {
             for (let z = item.position.z - item.radius; z <= item.position.z + item.radius; z += 0.2) {
                 if (!scene.controls.canOccupy(x, z)) continue;
                 const dx = item.position.x - x, dz = item.position.z - z;
-                scene.camera.position.set(x, 1.6, z); scene.controls.yaw = Math.atan2(dx, dz);
-                scene.controls.pitch = Math.atan2(item.position.y - 1.6, Math.hypot(dx, dz)); scene.controls.applyLook();
+                const eyeY=1.6+scene.controls.supportHeight(x,z);scene.camera.position.set(x,eyeY,z); scene.controls.yaw = Math.atan2(dx, dz);
+                scene.controls.pitch = Math.atan2(item.position.y - eyeY, Math.hypot(dx, dz)); scene.controls.applyLook();
                 scene.interaction.update();
                 if (scene.interaction.current?.id !== id) continue;
                 scene.onFrame(scene.camera.position, false); key('KeyE'); return;
@@ -277,7 +278,11 @@ try {
     assert.equal(ui.document.querySelector('[data-map-area="path"]'), null, 'unlocking alone does not draw a room that has not been entered'); ui.click('继续探索');
     ui.inspect('wardrobe'); ui.click('沿滑轨推向床尾'); ui.inspect('brass_weight'); ui.click('拿走铜秤砣');
     ui.inspect('matchbox');ui.click('拿走火柴盒');ui.inspect('rice_bowl');ui.click('拿走一碗白饭');
-    ui.inspect('wedding_photo');ui.key('KeyE');ui.inspect('wedding_chest');ui.document.querySelector('[inputmode=numeric]').value='1986';ui.click('拨开锁扣');ui.click('拿走纸元宝');
+    ui.inspect('wedding_photo');ui.key('KeyE');ui.inspect('wedding_chest');ui.document.querySelector('[inputmode=numeric]').value='1986';ui.click('拨开锁扣');ui.click('拿走地下室钥匙');
+    ui.inspect('attic_winch');ui.click('松开绳结，放下晾篮');ui.click('拿走纸元宝');
+    ui.inspect('cellar_door');ui.click('打开地下室');ui.inspect('sump_pump');ui.click('压动手柄');assert.equal(ui.scene.story.state.sumpDrained,false);ui.key('KeyE');
+    ui.inspect('sump_grate');ui.click('提起棉纱，清掉树叶');ui.inspect('sump_pump');ui.click('压动手柄');ui.key('KeyE');
+    ui.inspect('cellar_keyring');ui.click('拿走梅花铜钥匙');
     ui.inspect('altar');ui.click('摆饭');ui.click('点香');ui.click('烧纸');ui.key('KeyE');
     ui.inspect('coffin');ui.click('推开棺盖');ui.key('KeyE');assert.ok(ui.scene.story.carried().includes('uniform'));
     ui.inspect('water_station');ui.click('装上铜砣'); ui.$('water-weigh').click(); assert.equal(ui.scene.story.state.waterSolved, false);

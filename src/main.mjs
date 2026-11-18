@@ -5,7 +5,7 @@ import { GLTFLoader } from '../vendor/GLTFLoader.mjs';
 import { mergeGeometries } from '../vendor/BufferGeometryUtils.mjs';
 window.THREE = THREE;
 window.Huisha3D = { GLTFLoader, mergeGeometries };
-const sceneModules = ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeWestRoom', 'ThreeClerk', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeSettings', 'ThreeControls', 'ThreeInteraction', 'ThreeWindowWall', 'ThreeCourtyard', 'ThreePhone', 'ThreeDocument', 'ThreeMemoryScenes', 'ThreeMemoryTimeline', 'ThreeMemoryJournal', 'ThreeEvidenceJournal', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeVillageLane', 'ThreeHouseScene', 'ThreeAudio', 'ThreeYardWatch'];
+const sceneModules = ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeWestRoom', 'ThreeStoreys', 'ThreeClerk', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeSettings', 'ThreeControls', 'ThreeInteraction', 'ThreeWindowWall', 'ThreeCourtyard', 'ThreePhone', 'ThreeDocument', 'ThreeMemoryScenes', 'ThreeMemoryTimeline', 'ThreeMemoryJournal', 'ThreeEvidenceJournal', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeVillageLane', 'ThreeHouseScene', 'ThreeAudio', 'ThreeYardWatch'];
 // Fetch in parallel. Registration still follows map, story, controls and scene order.
 for (const name of sceneModules) {
     const link = document.createElement('link');
@@ -39,7 +39,7 @@ function updateLoadStatus() {
         : story.saveAvailable ? '进度会自动保存 · 可随时暂停' : '此浏览器暂不支持保存，可在当前页面游玩';
 }
 function updateStatus() {
-    $('objective').textContent = story.headline();
+    $('objective').textContent = story.headline(scene?.controls ? scene.playerSnapshot() : undefined);
     $('shield-flame').hidden = story.state.lamp !== 'lit' || !!scene?.inspectionReturn;
     $('shield-flame').setAttribute('aria-pressed', String(story.state.shielded));
     $('shield-flame').textContent = story.state.shielded ? '松开手掌 [F]' : '拢住灯火 [F]';
@@ -205,7 +205,7 @@ function returnMemory() {
     if (reader.open) reader.close(); save(); resumeWorld();
 }
 function guidance(stage = 0, backToLock = !!scene?.inspectionReturn) {
-    const hint = story.guidance(stage);
+    const hint = story.guidance(stage,scene.playerSnapshot());
     const actions = [['回查手记', () => journal(backToLock)], [backToLock ? inspectionLabel() : '继续观察', backToLock ? resumeInspection : close]];
     if (hint.next) actions.push([hint.next, () => guidance(stage + 1, backToLock)]);
     open('查看提示', hint.text, actions, stage >= 2 ? '解谜答案 · 按需查看' : '探索提示 · 按需查看');
@@ -674,7 +674,11 @@ try {
         onAssetError: name => { assetErrors.add(name); updateLoadStatus(); },
         onFrame: (position, paused) => {
             audio.update(position, paused, story.state.memory || 'house');
-            if (!paused) story.visitPosition(position);
+            if (!paused) {
+                story.visitPosition(position);
+                const headline=story.headline(position);
+                if($('objective').textContent!==headline) $('objective').textContent=headline;
+            }
             if (!paused && story.state.lamp === 'lit' && story.inDraft(position) && !story.state.shielded) {
                 story.crossDraft(scene.playerSnapshot()); updateStatus();
             }

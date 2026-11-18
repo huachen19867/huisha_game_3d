@@ -104,7 +104,7 @@
             this.verticalSpeed = 4.6; this.grounded = false;
         }
         supportHeight(x,z) {
-            let floor = 0;
+            let floor = this.story.state.memory ? 0 : game.storeyHeight(x,z);
             for (const rect of this.map.obstacles) {
                 if (!rect.height || (rect.space || 'house') !== (this.story.state.memory || 'house')) continue;
                 if (this.overlaps(rect,x,z)) floor = Math.max(floor,rect.height);

@@ -1,5 +1,9 @@
 # 3D 美术与许可
 
+## 0.20.0 阁楼与地下储水间
+
+藤篮、旧木箱、搪瓷锅、软管卷、带护笼的壁灯和锈铁架来自 Poly Haven，按 CC0 分发。游戏使用本地 1K glTF，按场景比例放置，壁灯取其中一种装配件。完整文件可查下载 URL 和 MD5。[藤篮](https://polyhaven.com/a/wicker_basket_01) · [木箱](https://polyhaven.com/a/wooden_crate_01) · [软管](https://polyhaven.com/a/garden_hose_wall_mounted_01) · [壁灯](https://polyhaven.com/a/industrial_caged_sconce) · [铁架](https://polyhaven.com/a/worn_metal_rack) · [搪瓷锅](https://polyhaven.com/a/pot_enamel_01) · [下载清单](sources.json)
+
 ## 0.19.0 村口与西厢
 
 Poly Haven 的六组 glTF 为旧铁床、台钳、木提灯、倒木、灌木与蕨类。砖墙、瓦面、提花被面与牛仔工作服使用 1K 颜色、法线、粗糙度。资源按 CC0 分发，游戏调整尺寸、方向、单株选择和材质颜色。下载原始路径、URL 和摘要在 [sources.json](sources.json)。[铁床](https://polyhaven.com/a/old_bed_frame) · [台钳](https://polyhaven.com/a/bench_vice_01) · [提灯](https://polyhaven.com/a/wooden_lantern_01) · [倒木](https://polyhaven.com/a/dead_tree_trunk_02) · [灌木](https://polyhaven.com/a/shrub_02) · [蕨](https://polyhaven.com/a/fern_02) · [砖](https://polyhaven.com/a/brick_wall_001) · [灰瓦](https://polyhaven.com/a/grey_roof_tiles) · [织物](https://polyhaven.com/a/quatrefoil_jacquard_fabric) · [牛仔布](https://polyhaven.com/a/denim_fabric)

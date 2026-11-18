@@ -216,6 +216,9 @@
                 this.box(`path-stone-${i}`, [1.85, 0.12, 0.63], [(i % 2 ? 1 : -1) * 0.015, -0.03, -11.9 - i * 0.72], m.stone, 'threshold');
             }
             for (const side of [-1, 1]) {
+                this.box('stone-court-side',[.22,1.55,2.5],[side*3.67,.77,-12.88],m.brick||m.stone);
+                this.box('stone-court-cap',[.32,.1,2.58],[side*3.67,1.59,-12.88],m.roof||m.darkWood);
+                this.box('stone-court-return',[2.41,2.76,.19],[side*2.46,1.34,-11.56],m.plaster);
                 this.box(`stone-edging-${side}`, [0.24, 0.25, 4], [side * 1.2, 0, -13.5], m.darkWood);
                 this.box(`stone-post-${side}`, [0.36, 1.2, 0.36], [side * 1.2, 0.5, -14.2], m.stone, 'threshold');
                 this.box(`stone-post-cap-${side}`, [0.48, 0.13, 0.48], [side * 1.2, 1.15, -14.2], m.stone, 'threshold');
@@ -255,6 +258,8 @@
             body.rotateX(-Math.PI / 2);
             this.mesh('coffin-body', body, m.darkWood, [0, 0.17, 0.65], 'coffin');
             this.coffinLid = new THREE.Group(); this.coffinLid.position.set(0,.714,.09); this.scene.add(this.coffinLid);
+            this.coffinPadlock=this.box('coffin-padlock',[.122,.135,.058],[-.48,.713,1.273],m.brass,'coffin');
+            this.mesh('lock-shackle',new THREE.TorusGeometry(.043,.012,8,18,Math.PI),m.stone,[0,.071,0],'coffin',this.coffinPadlock);
             this.uniform = this.box('folded-school-jacket',[.65,.07,.44],[0,.78,.64],m.cloth,'coffin');
             this.uniformTag = this.label('uniform-name','李明　初二',[.24,.09],[.14,.82,.68],[-Math.PI/2,0,0],'coffin');
             this.offeringRice = this.cylinder('offered-rice',.18,.12,.13,[-.66,1.17,.14],m.paper,'altar',altar);
@@ -425,16 +430,24 @@
             for (const [x,z] of [[2.94,21],[-3.26,11.5],[1.2,4.85]]) {
                 place('wooden_lantern_01', [.34,.53,.34], [x,2.22,z], 0);
             }
+            const storeyAssets=game.placeStoreyModels(this,place);
             this.courtyard?.placeFurniture(place);
             this.memories?.placeFurniture(place); this.memories?.sealHome();
-            await Promise.all([...instances].map(async ([id, placements]) => {
+            const fetchModel=async ([id, placements]) => {
                 try {
                     const gltf = await loader.loadAsync(`assets/models/${id}/model.gltf`);
                     if (this.disposed) return;
                     for (const placement of placements) install(placement,gltf.scene);
                     this.interaction?.rebuildOccluders();
                 } catch (_) { if (!this.disposed) this.onAssetError?.(id); }
-            }));
+            };
+            const deferred=[], initial=[];
+            for(const entry of instances) {
+                if(this.renderer?.isWebGLRenderer && storeyAssets.has(entry[0])) deferred.push(entry);
+                else initial.push(entry);
+            }
+            this.loadStoreyModels=()=>{this.loadStoreyModels=null;return Promise.all(deferred.map(fetchModel));};
+            await Promise.all(initial.map(fetchModel));
         }
         createLights() {
             this.hemisphere=new THREE.HemisphereLight(0xb1bec8,0x51402e,1.8);
@@ -453,8 +466,9 @@
             this.flashlight = new THREE.SpotLight(0xffedd1, 5, 9, 0.5, 0.75, 1.4);
             this.flashTarget = new THREE.Object3D(); this.scene.add(this.flashlight, this.flashTarget); this.flashlight.target = this.flashTarget;
         }
-        syncState(immediate = false) {
+        syncState(immediate = false, delta = 0) {
             const s = this.story.state;
+            game.syncStoreys(this,s,this.storeysReady ? delta : undefined);this.storeysReady=true;
             this.wardrobe.position.z = s.wardrobeOpen ? -16.01 : -18;
             this.wardrobeSite.position.z = this.wardrobe.position.z;
             this.westLid.rotation.x = s.chestOpen ? -1.05 : 0;
@@ -464,6 +478,7 @@
             this.offeringRice.visible = s.vigil >= 1;
             this.offeringEmber.visible = s.vigil >= 2;
             this.paperAsh.visible = s.vigil >= 3;
+            this.coffinPadlock.visible=!s.coffinOpen;
             this.coffinLid.rotation.x = s.coffinOpen ? -1.37 : 0;
             this.uniform.visible = this.uniformTag.visible = s.coffinOpen;
             this.frontDoor.visible = s.arrival !== 'home';
@@ -562,7 +577,9 @@
             this.laneRain.visible = this.camera.position.z > 3.8 && !this.story.state.memory;
             this.hemisphere.intensity = this.laneRain.visible ? .79 : 1.8;
             if (this.laneRain.visible && !this.reducedMotion?.matches) this.laneRain.position.y = -((-this.laneRain.position.y+delta*4.8)%1.3);
-            this.controls.update(delta); this.syncState(); this.moveWheels(delta);
+            this.controls.update(delta);
+            if(this.loadStoreyModels && !this.story.state.memory && this.story.state.opened && this.camera.position.x < -4) this.loadStoreyModels();
+            this.syncState(false,delta); this.moveWheels(delta);
             if (this.clerkHead && this.laneRain.visible && !this.isPaused()) {
                 const dx=this.camera.position.x-this.clerk.position.x, dz=this.camera.position.z-this.clerk.position.z;
                 const nearby=dx*dx+dz*dz<22;

@@ -19,7 +19,7 @@ const canvasContext = { fillRect() {}, strokeRect() {}, fillText() {} };
 const document = { ...eventTarget, createElement() { return { getContext() { return canvasContext; } }; }, hidden: false };
 const window = { ...eventTarget, THREE, Huisha3D: {} };
 const context = vm.createContext({ window, document, console });
-for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeWestRoom', 'ThreeClerk', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeAudio', 'ThreeControls', 'ThreeInteraction', 'ThreeWindowWall', 'ThreeCourtyard', 'ThreePhone', 'ThreeDocument', 'ThreeMemoryScenes', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeVillageLane', 'ThreeHouseScene']) {
+for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeWestRoom', 'ThreeStoreys', 'ThreeClerk', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeAudio', 'ThreeControls', 'ThreeInteraction', 'ThreeWindowWall', 'ThreeCourtyard', 'ThreePhone', 'ThreeDocument', 'ThreeMemoryScenes', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeVillageLane', 'ThreeHouseScene']) {
     vm.runInContext(await text(`src/3d/${name}.js`), context, { filename: `${name}.js` });
 }
 const game = window.Huisha3D;
@@ -168,7 +168,7 @@ console.log('Story: optional guidance, observed evidence, incorrect attempt, fre
 // omit their material bindings here because Node has no browser image decoder or WebGL.
 globalThis.ProgressEvent ??= class { constructor(type, values) { Object.assign(this, { type }, values); } };
 const parsedModels = new Map();
-for (const id of ['chinese_armchair', 'chinese_console_table', 'chinese_cabinet', 'SchoolDesk_01', 'SchoolChair_01', 'wheelchair_01','wooden_bucket_01','old_bed_frame','bench_vice_01','wooden_lantern_01','fern_02','shrub_02','dead_tree_trunk_02']) {
+for (const id of ['chinese_armchair', 'chinese_console_table', 'chinese_cabinet', 'SchoolDesk_01', 'SchoolChair_01', 'wheelchair_01','wooden_bucket_01','old_bed_frame','bench_vice_01','wooden_lantern_01','fern_02','shrub_02','dead_tree_trunk_02','wicker_basket_01','wooden_crate_01','industrial_caged_sconce','worn_metal_rack','garden_hose_wall_mounted_01','pot_enamel_01']) {
     const directory = `assets/models/${id}`;
     const gltf = JSON.parse(await text(`${directory}/model.gltf`));
     for (const buffer of gltf.buffers) {
@@ -249,7 +249,7 @@ for (const [id, paper] of house.documents.papers) {
     const gap = new THREE.Box3().setFromObject(paper.root).min.y - new THREE.Box3().setFromObject(desk).max.y;
     assert.ok(gap >= 0 && gap < 0.01, 'paper rests just above the actual imported desk surface');
 }
-console.log('Assets: all thirteen glTF models, binary buffers, texture dependencies and scene placement passed.');
+console.log('Assets: all nineteen glTF models, binary buffers, texture dependencies and scene placement passed.');
 for (const prefix of ['hall', 'school', 'hospital']) for (const side of [-1, 1]) {
     const name = `${prefix}-window-wall-${side}`, wall = house.scene.getObjectByName(name), opening = wall.userData.windowOpening;
     const pointX = opening.left + (opening.right - opening.left) / (prefix === 'hall' ? 12 : 6);
@@ -446,9 +446,10 @@ function verifyReachable(item, points) {
     let focusPoint;
     for (const point of points) {
         if (Math.hypot(point.x - item.position.x, point.z - item.position.z) > item.radius) continue;
-        const elevation = Math.atan2(item.position.y - 1.6, Math.hypot(point.x - item.position.x, point.z - item.position.z));
+        const eyeY=1.6+controls.supportHeight(point.x,point.z);
+        const elevation = Math.atan2(item.position.y - eyeY, Math.hypot(point.x - item.position.x, point.z - item.position.z));
         if (Math.abs(elevation) > 1.15) continue;
-        camera.position.set(point.x, 1.6, point.z); camera.lookAt(new THREE.Vector3(item.position.x, item.position.y, item.position.z)); camera.updateMatrixWorld(true);
+        camera.position.set(point.x, eyeY, point.z); camera.lookAt(new THREE.Vector3(item.position.x, item.position.y, item.position.z)); camera.updateMatrixWorld(true);
         interaction.update();
         if (interaction.current?.id === item.id) { focusPoint = point; break; }
     }
@@ -474,6 +475,12 @@ assert.ok(!yardPoints.some(p=>p.x<-13 && p.z<-14),'hidden workshop is sealed');
 story.state.wardrobeOpen=true; house.syncState(true); house.scene.updateMatrixWorld(true);
 const workshopPoints=flood();
 for(const item of game.WORLD_MAP.interactables.filter(i=>i.requiresState==='wardrobeOpen')) verifyReachable(item,workshopPoints);
+verifyReachable(game.WORLD_MAP.interactables.find(item=>item.id==='attic_winch'),workshopPoints);
+assert.ok(!workshopPoints.some(p=>p.x < -14 && p.z > -9.4 && p.z < -5),'locked cellar has no walkable landing');
+story.state.cellarOpen=true;story.state.sumpDrained=true;house.syncState(true);house.scene.updateMatrixWorld(true);
+const cellarPoints=flood();
+for(const item of game.WORLD_MAP.interactables.filter(i=>['sump_grate','sump_pump','cellar_keyring'].includes(i.id))) verifyReachable(item,cellarPoints);
+assert.ok(controls.supportHeight(-10.2,-7)>2 && controls.supportHeight(-15.2,-7)<-2);
 assert.ok(story.takeGear('weight')); story.state.calibrated=true;
 const kitchenPose = { x: 8.5, z: -20.4, yaw: Math.PI, pitch: -0.1 };
 camera.position.set(kitchenPose.x, 1.6, kitchenPose.z); controls.yaw = kitchenPose.yaw; controls.pitch = kitchenPose.pitch; controls.applyLook();

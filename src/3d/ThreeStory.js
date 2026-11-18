@@ -2,7 +2,7 @@
     const game = global.Huisha3D || (global.Huisha3D = {});
     const SAVE_KEY = 'huisha.3d.homecoming.v1';
     const symbols = ['雨', '门', '人', '灯'];
-    const freshState = () => ({ arrival: 'intro', chapterEdition: 1, gear: [], wardrobeOpen: false, chestOpen: false, calibrated: false, vigil: 0, coffinOpen: false, busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
+    const freshState = () => ({ arrival: 'intro', chapterEdition: 2, basketDown:false, cellarOpen:false, filterClear:false, sumpDrained:false, oldCoffinLatch:false, gear: [], wardrobeOpen: false, chestOpen: false, calibrated: false, vigil: 0, coffinOpen: false, busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
         courtyard: false, crossedYard: false, buckets: [0, 0], waterSolved: false, departure: null, position: null, lamp: 'altar', shielded: false,
         memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, reasoningRevision: 2, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
@@ -37,10 +37,15 @@
                     }
                     this.state.waterSolved = saved.waterSolved === true && this.state.opened;
                     this.state.busCalled = this.state.waterSolved && (saved.busCalled === true || saved.departure === 'leave');
-                    const legacy = saved.chapterEdition !== 1 && this.state.waterSolved;
+                    const legacy = !saved.chapterEdition && this.state.waterSolved;
+                    this.state.oldCoffinLatch = saved.oldCoffinLatch === true || legacy || (saved.chapterEdition===1 && saved.vigil>0);
                     this.state.wardrobeOpen = this.state.opened && saved.wardrobeOpen === true;
                     this.state.chestOpen = this.state.opened && saved.chestOpen === true;
-                    this.state.gear = [...new Set((Array.isArray(saved.gear) ? saved.gear : []).filter(id => ['weight','rice','matches','paper'].includes(id)))];
+                    this.state.gear = [...new Set((Array.isArray(saved.gear) ? saved.gear : []).filter(id => ['weight','rice','matches','paper','cellarKey','coffinKey'].includes(id)))];
+                    this.state.basketDown = this.state.opened && (saved.basketDown===true || this.state.gear.includes('paper'));
+                    this.state.cellarOpen = this.state.wardrobeOpen && saved.cellarOpen===true;
+                    this.state.filterClear = this.state.cellarOpen && saved.filterClear===true;
+                    this.state.sumpDrained = this.state.filterClear && saved.sumpDrained===true;
                     this.state.calibrated = this.state.waterSolved || (this.state.opened && saved.calibrated === true);
                     this.state.vigil = legacy ? 3 : Number.isInteger(saved.vigil) ? Math.max(0, Math.min(3, saved.vigil)) : 0;
                     this.state.coffinOpen = legacy || (this.state.vigil === 3 && saved.coffinOpen === true);
@@ -207,7 +212,7 @@
         takeGear(id) {
             const s=this.state;
             if(!s.opened || s.memory || s.gear.includes(id)) return false;
-            if(!({weight:s.wardrobeOpen,matches:s.wardrobeOpen,rice:true,paper:s.chestOpen})[id]) return false;
+            if(!({weight:s.wardrobeOpen,matches:s.wardrobeOpen,rice:true,paper:s.basketDown,cellarKey:s.chestOpen,coffinKey:s.sumpDrained})[id]) return false;
             s.gear.push(id); this.save(); return true;
         }
         offer(id) {
@@ -299,11 +304,16 @@
             this.save();
             return true;
         }
-        headline() {
+        headline(pose) {
             const s=this.state;
             if(this.arrivalTask()) return {intro:'回村',letter:'找到老宅',ledger:'找值班员',keys:'取备用钥匙',gate:'打开家门'}[s.arrival];
             if(s.departure) return this.objective();
             if(s.memory) return game.MEMORIES[s.memory].title;
+            const area=game.ThreeExplorationMap.areaAt(pose,'house',s)?.id;
+            if(area==='attic'||area==='attic_steps') return s.gear.includes('paper')?'纸元宝已收好':'取回晾篮里的纸元宝';
+            if(area==='cellar'||area==='cellar_steps') return s.gear.includes('coffinKey')?'回正厅查看棺锁':s.sumpDrained?'找回水槽里的钥匙':'排走储水间的积水';
+            if(area==='workshop' && !s.gear.includes('weight')) return '找回修秤用的铜砣';
+            if(area==='west_room' && !s.wardrobeOpen) return '找出修理间的入口';
             if(s.waterSolved) return s.coffinOpen ? '查清雨夜的事，或下山' : '查清棺里放着什么，或下山';
             if(s.courtyard) return !s.calibrated ? '找回灶间的秤砣' : '打开量水桌的抽屉';
             return s.opened ? '穿过雨庭' : '打开老宅后门';
@@ -319,7 +329,7 @@
             if (this.state.departure) return { leave: '归路 · 你已走出旧宅，可以继续回看', stay: '余温 · 今晚留下是你的选择，可以继续回看',
                 wake: '破茧 · 你回应了救护灯，可以继续回看', remember: '回煞 · 你选择留在记忆，可以继续回看' }[this.state.departure];
             if(this.state.waterSolved && !this.state.coffinOpen && !this.state.records.includes('bus_notice') && !this.state.busCalled)
-                return this.state.vigil === 3 ? '回正厅查看松动的棺盖。' : '正厅供桌还空着。到厨房取饭，西厢找火柴和纸元宝；守完夜再看棺木。厨房相册里也能先查学校、医院。';
+                return this.state.vigil === 3 ? (this.state.oldCoffinLatch || this.state.gear.includes('coffinKey') ? '回正厅查看松动的棺盖。' : '西厢樟木箱保管着地下室的钥匙。穿过修理间，去地下储水间找棺锁钥匙。') : '正厅供桌还空着。到厨房取饭，西厢修理间取火柴、阁楼取纸元宝；守完夜再看棺木。厨房相册里也能先查学校、医院。';
             if (this.state.waterSolved && this.state.busCalled) return '接驳车停在山路尽头。去站牌旁上车，或回厨房翻相册。';
             if (this.state.waterSolved && this.state.records.includes('bus_notice')) return '沿护栏走到候车棚。按接驳通知，把反光牌转向来车方向。';
             if (this.state.waterSolved) return this.state.records.includes('medicine_letter')
@@ -347,7 +357,18 @@
             }
             return '按 J 打开手记，点「整理」：选两份记录，按日期排序，再提交判断。';
         }
-        guidance(stage = 0) {
+        guidance(stage = 0, pose) {
+            const s=this.state,area=game.ThreeExplorationMap.areaAt(pose,s.memory||'house',s)?.id;
+            if(!s.memory && s.opened) {
+                const has=id=>s.gear.includes(id);
+                const nearby={
+                    attic:has('paper')?'纸元宝已收好。从楼梯回卧房，去正厅守夜。':s.basketDown?'晾篮放下来了，靠近取走纸元宝。':'看梁下的晾篮。顺着绳子找到墙钉，把篮子放低。',
+                    cellar:has('coffinKey')?'铜钥匙已经拿到，沿楼梯回去。':s.sumpDrained?'瓷槽的水退了。靠近槽沿，看看底部露出来的钥匙。':s.filterClear?'滤网通了，到对面压动抽水泵。':'先沿吸水管找到瓷槽，清掉堵在滤网上的东西。',
+                    workshop:!has('weight')?'工作台上有一枚灶间铜砣。带它回厨房修秤。':!has('matches')?'工作台另一头的铁盒里有火柴。':!s.cellarOpen?(has('cellarKey')?'用带水桶牌的钥匙打开修理间里的铁门。':'铁门通地下室，钥匙在父母卧房的樟木箱里。'):null,
+                    west_room:!s.wardrobeOpen?'看大衣柜脚下的滑轨，推开它就能进修理间。':!s.chestOpen?'床头有银婚合照。用结婚那年的四位数字开樟木箱。':!has('cellarKey')?'从樟木箱里取出带木牌的地下室钥匙。':!has('paper')?'从卧房门上的「阁楼」牌子往上走。':null
+                };
+                if(nearby[area]) return {text:nearby[area]};
+            }
             if (this.arrivalTask()) return { text: this.arrivalTask() };
             if (this.state.memory) return this.memoryGuidance(stage);
             if (this.state.waterSolved && !this.state.coffinOpen || this.state.courtyard && !this.state.calibrated) return { text: this.objective() };

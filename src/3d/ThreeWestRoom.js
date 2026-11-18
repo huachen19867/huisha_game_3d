@@ -36,8 +36,9 @@
         box('west-floor',[11.6,.15,6.05],[-11.75,-.08,-18],m.floor);
         box('west-roof',[11.6,.14,6.08],[-11.75,3.04,-18],m.darkWood);
         const plaster=m.plaster.clone();plaster.userData.tileMeters=[5,2.5];
-        for(const z of [-21.1,-14.9]) box('bedroom-wall',[11.65,3.08,.2],[-11.78,1.5,z],plaster);
-        for(const z of [-20.95,-15.05]) {
+        box('bedroom-wall',[11.65,3.08,.2],[-11.78,1.5,-21.1],plaster);
+        game.buildStoreys(h);
+        for(const z of [-20.95]) {
             box('timber-skirting',[11.54,.2,.08],[-11.77,.1,z],m.darkWood);
             box('wall-rail',[11.54,.055,.07],[-11.77,.83,z],m.wood);
         }
