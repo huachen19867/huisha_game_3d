@@ -76,13 +76,17 @@
             const hidden = !this.current;
             if (this.prompt.hidden !== hidden) this.prompt.hidden = hidden;
             if (this.current) {
-                let title = this.current.title;
+                let title = this.current.title, observed = this.story.state.records.includes(this.current.id);
+                if (this.current.id === 'coffin' && this.story.state.coffinOpen) {
+                    observed = this.story.state.records.includes('uniform_collar');
+                    title = observed ? '棺底的黄布兜' : '布兜里的蓝外套';
+                }
                 if (this.current.id === 'portrait' && this.story.state.portrait) title = '母亲的旧相框';
                 if (this.current.id === 'altar' && !this.story.state.opened) {
                     if (this.story.state.lamp === 'altar') title = '供桌上的守夜灯';
                     if (this.story.state.lamp === 'out') title = '供桌上的烛火';
                 }
-                const label = `E / 点击 · ${title}${this.story.state.records.includes(this.current.id) ? ' · 已观察' : ''}`;
+                const label = `E / 点击 · ${title}${observed ? ' · 已观察' : ''}`;
                 if (this.prompt.textContent !== label) this.prompt.textContent = label;
             }
             this.updateMarker();

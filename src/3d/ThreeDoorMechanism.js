@@ -40,13 +40,20 @@
             this.apply(immediate); this.updateLight(immediate);
         }
         apply(force = false) {
-            if (!force && this.progress === this.renderedProgress) return;
+            const untied=this.house.story.state.vigil===3;
+            if (!force && this.progress === this.renderedProgress && untied===this.renderedUntied) return;
             const bolt = ease(this.progress / 0.45), drop = ease((this.progress - 0.2) / 0.75);
             this.bolt.position.x = 1.85 - bolt * 0.93; this.lever.rotation.x = -0.7 * ease(this.progress / 0.2);
             for (const cord of this.cords) {
                 const s = cord.sign, p = cord.points;
                 p[0].set(s * 0.76, 0.905, 1.32); p[1].set(s * 0.76, 0.905, 0.65);
                 p[2].set(s * 0.76, 0.905, -0.055); p[3].set(s * 0.76, 0.15, -0.13);
+                if(untied){
+                    p[0].set(s*.94+.16,.024,-.58);
+                    p[1].set(s*.84-.08,.028,-.87);
+                    p[2].set(s*.66+.14,.032,-1.04);
+                    p[3].set(s*.47,.026,-.91);
+                }
                 p[4].set(s * 0.24, 0.028, -0.75);
                 for (let i = 5; i <= 7; i++) p[i].set(s * 0.24 + Math.sin(i * 2.8 + s) * drop * 0.14, 0.028, -3 - (i - 5) * 2.8);
                 p[8].set(s * 0.57, 0.028, -10.45);
@@ -63,6 +70,7 @@
                 cord.mesh.instanceMatrix.needsUpdate = true;
             }
             this.renderedProgress = this.progress;
+            this.renderedUntied = untied;
         }
         update(delta) {
             const h = this.house;

@@ -1,5 +1,7 @@
 # 3D 参考与来源
 
+正厅棺身与棺盖沿用同一条外轮廓。棺身参照 Three.js r160 官方示例的 Shape 孔洞做法，单独挖出内腔并铺底。上游文件 Git blob 为 `de5872f693182a1c9119f559eac48941eb07b24e`。[本地参考](webgl_geometry_shapes-r160.html) · [上游示例](https://github.com/mrdoob/three.js/blob/r160/examples/webgl_geometry_shapes.html) · [MIT 许可](../../vendor/THREE-LICENSE.txt)
+
 阁楼取纸与地下室钥匙的用途重新对照封存版调查篇。储水间的清滤网、抽水与取钥匙为 3D 版独立流程，参与机关的藤篮和房间器物采用 Poly Haven 实物资产。[原版调查篇](https://github.com/huachen19867/huisha_game_AI/blob/main/docs/2D_STORY.md) · [美术来源](../../assets/README.md)
 
 0.19.0 村口和西厢使用 Poly Haven CC0 模型与材质、Three.js 示例保留署名的人头扫描。运行时直接读取随仓库发布的美术资源。[来源、许可与使用处](../../assets/README.md) · [逐文件下载索引](../../assets/sources.json)

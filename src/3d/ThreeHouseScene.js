@@ -250,17 +250,46 @@
             for (let i = -1; i <= 1; i++) this.cylinder(`incense-${i}`, 0.008, 0.009, 0.33, [i * 0.06, 1.45, -0.18], m.darkWood, 'altar', altar);
             for (const x of [-1, 1]) this.createCandle(x, altar);
             this.portrait = new game.ThreePortrait(this); this.portrait.build();
-            // A tapered solid coffin, with bevels and separate lid, can be viewed from either side.
             const outline = new THREE.Shape();
             outline.moveTo(-1.3, -0.55); outline.lineTo(0.95, -0.55); outline.lineTo(1.3, -0.32);
             outline.lineTo(1.3, 0.32); outline.lineTo(0.95, 0.55); outline.lineTo(-1.3, 0.55); outline.closePath();
-            const body = new THREE.ExtrudeGeometry(outline, { depth: 0.54, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.045, bevelThickness: 0.04 });
+            const rim=outline.clone(), cavity=new THREE.Path();
+            cavity.moveTo(-1.19,-.45);cavity.lineTo(-1.19,.45);cavity.lineTo(.92,.45);
+            cavity.lineTo(1.19,.265);cavity.lineTo(1.19,-.265);cavity.lineTo(.92,-.45);cavity.closePath();
+            rim.holes.push(cavity);
+            const floor=new THREE.ExtrudeGeometry(outline,{depth:.09,bevelEnabled:false});
+            floor.rotateX(-Math.PI/2);
+            this.mesh('coffin-floor',floor,m.wood,[0,.17,.65],'coffin');
+            const body = new THREE.ExtrudeGeometry(rim, { depth: 0.54, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.022, bevelThickness: 0.022 });
             body.rotateX(-Math.PI / 2);
             this.mesh('coffin-body', body, m.darkWood, [0, 0.17, 0.65], 'coffin');
             this.coffinLid = new THREE.Group(); this.coffinLid.position.set(0,.714,.09); this.scene.add(this.coffinLid);
             this.coffinPadlock=this.box('coffin-padlock',[.122,.135,.058],[-.48,.713,1.273],m.brass,'coffin');
             this.mesh('lock-shackle',new THREE.TorusGeometry(.043,.012,8,18,Math.PI),m.stone,[0,.071,0],'coffin',this.coffinPadlock);
-            this.uniform=new THREE.Group();this.uniform.position.set(0,.77,.64);this.scene.add(this.uniform);
+            // An open holdall with a low front lip keeps the folded sleeves visible from the aisle.
+            const canvas=m.cloth.clone();canvas.color.setHex(0x997b4c);canvas.side=THREE.DoubleSide;
+            if(m.denim) {canvas.normalMap=m.denim.normalMap;canvas.roughnessMap=m.denim.roughnessMap;}
+            const bag=new THREE.Group();bag.position.set(0,.27,.64);this.scene.add(bag);
+            const base=this.mesh('holdall-base',new THREE.SphereGeometry(1,28,12),canvas,[0,.034,0],'coffin',bag);
+            base.scale.set(.50,.043,.29);
+            const bagWall=new THREE.CylinderGeometry(1,1,1,48,5, true);
+            const vertices=bagWall.attributes.position;
+            for(let i=0;i<vertices.count;i++){
+                const x=vertices.getX(i), z=vertices.getZ(i), height=vertices.getY(i)+.5;
+                const fold=Math.cos(Math.atan2(z,x)*8);
+                vertices.setXYZ(i,Math.sign(x)*Math.pow(Math.abs(x),.72)*(.45+.095*height+.016*fold*height),
+                    .026+height*(.095+.12*x*x+.019*fold),Math.sign(z)*Math.pow(Math.abs(z),.72)*(.26+.064*height));
+            }
+            bagWall.computeVertexNormals();
+            this.mesh('holdall-canvas',bagWall,canvas,[0,0,0],'coffin',bag);
+            const rimPoints=Array.from({length:48},(_,i)=>new THREE.Vector3().fromBufferAttribute(vertices,i));
+            const binding=canvas.clone();binding.color.setHex(0x685837);
+            this.mesh('holdall-bound-edge',new THREE.TubeGeometry(new THREE.CatmullRomCurve3(rimPoints,true),64,.009,6,true),binding,[0,0,0],'coffin',bag);
+            for(const side of [-1,1]){
+                const handle=new THREE.CatmullRomCurve3([[-.23,.145,.30],[0,.074,.425],[.23,.145,.30]].map(([x,y,z])=>new THREE.Vector3(x,y,z*side)));
+                this.mesh('holdall-handle',new THREE.TubeGeometry(handle,16,.016,6,false),canvas,[0,0,0],'coffin',bag);
+            }
+            this.uniform=new THREE.Group();this.uniform.position.set(0,.405,.64);this.scene.add(this.uniform);
             const twill=(m.denim||m.cloth).clone();twill.color.setHex(0x304265);
             const fold=this.mesh('folded-school-jacket',new THREE.SphereGeometry(1,24,12),twill,[0,.012,0],'coffin',this.uniform);
             fold.scale.set(.35,.052,.235);
@@ -269,6 +298,7 @@
                 const cloth=this.mesh('folded-sleeve',new THREE.SphereGeometry(1,20,12),twill,[0,0,0],'coffin',sleeve);
                 cloth.scale.set(.071,.037,.205);
                 for(const offset of [-.018,.018]) this.box('school-stripe',[.012,.006,.306],[offset,.034,0],m.paper,'coffin',sleeve);
+                if(side===-1) for(const z of [-.125,-.04,.045]) this.cylinder('sleeve-snap',.013,.013,.008,[-.039,.03,z],m.brass,'coffin',sleeve);
             }
             this.offeringRice = this.cylinder('offered-rice',.18,.12,.13,[-.66,1.17,.14],m.paper,'altar',altar);
             this.offeringEmber = this.mesh('incense-ember',new THREE.SphereGeometry(.024,8,6),new THREE.MeshBasicMaterial({color:0xff813a}),[0,1.62,-.18],'altar',altar);

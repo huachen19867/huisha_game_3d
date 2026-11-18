@@ -150,7 +150,12 @@ function inspectUniform(){
     if(!story.state.records.includes(collar.id)){story.record(collar.id);scene.syncState();audio.paper();}
     const found=story.state.records.includes('bend_photo');
     const text=found?collar.text.replace('右边内袋比左边沉。','右边内袋里只剩一点纸屑。'):collar.text;
-    readRecord({...collar,text},[...(!found?[['摸一摸右边内袋',showBridgePhoto]]:[]),['收好校服',close]]);
+    const inspectCuff=()=>{
+        const cuff=game.WORLD_MAP.interactables.find(item=>item.id==='uniform_cuff');
+        story.record(cuff.id);
+        readRecord(cuff,[['翻回衣领',inspectUniform],['收好校服',close]]);
+    };
+    readRecord({...collar,text},[...(!found?[['摸一摸右边内袋',showBridgePhoto]]:[]),['展开左袖',inspectCuff],['收好校服',close]]);
 }
 function backpack() {
     const choices=story.carried().map(id=>[equipment[id][0],id==='envelope'?pocketLetter:id==='uniform'?inspectUniform:id==='roadPhoto'?showBridgePhoto:
@@ -397,6 +402,9 @@ function ending(choice) {
             ? '天刚蒙亮，村口卖早点的正在卸炉子。我借了个塑料袋，把信和复诊单套好。\n\n老板问要几个包子。我说两个，想了想，改成了一个。\n\n结局 · 归路'
             : '车开过第一个弯，我才想起厨房的抽屉还开着。我问司机明天还有没有这趟车。\n\n他说有，把第一班车的时间写在了我的票背面。\n\n结局 · 归路';
     let endingText=text;
+    if(choice==='stay' && story.state.records.includes('clerk_holdall') && story.state.records.includes('clerk_cuff')) {
+        endingText='我淘了一碗米，坐在灶边等锅开。校服的左袖还摊在我腿上。水池边有块用薄了的肥皂，我接了半盆水，把那三颗扣子解开，只把袖口浸进去。\n\n搓到最后一颗扣子，米汤扑了出来。我一只手提着湿袖口，一只手赶紧去揭锅盖。\n\n结局 · 余温';
+    }
     if(choice==='remember' && story.state.records.includes('bridge_post')) {
         endingText='桥头有人喊「李明」。我扭头，看见妈捧着那台银色的小相机，正拿指甲拨过片轮。\n\n「刚才照上没？」我问。她把相机贴回眼睛：「你再骑一趟，我怕照虚了。」我把脚搁上踏板，听见爸在后面追了两步。桥那头叫我名字的人等了一会儿，声音远了。\n\n结局 · 回煞';
     }
@@ -418,7 +426,15 @@ function inspectVillage(item) {
                 ['核对寄件底单',()=>{story.record(slip.id);readRecord(slip,[['还给周师傅',()=>inspectVillage(item)],['告辞',close]]);}],
                 ['不用找了',close]]);
         }];
-        open('值夜的周师傅',after,phase==='letter'?[['拿出内袋里的信',pocketLetter],['告辞',close]]:[['翻看登记簿',()=>{
+        const discuss=(id)=>{
+            const account=game.WORLD_MAP.interactables.find(entry=>entry.id===id);
+            story.record(id);
+            readRecord(account,[['再问一句',()=>inspectVillage(item)],['告辞',close]]);
+        };
+        const questions=[];
+        if(story.state.coffinOpen || story.state.records.includes('coffin')) questions.push(['正厅那口棺是谁的？',()=>discuss('clerk_holdall')]);
+        if(story.state.records.includes('uniform_cuff')) questions.push(['给周师傅看左袖',()=>discuss('clerk_cuff')]);
+        open('值夜的周师傅',after,phase==='letter'?[['拿出内袋里的信',pocketLetter],['告辞',close]]:[...questions,['翻看登记簿',()=>{
             const book=game.WORLD_MAP.interactables.find(i=>i.id==='duty_book');story.record(book.id);inspectVillage(book);
         }],askAboutPost,['告辞',close]]);return true;
     }

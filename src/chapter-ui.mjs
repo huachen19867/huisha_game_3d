@@ -78,11 +78,11 @@ export function household(context,item) {
         }]) : [];
         open('正厅守夜',description,[...actions,back]);
     } else if(item.id==='coffin' && s.opened) {
-        const lookInside=()=>open('棺盖底下',s.records.includes('uniform_collar')?'旧校服已经收进包里。棺底留下一个方方的灰印。':'棺底铺着旧报纸。上面叠着一件蓝外套，两道白条一直通到袖口。衣领折在下面。',[
+        const lookInside=()=>open('棺盖底下',s.records.includes('uniform_collar')?'棺底的黄布兜敞着口。伸手进去，底下只剩一层粗布。':'棺底搁着一个黄布兜，提手倒向两边。里面露出一件蓝外套，两道白条一直通到袖口。衣领折在下面。',[
             [s.records.includes('uniform_collar')?'再看旧校服':'拿起校服，翻开衣领',inspectUniform],back]);
         if(s.coffinOpen) lookInside();
         else if(s.vigil===3 && !s.oldCoffinLatch && !s.gear.includes('coffinKey')) open('棺锁还扣着','红绳松了，盖上还有把梅花锁。父亲配的这把钥匙原来挂在地下室水槽上方。',[back]);
-        else if(s.vigil===3) open('松动的棺盖','我把手扣进盖沿。木头下面夹着一截蓝布。',[['推开棺盖',()=>{
+        else if(s.vigil===3) open('松动的棺盖',(s.gear.includes('coffinKey')?'我用铜钥匙摘下梅花锁。':'')+'盖子抬开一条缝，里头有股樟脑味。',[['推开棺盖',()=>{
             s.coffinOpen=true;redraw();audio.knock();lookInside();
         }],back]);
         else open(item.title,'红绳还绷着。正厅的香炉前留着一个空碗印。',[back]);

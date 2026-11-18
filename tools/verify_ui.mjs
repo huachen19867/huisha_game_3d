@@ -171,7 +171,9 @@ try {
     ui.$('replay-drive').click(); ui.$('skip-drive').click(); assert.equal(ui.$('title-screen').hidden,false);
     assert.equal(ui.window.localStorage.getItem(saveKey),roadsideSave); ui.$('begin').click();
     assert.equal(ui.$('drive').hidden,true); assert.equal(ui.scene.story.state.arrival,'ledger');
-    ui.inspect('clerk');ui.click('这封信是谁寄的？');
+    ui.inspect('clerk');
+    assert.doesNotMatch(ui.$('reader-actions').textContent,/正厅那口棺|给周师傅看左袖/);
+    ui.click('这封信是谁寄的？');
     assert.ok(!ui.scene.story.state.records.includes('forwarding_slip'));
     ui.click('核对寄件底单');assert.match(ui.$('reader-body').textContent,/0317/);
     assert.ok(ui.scene.story.state.records.includes('forwarding_slip'));
@@ -291,6 +293,12 @@ try {
     ui.inspect('coffin');ui.click('推开棺盖');ui.key('KeyE');assert.ok(!ui.scene.story.carried().includes('uniform'));
     ui.inspect('coffin');ui.click('拿起校服，翻开衣领');ui.key('KeyE');
     assert.ok(ui.scene.story.carried().includes('uniform'));assert.ok(!ui.scene.story.state.records.includes('bend_photo'));
+    ui.inspect('clerk');ui.click('正厅那口棺是谁的？');ui.click('再问一句');
+    assert.doesNotMatch(ui.$('reader-actions').textContent,/给周师傅看左袖/);
+    ui.click('告辞');ui.key('KeyB');ui.click('旧校服');ui.click('展开左袖');
+    assert.ok(!ui.scene.story.state.records.includes('bend_photo'));
+    ui.click('收好校服');ui.inspect('clerk');ui.click('给周师傅看左袖');
+    assert.match(ui.$('reader-body').textContent,/挂水/);ui.click('告辞');
     ui.key('KeyB');ui.click('旧校服');ui.click('摸一摸右边内袋');assert.ok(ui.document.querySelector('img[src$="bridge-bicycle.jpg"]'));
     ui.click('收好照片');assert.ok(ui.scene.story.carried().includes('roadPhoto'));
     ui.inspect('water_station');ui.click('装上铜砣'); ui.$('water-weigh').click(); assert.equal(ui.scene.story.state.waterSolved, false);
@@ -468,6 +476,7 @@ try {
     ui.click('留在现场回看');ui.inspect('clerk');ui.click('这封信是谁寄的？');ui.click('核对寄件底单');ui.click('告辞');
     ui.inspect('road_exit');ui.click('坐车下山');assert.match(ui.$('reader-body').textContent,/周叔/);
     ui.inspect('medicine_letter'); ui.click('今晚留下，给自己煮碗饭'); assert.equal(ui.scene.story.state.departure, 'stay');
+    assert.match(ui.$('reader-body').textContent,/最后一颗扣子/);
     ui.click('返回标题'); ui.$('restart').click(); ui.click('保留进度'); assert.equal(ui.scene.story.state.waterSolved, true);
     ui.$('restart').click(); ui.click('确认重新开始');
     assert.equal(ui.scene.story.state.memory, null); assert.equal(ui.scene.story.state.opened, false); assert.equal(ui.scene.story.state.departure, null);
