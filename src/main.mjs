@@ -176,15 +176,20 @@ function journal(backToLock = false) {
     memoryJournal.appendLinks($('reader-body'));
     evidenceJournal.append($('reader-body'));
 }
+function recordPhoto(slug,caption) {
+    const image=document.createElement('img');
+    image.className='record-photo';image.alt=caption;
+    image.width=900;image.height=600;image.fetchPriority='high';
+    image.src='assets/art/'+slug+'.jpg';
+    return image;
+}
 function readRecord(item, actions) {
     const choices = [...actions];
     if (!choices.some(([label]) => label === '打开手记')) choices.push(['打开手记', () => journal(!!scene?.inspectionReturn)]);
     open(item.title, item.text, choices);
     const photographs={letter:'family-new-year',wedding_photo:'silver-wedding',bend_photo:'bridge-bicycle'};
     if(photographs[item.id]){
-        const photo=document.createElement('img');
-        photo.className='record-photo';photo.src='assets/art/'+photographs[item.id]+'.jpg';photo.alt=item.title;
-        $('reader-body').prepend(photo);
+        $('reader-body').prepend(recordPhoto(photographs[item.id],item.title));
     }
     evidenceJournal.appendPinAction($('reader-actions'), item.id);
 }
@@ -206,7 +211,7 @@ function album() {
     });
     open(item.title,text,[...actions,['合上相册，继续观察',close]],'回煞 · 厨房相册');
     if(photoFiled){
-        const img=document.createElement('img');img.className='record-photo';img.src='assets/art/bridge-bicycle.jpg';img.alt='父亲在石桥边松开自行车后座';$('reader-body').prepend(img);
+        $('reader-body').prepend(recordPhoto('bridge-bicycle','父亲在石桥边松开自行车后座'));
     }
 }
 function enterMemory(id) {
