@@ -5,7 +5,7 @@
         constructor(house) { this.house = house; this.selected = 0; this.waterParts = []; this.targets = []; this.releaseProgress = 0; }
         build() {
             const h = this.house, m = h.materials;
-            h.box('yard-floor', [12, 0.12, 13.6], [0, -0.1, -20.6], m.stone);
+            h.box('yard-floor', [12, 0.12, 13.6], [0, -0.1, -20.6], m.paving);
             h.box('yard-left-wall', [0.2, 3.1, 13.4], [-6, 1.5, -20.7], m.plaster);
             for (const side of [-1, 1]) {
                 h.box(`yard-front-wall-${side}`, [4.65, 3.1, 0.2], [side * 3.7, 1.5, -14.1], m.plaster);
@@ -22,15 +22,17 @@
             h.box('kitchen-right-wall', [0.2, 3.2, 7.4], [11, 1.5, -21.2], m.plaster);
             h.box('kitchen-roof', [5.3, 0.18, 7.7], [8.5, 3.15, -21.2], m.darkWood);
             h.box('kitchen-lintel', [0.28, 0.24, 4], [6, 2.8, -21.5], m.wood);
-            h.label('kitchen-sign', '余　温', [1.3, 0.42], [5.87, 2.45, -21.4], [0, -Math.PI / 2, 0]);
-            for (let i = 0; i < 6; i++) h.box(`yard-step-${i}`, [2.5, 0.05, 0.65], [0, 0, -18 - i * 1.5], m.paper);
-            for (let i = 0; i < 6; i++) h.box(`kitchen-step-${i}`, [0.65, 0.05, 1.6], [1 + i * 0.85, 0.01, -21.2], m.stone);
-            const rim = new THREE.TorusGeometry(0.66, 0.14, 8, 40); rim.rotateX(Math.PI / 2);
-            h.mesh('well-rim', rim, m.stone, [-3, 0.83, -22], 'yard_well');
-            h.mesh('well-wall', new THREE.CylinderGeometry(0.68, 0.77, 0.8, 32, 1, true), m.stone, [-3, 0.4, -22], 'yard_well');
+            h.label('kitchen-sign', '灶　间', [1.0, 0.32], [5.87, 2.45, -21.4], [0, -Math.PI / 2, 0],undefined,h.scene,'#392d22','#ddbd8a');
+            const wetStone = m.paving.clone(); wetStone.color.setHex(0x83887d); wetStone.roughness=.43;
+            for (let i = 0; i < 6; i++) {
+                const slab=h.box(`yard-step-${i}`, [1.62+i%3*.13,.045,.61], [Math.sin(i*2)*.08,-.005,-18-i*1.5],wetStone);
+                slab.rotation.y=Math.sin(i*3.8)*.048;
+                const tread=h.box(`kitchen-step-${i}`, [.69,.045,1.24], [1+i*.85,-.006,-21.2+Math.sin(i)*.08],wetStone);
+                tread.rotation.y=Math.sin(i*2.1)*.042;
+            }
+            this.buildWell();
             const water = new THREE.MeshStandardMaterial({ color: 0x41615e, roughness: 0.19, metalness: 0.18 });
             h.cylinder('well-water', 0.54, 0.54, 0.015, [-3, 0.18, -22], water, 'yard_well');
-            h.label('well-note', '三升　五升', [0.65, 0.2], [-3, 0.91, -21.5], [-Math.PI / 2.6, 0, 0], 'yard_well');
             h.box('kitchen-stove', [1.25, 0.85, 1.1], [10, 0.4, -18.6], m.stone, 'kitchen_note');
             h.cylinder('stove-pot', 0.31, 0.25, 0.2, [10, 0.91, -18.6], m.darkWood, 'kitchen_note');
             h.label('calibration-note', '五升　与　三升\n四升水压秤\n不许嫌孩子慢', [0.72, 0.55], [10.45, 1.55, -17.62], [0, Math.PI, 0], 'kitchen_note');
@@ -44,8 +46,8 @@
             for (const side of [-1, 1]) h.box(`yard-bolt-receiver-${side}`, [0.14, 0.045, 0.17],
                 [door.hingeX + door.width + 0.16, 1.3 + side * 0.09, door.hingeZ + 0.15], m.brass, 'yard_gate');
             this.buildLinkage();
-            h.label('yard-gate-sign', '归　路', [1.1, 0.3], [1, 2, 0.1], [0, 0, 0], 'yard_gate', this.gate);
-            h.box('road', [2.6, 0.16, 5], [0, -0.1, -30], m.stone, 'road_exit');
+            h.label('yard-gate-sign', '归　路', [1.1, 0.3], [1, 2, 0.1], [0, 0, 0], 'yard_gate', this.gate,'#382b23','#ccb189');
+            h.box('road', [2.6, 0.16, 5], [0, -0.1, -30], m.paving, 'road_exit');
             for (const side of [-1, 1]) h.box(`road-edge-${side}`, [0.18, 0.25, 4.2], [side * 1.35, 0.05, -30], m.wood);
             h.label('road-note', '天　亮　了', [1.1, 0.25], [0, 0.08, -31.1], [-Math.PI / 2, 0, 0], 'road_exit');
             // These fill lights add no shadow maps; the existing candle remains the sole shadow caster.
@@ -53,6 +55,79 @@
                 [0xaec7db, 15, 17, [0, 5, -21]], [0xffc38a, 12, 9, [8.6, 2.4, -21]], [0xd3dfdb, 10, 9, [0, 3, -30]]
             ]) { const light = new THREE.PointLight(color, intensity, distance, 1.6); light.position.set(...position); h.scene.add(light); }
             h.cylinder('kitchen-lantern', 0.16, 0.13, 0.36, [8.6, 2.55, -21], m.paper);
+            this.dressEaves();
+            this.dressStove();
+        }
+        buildWell() {
+            const h=this.house,m=h.materials, blocks=[], count=11, step=Math.PI*2/count;
+            const section=new THREE.Shape();
+            section.absarc(0,0,.78,.014,step-.014,false);
+            section.absarc(0,0,.51,step-.014,.014,true);section.closePath();
+            const stone=new THREE.ExtrudeGeometry(section,{depth:.193,bevelEnabled:true,bevelThickness:.017,bevelSize:.012,bevelSegments:1,curveSegments:10});
+            stone.rotateX(-Math.PI/2);
+            for(let row=0;row<4;row++) for(let i=0;i<count;i++){
+                const g=stone.clone();g.scale(row===3?1.04:1,1,row===3?1.04:1);
+                g.rotateY(step*(i+(row%2)*.5));g.translate(0,row*.216,0);blocks.push(g);
+            }
+            const wall=game.mergeGeometries(blocks);blocks.forEach(g=>g.dispose());stone.dispose();
+            h.mesh('well-masonry',wall,m.wellStone||m.paving,[-3,.019,-22],'yard_well');
+            for(const x of [-3.62,-2.38])h.box('well-windlass-upright',[.115,1.31,.14],[x,1.06,-22.15],m.darkWood,'yard_well');
+            const drum=h.cylinder('well-windlass',.105,.105,1.51,[-3,1.61,-22.15],m.wood,'yard_well');drum.rotation.z=Math.PI/2;
+            h.box('well-crank',[.052,.23,.052],[-2.25,1.51,-22.15],m.brass,'yard_well');
+            const rope=new THREE.MeshStandardMaterial({color:0x8b7151,roughness:1});
+            for(let i=0;i<7;i++){
+                const turn=h.mesh('hemp-winding',new THREE.TorusGeometry(.109,.014,6,20),rope,[-3.15+i*.026,1.61,-22.15],'yard_well');turn.rotation.y=Math.PI/2;
+            }
+            h.cylinder('bucket-rope',.014,.014,.63,[-3,1.29,-22.045],rope,'yard_well');
+        }
+        dressEaves() {
+            const h=this.house, m=h.materials;
+            // Stagger two courses of fired pan tiles; each course shares a single draw call.
+            const tile=new THREE.CylinderGeometry(.13,.15,.78,12,1,true,0,Math.PI);
+            tile.rotateZ(Math.PI/2);tile.rotateX(-Math.PI/2);
+            const ceramic=new THREE.MeshStandardMaterial({color:0x484a46,roughness:.46,side:THREE.DoubleSide});
+            const rows=50, instances=new THREE.InstancedMesh(tile,ceramic,rows*4);
+            instances.name='yard-fired-pan-tiles';instances.receiveShadow=true;
+            const pose=new THREE.Object3D();let i=0;
+            for(const side of [-1,1]) {
+                for(let course=0;course<2;course++) {
+                    for(let row=0;row<rows;row++) {
+                        pose.position.set(side*(4.75+course*.69),3.22+course*.16,-14.25-row*.257-course*.06);
+                        pose.rotation.set(0,0,side*.22);pose.updateMatrix();instances.setMatrixAt(i++,pose.matrix);
+                    }
+                }
+                for(let j=0;j<4;j++)
+                    h.box('eave-stone-foot',[.38,.22,.38],[side*4.75,.11,-16-j*3.1],m.stone);
+            }
+            h.scene.add(instances);
+            h.box('yard-gate-crossbeam',[3.08,.23,.43],[0,2.94,-27.54],m.darkWood);
+            h.box('yard-gate-ridge',[3.42,.10,.9],[0,3.19,-27.53],m.stone);
+            for(const side of [-1,1]) {
+                h.box('yard-wall-coping',[4.89,.105,.36],[side*3.65,3.12,-27.5],m.stone);
+                h.box('yard-wall-plinth',[4.78,.34,.25],[side*3.67,.14,-27.47],m.paving);
+                const strut=h.box('yard-gate-knee',[.47,.12,.22],[side*1.12,2.78,-27.43],m.wood);
+                strut.rotation.z=side*.48;
+            }
+        }
+        dressStove() {
+            const h=this.house, m=h.materials;
+            const iron=new THREE.MeshStandardMaterial({color:0x32312b,roughness:.59,metalness:.36,side:THREE.DoubleSide});
+            const ember=new THREE.MeshBasicMaterial({color:0xea853d});
+            const profile=(points)=>new THREE.LatheGeometry(points.map(p=>new THREE.Vector2(...p)),28);
+            h.mesh('stove-wok-lid',profile([[.025,.15],[.10,.147],[.22,.103],[.32,.031],[.334,0]]),iron,[10,1.013,-18.6],'kitchen_note');
+            h.mesh('wok-lid-grip',new THREE.TorusGeometry(.06,.012,8,22,Math.PI),m.wood,[10,1.161,-18.6],'kitchen_note');
+            h.box('stove-fire-mouth',[.60,.33,.018],[10,.37,-19.159],m.cloth,'kitchen_note');
+            for(let i=0;i<4;i++) {
+                const log=h.mesh('charred-wood',new THREE.CylinderGeometry(.041,.054,.38,8),m.darkWood,[9.78+i*.13,.233,-19.20],'kitchen_note');
+                log.rotation.x=Math.PI*.46;log.rotation.z=(i-1.5)*.10;
+                h.mesh('wood-ember',new THREE.SphereGeometry(.034,10,6),ember,[9.78+i*.13,.212,-19.38],'kitchen_note',undefined,false);
+            }
+            const glow=new THREE.PointLight(0xe58c49,2.2,3);glow.position.set(10,.46,-19.43);h.scene.add(glow);
+            const lanternPaper=new THREE.MeshStandardMaterial({color:0xf0d4a0,emissive:0xffa650,emissiveIntensity:.7,roughness:.9});
+            h.mesh('kitchen-entry-lantern',profile([[.10,0],[.18,.055],[.20,.20],[.18,.33],[.10,.39]]),lanternPaper,[5.69,1.98,-19.68]);
+            for(const y of [1.98,2.37])h.cylinder('entry-lamp-hoop',.115,.115,.043,[5.69,y,-19.68],m.darkWood);
+            h.cylinder('entry-lamp-cord',.009,.009,.52,[5.69,2.64,-19.68],m.darkWood);
+            const wick=new THREE.PointLight(0xffb96e,4,4.7);wick.position.set(5.59,2.12,-19.85);h.scene.add(wick);
         }
         buildWater(water) {
             const h = this.house, m = h.materials;
@@ -174,6 +249,7 @@
             this.linkLead.quaternion.setFromUnitVectors(this.linkUp, this.linkDirection.normalize()); this.renderedRelease = this.releaseProgress;
         }
         placeFurniture(place) {
+            place('wooden_bucket_01',[.48,.60,.48],[-3,.389,-22.045],.09,'yard_well');
             place('chinese_console_table', [2.75, 0.98, 1.05], [8.5, 0, -22.75], 0, 'water_station', true);
             place('chinese_cabinet', [1.45, 1.9, 0.7], [7.75, 0, -24.3], 0);
         }

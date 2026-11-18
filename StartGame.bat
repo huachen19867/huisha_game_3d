@@ -7,7 +7,7 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
-echo 回煞 3D - 归门
+echo 回煞 3D
 echo 请打开 http://127.0.0.1:8133
 echo 关闭此窗口即可停止本地服务。
 node tools\serve.mjs

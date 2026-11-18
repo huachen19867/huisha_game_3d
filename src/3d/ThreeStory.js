@@ -3,7 +3,7 @@
     const SAVE_KEY = 'huisha.3d.homecoming.v1';
     const symbols = ['雨', '门', '人', '灯'];
     const freshState = () => ({ records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
-        courtyard: false, buckets: [0, 0], waterSolved: false, departure: null, position: null,
+        courtyard: false, crossedYard: false, buckets: [0, 0], waterSolved: false, departure: null, position: null, lamp: 'altar', shielded: false,
         memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, reasoningRevision: 2, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
     class ThreeStory {
@@ -20,6 +20,9 @@
                         this.state.wheels = saved.wheels.map(value => Number.isInteger(value) && value >= 0 && value < 4 ? value : 0);
                     }
                     this.state.opened = saved.opened === true;
+                    if (this.state.opened && saved.lamp === 'hook') this.state.lamp = 'hook';
+                    if (!this.state.opened && ['lit', 'out'].includes(saved.lamp)) this.state.lamp = saved.lamp;
+                    this.state.shielded = this.state.lamp === 'lit' && saved.shielded === true;
                     this.state.portrait = saved.portrait === true;
                     this.state.portraitBackRead = this.state.portrait && (saved.portraitBackRead === true || !Object.hasOwn(saved, 'portraitBackRead'));
                     if (this.state.portraitBackRead && !this.state.records.includes('portrait_back')) this.state.records.push('portrait_back');
@@ -70,6 +73,7 @@
                     this.state.visitedAreas = [...new Set((Array.isArray(saved.visitedAreas) ? saved.visitedAreas : []).filter(id =>
                         game.ThreeExplorationMap.allowed(game.ThreeExplorationMap.areas().find(area => area.id === id), this.state)))];
                     for (const id of this.state.records) this.markArea(this.recordArea(id));
+                    this.state.crossedYard = this.state.opened && (saved.crossedYard === true || this.state.waterSolved || this.state.visitedAreas.includes('kitchen'));
                 }
             } catch (_) { this.saveAvailable = false; }
         }
@@ -131,9 +135,23 @@
         }
         unlock() {
             if (this.state.wheels.map(value => symbols[value]).join('') !== '灯人门') return false;
+            this.state.lamp = 'altar'; this.state.shielded = false;
             this.state.opened = true;
             this.save();
             return true;
+        }
+        takeLamp() {
+            if (this.state.opened || this.state.memory || this.state.lamp === 'lit') return false;
+            this.state.lamp = 'lit'; this.state.shielded = false; this.save(); return true;
+        }
+        inDraft({x,z}) { return z < -4.1 && z > -6.5 && x < .49; }
+        crossDraft(pose) {
+            if (this.state.lamp !== 'lit' || this.state.shielded || !this.inDraft(pose)) return false;
+            this.state.lamp = 'out'; this.save(pose); return true;
+        }
+        hangLamp() {
+            if (this.state.opened || this.state.lamp !== 'lit') return false;
+            this.state.lamp = 'hook'; this.state.shielded = false; this.state.opened = true; this.save(); return true;
         }
         finish() {
             if (!this.state.opened) return false;
@@ -237,16 +255,19 @@
                 wake: '破茧 · 你回应了救护灯，可以继续回看', remember: '回煞 · 你选择留在记忆，可以继续回看' }[this.state.departure];
             if (this.state.waterSolved) return this.state.records.includes('medicine_letter')
                 ? '院门已开 · 可以走向山路，也可以翻厨房柜边的相册核对记忆' : '量水秤压平了 · 查看打开的抽屉，院门也已松开';
-            if (this.state.courtyard) return '厨房还有一盏灯 · 观察提桶刻度，用水压平旧秤';
+            if (this.state.courtyard) return this.state.crossedYard ? '厨房还有一盏灯 · 观察提桶刻度，用水压平旧秤' : '走到右边有灶火的厨房。院里的灯扫过来时，先停步。';
             if (this.state.ending || this.state.opened) return '门闩已经松开 · 穿过走廊，走入雨庭';
+            if (this.state.lamp === 'out') return '灯芯灭了。回供桌借烛火，或用门上的字轮开门。';
+            if (this.state.lamp === 'lit') return '端灯去照走廊尽头的门闩。左手边破窗漏风，过窗记得拢住火。';
             if (this.state.records.includes('lock')) return '三枚字轮 · 对照旧宅里的字迹，尝试松开门闩';
-            return '母亲的来信让你回到旧宅 · 找到走廊尽头的出路';
+            return '正厅左边的供桌上，母亲的守夜灯还亮着';
         }
         guidance(stage = 0) {
             if (this.state.memory) return this.memoryGuidance(stage);
             if (this.state.waterSolved) return { text: '量水秤已经压平，桌下的抽屉打开了。低头查看抽屉里的家书；厨房外的院门也松开了，可从雨庭走向山路。' };
             if (this.state.courtyard) return this.waterGuidance(stage);
             if (this.state.opened) return { text: '门闩已经松开。沿走廊走到门外的石路，再走入雨庭。右手边的厨房还亮着一盏灯。' };
+            if (this.state.lamp === 'out' || this.state.lamp === 'lit') return { text: this.objective() };
             const read = id => this.state.records.includes(id);
             if (stage <= 0) {
                 let text;

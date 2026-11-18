@@ -23,6 +23,7 @@ for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'Thr
     vm.runInContext(await text(`src/3d/${name}.js`), context, { filename: `${name}.js` });
 }
 const game = window.Huisha3D;
+vm.runInContext(await text('src/3d/ThreeYardWatch.js'), context);
 game.mergeGeometries = mergeGeometries;
 let mapWrites = 0; const mapStorage = new Map(), mapAdapter = { getItem: key => mapStorage.get(key), setItem: (key, value) => { mapStorage.set(key, value); mapWrites++; } };
 const mapStory = new game.ThreeStory(mapAdapter);
@@ -162,7 +163,7 @@ console.log('Story: optional guidance, observed evidence, incorrect attempt, fre
 // omit their material bindings here because Node has no browser image decoder or WebGL.
 globalThis.ProgressEvent ??= class { constructor(type, values) { Object.assign(this, { type }, values); } };
 const parsedModels = new Map();
-for (const id of ['chinese_armchair', 'chinese_console_table', 'chinese_cabinet', 'SchoolDesk_01', 'SchoolChair_01', 'wheelchair_01']) {
+for (const id of ['chinese_armchair', 'chinese_console_table', 'chinese_cabinet', 'SchoolDesk_01', 'SchoolChair_01', 'wheelchair_01','wooden_bucket_01']) {
     const directory = `assets/models/${id}`;
     const gltf = JSON.parse(await text(`${directory}/model.gltf`));
     for (const buffer of gltf.buffers) {
@@ -185,8 +186,43 @@ for (const id of ['chinese_armchair', 'chinese_console_table', 'chinese_cabinet'
 game.GLTFLoader = class { async loadAsync(url) { return parsedModels.get(url.split('/')[2]); } };
 const house = new game.ThreeHouseScene({ story });
 house.scene = new THREE.Scene();
-house.materials = Object.fromEntries(['wall', 'floor', 'wood', 'darkWood', 'brass', 'red', 'cloth', 'paper', 'portrait', 'stone', 'wax', 'ash', 'plaster'].map(key => [key, new THREE.MeshStandardMaterial()]));
+house.materials = Object.fromEntries(['wall', 'floor', 'wood', 'darkWood', 'brass', 'red', 'cloth', 'paper', 'portrait', 'stone', 'wax', 'ash', 'plaster', 'paving'].map(key => [key, new THREE.MeshStandardMaterial()]));
 house.createArchitecture(); house.createProps(); await house.loadModels();
+{
+    const progress = new Map();
+    const storage = {getItem: key=>progress.get(key),setItem:(key,value)=>progress.set(key,value)};
+    const lampStory = new game.ThreeStory(storage);
+    assert.ok(lampStory.takeLamp());
+    const draftPose = {x:0,z:-5.1,yaw:Math.PI,pitch:0};
+    lampStory.state.shielded = true;
+    assert.equal(lampStory.crossDraft(draftPose),false);
+    lampStory.state.shielded = false;
+    assert.ok(lampStory.crossDraft(draftPose));
+    assert.equal(new game.ThreeStory(storage).state.lamp,'out');
+    assert.equal(lampStory.hangLamp(),false);
+    assert.ok(lampStory.takeLamp() && lampStory.hangLamp());
+    const camera = new THREE.PerspectiveCamera(), cues=[];
+    const rig = Object.create(house);
+    Object.assign(rig,{camera,story:lampStory,isPaused:()=>false,onWatchEvent:cue=>cues.push(cue),
+        controls:{snapshot:()=>({x:camera.position.x,z:camera.position.z,yaw:Math.PI,pitch:0}),
+            teleport:p=>camera.position.set(p.x,1.6,p.z)}});
+    const watch = new game.ThreeYardWatch(rig);
+    camera.position.set(0,1.6,-20);watch.update(.05);
+    for(let i=0;i<70&&!cues.includes('caught');i++){
+        const angle=.14+.82*Math.sin((watch.time+.05)*.78);
+        camera.position.set(-.9+6*Math.sin(angle),1.6,-26.55+6*Math.cos(angle));
+        watch.update(.05);
+    }
+    assert.ok(cues.includes('warning')&&cues.includes('caught'));
+    assert.equal(camera.position.z,-14.75);
+    camera.position.set(0,1.6,-20);
+    for(let i=0;i<110;i++) watch.update(.05);
+    assert.equal(watch.alarm,0,'standing still is safe under the moving lantern');
+    camera.position.set(6.4,1.6,-21.3);watch.update(.05);
+    assert.ok(cues.includes('safe') && new game.ThreeStory(storage).state.crossedYard);
+    watch.root.removeFromParent();
+    console.log('Wake lamp, courtyard warning, return to threshold, stillness and persistent kitchen refuge passed.');
+}
 house.outsideLight = { intensity: 0 }; house.syncState(true); house.scene.updateMatrixWorld(true);
 assert.equal(house.scene.getObjectByName('chinese_armchair').isGroup, true);
 assert.equal(house.scene.getObjectByName('chinese_console_table').isGroup, true);
@@ -208,7 +244,7 @@ for (const [id, paper] of house.documents.papers) {
     const gap = new THREE.Box3().setFromObject(paper.root).min.y - new THREE.Box3().setFromObject(desk).max.y;
     assert.ok(gap >= 0 && gap < 0.01, 'paper rests just above the actual imported desk surface');
 }
-console.log('Assets: all six real glTF models, binary buffers, texture dependencies and scene placement passed.');
+console.log('Assets: all seven glTF models, binary buffers, texture dependencies and scene placement passed.');
 for (const prefix of ['hall', 'school', 'hospital']) for (const side of [-1, 1]) {
     const name = `${prefix}-window-wall-${side}`, wall = house.scene.getObjectByName(name), opening = wall.userData.windowOpening;
     const pointX = opening.left + (opening.right - opening.left) / (prefix === 'hall' ? 12 : 6);

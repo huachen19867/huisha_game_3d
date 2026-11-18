@@ -1,5 +1,11 @@
 # 3D 参考与来源
 
+雨庭的守夜纸人复用本地引擎及 Kenney 脚步声，灯扫过来的方位随玩家朝向变换。聚光灯目标、锥角和边缘衰减参照 Three.js r160 官方实现，渲染与玩法共用扫灯转角、半角和距离。[本地参考](SpotLight-r160.js) · [上游代码](https://github.com/mrdoob/three.js/blob/r160/src/lights/SpotLight.js)
+
+守夜灯的油壶和玻璃罩使用工作区已有 Three.js r160 的旋转体几何。开工时下载同版官方实现，核对剖面半径、高度和旋转轴；游戏模型使用自行绘制的剖面。许可随本地引擎分发。[LatheGeometry 本地原文](LatheGeometry-r160.js) · [上游源码](https://github.com/mrdoob/three.js/blob/r160/src/geometries/LatheGeometry.js)
+
+《借影》开工时从 Three.js r160 下载官方 ShapeGeometry 源文件，核对轮廓与孔洞的方向和三角化。皮偶的皮片由同版引擎拉出厚度，肘铆钉带动手和竹签一起转，静态部件按材质合并。轮廓、河景和文本为本作编写，沿用库内木材与 Kenney 轻木击、木地板脚步声。下载文件采用 Three.js MIT 许可。[本地源码](ShapeGeometry-r160.js) · [上游文件](https://github.com/mrdoob/three.js/blob/r160/src/geometries/ShapeGeometry.js) · [许可](../../vendor/THREE-LICENSE.txt)
+
 老板已明确重新制作，旧 `src/3d` 原型只用于核对问题，不沿用其场景或玩法代码。保留可用原始木材，原件不动。下载 Three.js r160 官方模块构建、GLTFLoader 与 BufferGeometryUtils，许可随 `vendor/THREE-LICENSE.txt` 分发，模块导入路径改为本地 `.mjs`。中式家具与 PBR 资源来源见 `assets/README.md`，Poly Haven CC0 许可原文保存在本目录 `polyhaven-license.html`。
 
 2026-11-16 下载官方同版本参考：[PointerLockControls](https://github.com/mrdoob/three.js/blob/r160/examples/jsm/controls/PointerLockControls.js)、[Raycaster](https://github.com/mrdoob/three.js/blob/r160/src/core/Raycaster.js)。本目录保存原文，仅用于核对相机左右轴、指针锁释放和遮挡射线，许可同 Three.js MIT。不把参考文件当作游戏模块加载。

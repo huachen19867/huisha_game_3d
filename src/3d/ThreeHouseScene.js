@@ -2,8 +2,8 @@
     const game = global.Huisha3D || (global.Huisha3D = {});
     const THREE = global.THREE;
     class ThreeHouseScene {
-        constructor({ root, prompt, focusMarker, story, isPaused, isReading, onInspect, onAssetError, onFrame, getPreferences, onMechanismEvent, onScaleEvent }) {
-            Object.assign(this, { root, prompt, focusMarker, story, isPaused, isReading, onInspect, onAssetError, onFrame, getPreferences, onMechanismEvent, onScaleEvent });
+        constructor({ root, prompt, focusMarker, story, isPaused, isReading, onInspect, onAssetError, onFrame, getPreferences, onMechanismEvent, onScaleEvent, onWatchEvent }) {
+            Object.assign(this, { root, prompt, focusMarker, story, isPaused, isReading, onInspect, onAssetError, onFrame, getPreferences, onMechanismEvent, onScaleEvent, onWatchEvent });
             this.map = game.WORLD_MAP || game.MAIN_HALL_MAP;
             this.clock = new THREE.Clock();
             this.textures = [];
@@ -29,6 +29,7 @@
             this.createProps();
             this.createLights();
             await this.loadModels();
+            this.watch = new game.ThreeYardWatch(this);
             this.syncState(true);
             this.controls = new game.ThreeControls({ camera: this.camera, domElement: this.renderer.domElement,
                 map: this.map, story: this.story, isPaused: this.isPaused,
@@ -52,7 +53,7 @@
             this.textures.push(texture);
             return texture;
         }
-        pbr(name, repeat, color) {
+        pbr(name, repeat, color, tileMeters) {
             const load = (suffix, srgb = false) => {
                 const texture = new THREE.TextureLoader().load(`assets/materials/${name}-${suffix}.jpg`, undefined, () => this.onAssetError?.(`${name}-${suffix}`));
                 if (srgb) texture.colorSpace = THREE.SRGBColorSpace;
@@ -62,20 +63,36 @@
                 this.textures.push(texture);
                 return texture;
             };
-            return new THREE.MeshStandardMaterial({ color, map: load('color', true), normalMap: load('normal'),
+            const material = new THREE.MeshStandardMaterial({ color, map: load('color', true), normalMap: load('normal'),
                 roughnessMap: load('roughness'), roughness: 0.95, normalScale: new THREE.Vector2(0.55, 0.55) });
+            if (tileMeters) material.userData.tileMeters = [...tileMeters];
+            return material;
         }
         createMaterials() {
             const mat = (color, map) => new THREE.MeshStandardMaterial({ color, map, roughness: 0.88 });
+            const planks = this.pbr('wood', [3, 3], 0xb0a99b);
+            const oldWood = planks.clone(); oldWood.color.setHex(0x916e55); oldWood.roughness=.68;
+            const sky = new THREE.TextureLoader().load('assets/materials/night-court.jpg', texture => {
+                texture.mapping = THREE.EquirectangularReflectionMapping;
+                texture.colorSpace = THREE.SRGBColorSpace;
+                this.nightSky = texture;
+                this.scene.backgroundIntensity = .38;
+                if (!this.story.state.memory) this.scene.background = texture;
+                this.materials.paving.envMap = texture; this.materials.paving.envMapIntensity = .57;
+                this.materials.paving.needsUpdate = true;
+            }, undefined, () => this.onAssetError?.('night-court'));
+            this.textures.push(sky);
             const portrait = new THREE.TextureLoader().load('assets/art/mother-portrait.png', undefined, () => this.onAssetError?.('mother-portrait'));
             portrait.colorSpace = THREE.SRGBColorSpace; this.textures.push(portrait);
             this.materials = {
                 portrait: new THREE.MeshStandardMaterial({ map: portrait, roughness: 0.85 }),
                 wall: mat(0x9b8d7c, this.texture('木墙', [2.5, 1])),
-                floor: this.pbr('wood', [3, 3], 0xb0a99b),
+                floor: planks,
                 plaster: this.pbr('plaster', [2.5, 1.2], 0xa7a69a),
+                paving: this.pbr('paving', [1, 1], 0xffffff, [2, 2]),
+                wellStone: this.pbr('well', [1, 1], 0xaaa89c, [1.8, 1.8]),
                 wood: mat(0x7d5036, this.texture('木梁', [1, 1])),
-                darkWood: mat(0x352321), brass: mat(0xa98b54), red: mat(0x862f24),
+                darkWood: oldWood, brass: mat(0xa98b54), red: mat(0x862f24),
                 cloth: mat(0x17171b), paper: mat(0xc6b689), stone: mat(0x555f63),
                 wax: mat(0xbfa77b), ash: mat(0x8c8a80)
             };
@@ -91,7 +108,19 @@
             return mesh;
         }
         box(name, size, position, material = this.materials.wood, item, parent, blocks = true) {
-            return this.mesh(name, new THREE.BoxGeometry(...size), material, position, item, parent, blocks);
+            const geometry = new THREE.BoxGeometry(...size), tile = material.userData.tileMeters;
+            if (tile) {
+                const { position: vertices, normal, uv } = geometry.attributes;
+                for (let i = 0; i < vertices.count; i++) {
+                    const x = vertices.getX(i) + position[0], y = vertices.getY(i) + position[1], z = vertices.getZ(i) + position[2];
+                    const nx = normal.getX(i), ny = normal.getY(i), nz = normal.getZ(i);
+                    // Keep metres per tile and tangent orientation on each face; adjoining floors share one origin.
+                    const u = Math.abs(nx) > 0.5 ? -Math.sign(nx) * z : x * (Math.abs(nz) > 0.5 ? Math.sign(nz) : 1);
+                    const v = Math.abs(ny) > 0.5 ? -Math.sign(ny) * z : y;
+                    uv.setXY(i, u / tile[0], v / tile[1]);
+                }
+            }
+            return this.mesh(name, geometry, material, position, item, parent, blocks);
         }
         cylinder(name, top, bottom, height, position, material, item, parent) {
             return this.mesh(name, new THREE.CylinderGeometry(top, bottom, height, 20), material, position, item, parent);
@@ -104,9 +133,10 @@
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = background; ctx.fillRect(0, 0, 768, 512);
             ctx.strokeStyle = color; ctx.lineWidth = 5; ctx.strokeRect(22, 22, 724, 468);
-            ctx.fillStyle = color; ctx.font = '52px "Songti SC", "SimSun", serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             const lines = text.split('\n');
-            lines.forEach((line, i) => ctx.fillText(line, 384, 256 + (i - (lines.length - 1) / 2) * 80, 670));
+            const fontSize = Math.min(158, 340/lines.length, 640/Math.max(1,...lines.map(line=>line.length)));
+            ctx.fillStyle = color; ctx.font = `bold ${fontSize}px "KaiTi", "SimSun", serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            lines.forEach((line, i) => ctx.fillText(line, 384, 256 + (i - (lines.length - 1) / 2) * fontSize * 1.18, 670));
             const texture = new THREE.CanvasTexture(canvas);
             texture.colorSpace = THREE.SRGBColorSpace;
             this.textures.push(texture);
@@ -127,14 +157,24 @@
             this.box('entrance-door', [1.9, 2.7, 0.12], [0, 1.35, 4.3], m.darkWood);
             for (const side of [-1, 1]) {
                 this.box(`back-wall-${side}`, [3.65, 3.4, 0.2], [side * 3.175, 1.6, -4.3], m.wall);
-                this.box(`corridor-wall-${side}`, [0.2, 3.1, 7.2], [side * 1.4, 1.5, -7.8], m.wall);
+                if (side > 0) this.box('corridor-wall-right', [0.2, 3.1, 7.2], [1.4, 1.5, -7.8], m.wall);
+                else {
+                    this.box('draft-wall-far', [.2,3.1,5.4], [-1.4,1.5,-8.7], m.wall);
+                    this.box('draft-wall-sill', [.2,1.18,1.8], [-1.4,.54,-5.1], m.wall);
+                    this.box('draft-wall-head', [.2,.65,1.8], [-1.4,2.725,-5.1], m.wall);
+                    for (const z of [-5.9,-5.57,-5.24,-4.91,-4.58,-4.25])
+                        this.box('draft-window-bar', [.055,1.27,.038], [-1.4,1.765,z], m.darkWood);
+                    this.draftPaper = new THREE.Group(); this.draftPaper.position.set(-1.32,2.4,-5.30); this.scene.add(this.draftPaper);
+                    const paper = this.box('torn-window-paper', [.012,.48,.16], [0,-.24,0], m.paper, undefined, this.draftPaper, false);
+                    paper.rotation.x = .17;
+                }
                 this.box(`door-jamb-${side}`, [0.16, 2.9, 0.3], [side * 1.25, 1.45, -11.5], m.wood);
                 this.box(`pillar-${side}`, [0.5, 3.3, 0.5], [side * 4.1, 1.6, -1.5], m.wood);
                 this.box(`hall-footboard-${side}`, [0.08, 0.22, 8.5], [side * 4.85, 0.1, 0], m.darkWood);
                 this.box(`wainscot-${side}`, [0.08, 0.85, 8.5], [side * 4.88, 0.55, 0], m.wall);
                 this.box(`chair-rail-${side}`, [0.1, 0.065, 8.5], [side * 4.8, 0.99, 0], m.wood);
                 game.ThreeWindowWall.build(this, { name: `hall-window-wall-${side}`, side, x: 5, length: 8.7, top: 3.3 });
-                this.box(`side-court-ground-${side}`, [2.8, 0.12, 9.2], [side * 6.4, -0.1, 0], m.stone);
+                this.box(`side-court-ground-${side}`, [2.8, 0.12, 9.2], [side * 6.4, -0.1, 0], m.paving);
                 this.box(`side-court-wall-${side}`, [0.18, 1.65, 9.2], [side * 7.75, 0.75, 0], m.plaster);
                 this.box(`side-court-wall-cap-${side}`, [0.28, 0.08, 9.2], [side * 7.75, 1.61, 0], m.stone);
                 this.box(`side-court-eave-${side}`, [1.05, 0.14, 9], [side * 5.32, 3.38, 0], m.darkWood);
@@ -154,11 +194,11 @@
             this.createOutside();
             for (let i = 0; i < 7; i++) this.box(`height-mark-${i}`, [0.015, 0.012, 0.23 + i * 0.025], [1.285, 0.62 + i * 0.15, -7.1], m.paper, 'wall_marks', undefined, false);
             this.label('height-note', '灯与门之间\n是回家的人', [0.65, 0.43], [1.278, 1.7, -7.1], [0, -Math.PI / 2, 0], 'wall_marks');
-            this.label('hall-sign', '归　门', [1.5, 0.5], [0, 2.55, -4.16], [0, 0, 0]);
+            this.label('hall-sign', '归　门', [1.5, 0.5], [0, 2.55, -4.16], [0, 0, 0],undefined,this.scene,'#312821','#ceb386');
         }
         createOutside() {
             const m = this.materials;
-            this.box('outside-ground', [28, 0.15, 23], [0, -0.23, -23], m.stone);
+            this.box('outside-ground', [28, 0.15, 23], [0, -0.23, -23], m.paving);
             for (let i = 0; i < 8; i++) {
                 this.box(`path-stone-${i}`, [1.85, 0.12, 0.63], [(i % 2 ? 1 : -1) * 0.015, -0.03, -11.9 - i * 0.72], m.stone, 'threshold');
             }
@@ -202,10 +242,27 @@
             const body = new THREE.ExtrudeGeometry(outline, { depth: 0.54, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.045, bevelThickness: 0.04 });
             body.rotateX(-Math.PI / 2);
             this.mesh('coffin-body', body, m.darkWood, [0, 0.17, 0.65], 'coffin');
-            this.box('coffin-lid', [2.72, 0.16, 1.35], [0, 0.81, 0.65], m.wood, 'coffin');
+            for (const [name,width,depth,y,thickness,material] of [
+                ['coffin-lid-lip',1.039,1.12,.714,.045,m.darkWood],
+                ['coffin-lid',1.025,1.09,.787,.070,m.wood],
+                ['coffin-lid-crown',.99,1.045,.862,.025,m.darkWood]
+            ]) {
+                const lid = new THREE.ExtrudeGeometry(outline,{depth:thickness,bevelEnabled:true,bevelSegments:3,
+                    steps:1,bevelSize:.038,bevelThickness:.012});
+                lid.rotateX(-Math.PI/2); lid.scale(width,1,depth);
+                this.mesh(name,lid,material,[0,y,.65],'coffin');
+            }
+            for (const x of [-.86,.69]) {
+                this.box('coffin-trestle',[.18,.15,1.22],[x,.077,.65],m.darkWood,'coffin');
+                for (const side of [-1,1]) {
+                    const z=.65+side*.555;
+                    this.box('coffin-iron-backplate',[.14,.13,.03],[x,.49,z],m.darkWood,'coffin');
+                    this.mesh('coffin-carry-ring',new THREE.TorusGeometry(.076,.012,8,26),m.brass,[x,.43,z+side*.024],'coffin');
+                }
+            }
             this.label('coffin-inscription', '左位留灯　右位留门', [1.75, 0.33], [0, 0.899, 0.65], [-Math.PI / 2, 0, 0], 'coffin', undefined, '#5c3b2c', '#c5b38c');
             this.box('letter-shelf', [0.95, 0.1, 0.35], [2.65, 0.95, 4.07], m.wood, 'letter');
-            this.label('letter', '七月十四\n回来一趟', [0.6, 0.4], [2.65, 1.15, 3.98], [0, Math.PI, 0], 'letter');
+            this.label('letter', '明，十四\n回来吃饭', [0.6, 0.4], [2.65, 1.15, 3.98], [0, Math.PI, 0], 'letter');
             const door = this.map.door;
             this.door = new THREE.Group(); this.door.position.set(door.hingeX, 0, door.hingeZ); this.scene.add(this.door);
             this.box('sealed-door', [door.width, 2.8, door.thickness], [door.width / 2, 1.4, 0], m.darkWood, 'lock', this.door);
@@ -229,8 +286,53 @@
             this.wheelTargets = [0, 0, 0]; this.wheelSymbols = [0, 0, 0];
             this.label('lock-heading', '归　门', [1.3, 0.4], [1.17, 2.2, 0.11], [0, 0, 0], 'lock', this.door, '#352321', '#c9b389');
             this.doorMechanism = new game.ThreeDoorMechanism(this); this.doorMechanism.build();
+            this.buildWakeLamp();
             if (game.ThreeCourtyard) { this.courtyard = new game.ThreeCourtyard(this); this.courtyard.build(); }
             if (game.ThreeMemoryScenes) { this.memories = new game.ThreeMemoryScenes(this); this.memories.build(); }
+        }
+        buildWakeLamp() {
+            const m = this.materials;
+            this.lamp = new THREE.Group(); this.scene.add(this.lamp);
+            const lathe = (name, points, material) => this.mesh(name,
+                new THREE.LatheGeometry(points.map(([r,y]) => new THREE.Vector2(r,y)), 32),
+                material, [0,0,0], undefined, this.lamp, false);
+            lathe('wake-lamp-oil-pot', [[.025,0],[.115,.012],[.128,.045],[.111,.085],[.07,.105],[.032,.11]], m.brass);
+            const glass = new THREE.MeshStandardMaterial({color:0xb5b19a, transparent:true, opacity:.22, roughness:.27, side:THREE.DoubleSide, depthWrite:false});
+            lathe('wake-lamp-chimney', [[.061,.095],[.09,.15],[.076,.22],[.048,.28],[.052,.34]], glass);
+            const flame = new THREE.MeshBasicMaterial({color:0xffcf78});
+            this.lampFlame = lathe('wake-lamp-flame', [[.001,.103],[.023,.123],[.018,.155],[.002,.211]], flame);
+            const bail = this.mesh('wake-lamp-bail', new THREE.TorusGeometry(.123,.008,6,36,Math.PI), m.darkWood,
+                [0,.275,0], undefined, this.lamp, false);
+            for (const x of [-.122,.122]) this.mesh('wake-lamp-bail-wire', new THREE.CylinderGeometry(.008,.008,.23,8),m.brass,[x,.165,0],undefined,this.lamp,false);
+            bail.rotation.y = .12;
+            const tie=new THREE.CatmullRomCurve3([[.04,.389,.008],[.066,.375,-.014],[.056,.384,.022],[.103,.323,.032],[.094,.264,.048]].map(p=>new THREE.Vector3(...p)));
+            this.mesh('red-shoelace',new THREE.TubeGeometry(tie,18,.009,6,false),m.red,[0,0,0],undefined,this.lamp,false);
+            this.lampLight = new THREE.PointLight(0xffaa57,1.4,3.3); this.lampLight.position.y=.17; this.lamp.add(this.lampLight);
+            const hook = this.mesh('inside-latch-loop',new THREE.TorusGeometry(.082,.012,8,32,Math.PI*1.8),m.brass,[2.02,1.03,.39],'lock',this.door,false);
+            hook.rotation.z = -.5;
+            this.lampOffset = new THREE.Vector3(); this.lampTime = 0;
+            this.lamp.position.set(-2.16,1.09,-2.91);
+        }
+        updateWakeLamp(delta) {
+            const s=this.story.state, held=s.lamp==='lit'||s.lamp==='out';
+            const inspectingLock=this.inspectionKind==='lock';
+            if (!this.isPaused()) this.lampTime+=delta;
+            const sway=this.reducedMotion?.matches ? 0 : Math.sin(this.lampTime*4.3);
+            this.draftPaper.rotation.z=.43+sway*.18;
+            this.lamp.visible=!s.memory && (!held || !this.inspectionReturn || inspectingLock);
+            if (!this.lamp.visible) return;
+            this.lamp.rotation.set(0,0,0);
+            if (s.lamp==='hook'||(held&&inspectingLock)) {
+                this.lamp.position.copy(this.door.localToWorld(this.lampOffset.set(2.02,.66,.40)));
+                this.lamp.rotation.y=this.door.rotation.y;
+            } else if (held) {
+                const halfWidth=.72*Math.tan(THREE.MathUtils.degToRad(this.camera.fov/2))*this.camera.aspect;
+                this.lamp.position.copy(this.camera.localToWorld(this.lampOffset.set(Math.min(.32,halfWidth*.6),-.29,-.72)));
+                this.lamp.rotation.y=this.controls.yaw-Math.PI;
+            } else this.lamp.position.set(-2.16,1.09,-2.91);
+            this.lampFlame.visible=s.lamp!=='out';
+            this.lampFlame.scale.y = s.shielded ? .78 : 1+sway*.05;
+            this.lampLight.intensity = this.lampFlame.visible ? (s.shielded ? .48 : 1.6) : 0;
         }
         createCandle(x, parent) {
             const m = this.materials;
@@ -242,7 +344,7 @@
         }
         async loadModels() {
             const loader = new game.GLTFLoader();
-            const entries = await Promise.all(['chinese_armchair', 'chinese_console_table', 'chinese_cabinet', 'SchoolDesk_01', 'SchoolChair_01', 'wheelchair_01'].map(async id => {
+            const entries = await Promise.all(['chinese_armchair', 'chinese_console_table', 'chinese_cabinet', 'SchoolDesk_01', 'SchoolChair_01', 'wheelchair_01','wooden_bucket_01'].map(async id => {
                 const gltf = await loader.loadAsync(`assets/models/${id}/model.gltf`);
                 return [id, gltf.scene];
             }));
@@ -388,9 +490,11 @@
             this.animationId = global.requestAnimationFrame(() => this.animate());
             const delta = Math.min(this.clock.getDelta(), 0.05);
             this.controls.update(delta); this.syncState(); this.moveWheels(delta);
+            this.watch.update(delta);
             this.portrait.update(delta);
             this.documents?.update(delta);
             this.moveDoor(delta);
+            this.updateWakeLamp(delta);
             this.courtyard?.update(delta);
             this.scene.updateMatrixWorld(true); this.camera.updateMatrixWorld(true);
             this.interaction.update(delta);

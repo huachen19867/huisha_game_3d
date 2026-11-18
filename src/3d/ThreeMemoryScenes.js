@@ -94,7 +94,7 @@
             this.lastSpace = space;
             if (h.homeRoot) h.homeRoot.visible = !space;
             for (const [id, root] of Object.entries(this.rooms)) root.visible = id === space;
-            if (h.scene.background?.isColor) h.scene.background.setHex(space ? game.MEMORIES[space].color : 0x151b21);
+            h.scene.background = !space && h.nightSky ? h.nightSky : new THREE.Color(space ? game.MEMORIES[space].color : 0x151b21);
             if (h.scene.fog) { h.scene.fog.color.setHex(space ? game.MEMORIES[space].color : 0x222329); h.scene.fog.density = space === 'crash' ? 0.07 : 0.027; }
         }
     }

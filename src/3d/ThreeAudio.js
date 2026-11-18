@@ -42,12 +42,16 @@
             }));
             return this.loading;
         }
-        sample(name, volume = 0.5) {
+        sample(name, volume = 0.5, pan) {
             const buffer = this.samples.get(name);
             if (!buffer || this.muted || this.context?.state !== 'running') return false;
             const source = this.context.createBufferSource(), gain = this.context.createGain(); source.buffer = buffer;
-            gain.gain.value = volume; source.connect(gain); gain.connect(this.gain); source.start();
-            source.onended = () => { source.disconnect(); gain.disconnect(); };
+            gain.gain.value = volume; source.connect(gain);
+            const panner = Number.isFinite(pan) && this.context.createStereoPanner ? this.context.createStereoPanner() : null;
+            if (panner) { panner.pan.value = Math.max(-1,Math.min(1,pan)); gain.connect(panner); panner.connect(this.gain); }
+            else gain.connect(this.gain);
+            source.start();
+            source.onended = () => { source.disconnect(); gain.disconnect(); panner?.disconnect(); };
             return true;
         }
         noiseBurst(duration, volume, frequency, type = 'lowpass') {
@@ -71,6 +75,10 @@
             oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
         }
         knock() { if (!this.sample('impactWood_light_000', 0.45)) this.tone(160, 0.1, 0.15); }
+        watchStep(pan, near) {
+            if (!this.sample(near ? 'footstep_concrete_002' : 'footstep_concrete_001', near ? .92 : .52, pan))
+                this.tone(near ? 72 : 102, near ? .21 : .12, near ? .21 : .1);
+        }
         latch() { if (!this.sample(`impactMetal_light_00${this.turns++ % 2}`, 0.4)) this.tone(760, 0.08, 0.1); }
         paper() { this.noiseBurst(0.16, 0.07, 1400, 'highpass'); }
         water(action) { this.noiseBurst(action === 'fill' ? 0.6 : 0.4, 0.13, action === 'empty' ? 1100 : 2100); }

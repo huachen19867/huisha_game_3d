@@ -182,6 +182,86 @@
       "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/SchoolChair_01/SchoolChair_01.bin",
       "md5": "d1f13f71f9f9979cde18c798e25dd9d3",
       "path": "models/SchoolChair_01/SchoolChair_01.bin"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cobblestone_floor_05/cobblestone_floor_05_diff_1k.jpg",
+      "md5": "ce9c4e4ebaf46f2c671eb82269382177",
+      "path": "materials/paving-color.jpg",
+      "fetched": "2026-11-17"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cobblestone_floor_05/cobblestone_floor_05_nor_gl_1k.jpg",
+      "md5": "2a8102c04d44a4d63ea0573a429b461b",
+      "path": "materials/paving-normal.jpg",
+      "fetched": "2026-11-17"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cobblestone_floor_05/cobblestone_floor_05_rough_1k.jpg",
+      "md5": "b01d98f7ea98350d48680e37eb6819b0",
+      "path": "materials/paving-roughness.jpg",
+      "fetched": "2026-11-17"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_face_03/rock_face_03_diff_1k.jpg",
+      "md5": "e4c34abb1aad5befe12754fad507147a",
+      "path": "materials/well-color.jpg",
+      "fetched": "2026-11-18"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_face_03/rock_face_03_nor_gl_1k.jpg",
+      "md5": "cbd30858439ece391480c5e67e09de89",
+      "path": "materials/well-normal.jpg",
+      "fetched": "2026-11-18"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_face_03/rock_face_03_rough_1k.jpg",
+      "md5": "bbb2c7dafde3f81808fa7404d4527a56",
+      "path": "materials/well-roughness.jpg",
+      "fetched": "2026-11-18"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/wooden_bucket_01/wooden_bucket_01_1k.gltf",
+      "md5": "d3a6ff00895b69406b203dc417113d9a",
+      "path": "models/wooden_bucket_01/model.gltf",
+      "fetched": "2026-11-18"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/wooden_bucket_01/wooden_bucket_01_arm_1k.jpg",
+      "md5": "9f42842024b3117b557348ec265cfeee",
+      "path": "models/wooden_bucket_01/textures/wooden_bucket_01_arm_1k.jpg",
+      "fetched": "2026-11-18"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/wooden_bucket_01/wooden_bucket_01_diff_1k.jpg",
+      "md5": "d6296adf55e03bb1acc5de3e5fc8b10f",
+      "path": "models/wooden_bucket_01/textures/wooden_bucket_01_diff_1k.jpg",
+      "fetched": "2026-11-18"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/wooden_bucket_01/wooden_bucket_01_nor_gl_1k.jpg",
+      "md5": "68ad3de3f685798a8d46c070da840e5a",
+      "path": "models/wooden_bucket_01/textures/wooden_bucket_01_nor_gl_1k.jpg",
+      "fetched": "2026-11-18"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/wooden_bucket_01/wooden_bucket_01.bin",
+      "md5": "a93114e5fadd149de908464de7b42550",
+      "path": "models/wooden_bucket_01/wooden_bucket_01.bin",
+      "fetched": "2026-11-18"
+    }
+  ],
+  "updated": "2026-11-18",
+  "derivatives": [
+    {
+      "path": "materials/night-court.jpg",
+      "source": "https://polyhaven.com/a/moonless_golf",
+      "author": "Greg Zaal",
+      "source_md5": "e7b15224feb4aec17bb543f8e67c26a0",
+      "sha256": "13cd32bc4f5bfd83d765f1bce530ebff54f66add08c4e32aefaea784ab21b256",
+      "dimensions": [
+        2048,
+        1024
+      ]
     }
   ]
 }

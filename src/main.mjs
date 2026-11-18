@@ -6,6 +6,7 @@ window.Huisha3D = { GLTFLoader, mergeGeometries };
 for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeSettings', 'ThreeControls', 'ThreeInteraction', 'ThreeWindowWall', 'ThreeCourtyard', 'ThreePhone', 'ThreeDocument', 'ThreeMemoryScenes', 'ThreeMemoryTimeline', 'ThreeMemoryJournal', 'ThreeEvidenceJournal', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeHouseScene', 'ThreeAudio']) {
     await import(`./3d/${name}.js`);
 }
+await import('./3d/ThreeYardWatch.js');
 const $ = id => document.getElementById(id);
 const game = window.Huisha3D;
 const story = new game.ThreeStory();
@@ -31,6 +32,9 @@ function updateLoadStatus() {
 }
 function updateStatus() {
     $('objective').textContent = story.objective();
+    $('shield-flame').hidden = story.state.lamp !== 'lit' || !!scene?.inspectionReturn;
+    $('shield-flame').setAttribute('aria-pressed', String(story.state.shielded));
+    $('shield-flame').textContent = story.state.shielded ? '松开手掌 [F]' : '拢住灯火 [F]';
     $('begin').textContent = story.state.memory ? `继续${game.MEMORIES[story.state.memory].title}`
         : story.state.records.length || story.state.position ? (story.state.courtyard ? '继续余温' : '继续归门') : '走进旧宅';
     $('restart').hidden = !story.state.records.length && !story.state.position;
@@ -213,6 +217,7 @@ function portrait() {
     (story.state.portrait ? $('portrait-flip') : $('portrait-reveal')).focus();
 }
 function updateLock(message) {
+    $('lock-hang').hidden = story.state.lamp !== 'lit';
     if (message) $('lock-status').textContent = message;
     document.querySelectorAll('[data-wheel]').forEach((button, index) => {
         const symbol = game.ThreeStory.symbols[story.state.wheels[index]];
@@ -239,7 +244,8 @@ function lock() {
     if (document.pointerLockElement) document.exitPointerLock();
     touches.clear(); updateTouch(); scene.beginLockInspection();
     $('lock-inspector').hidden = false; $('hud').classList.add('inspecting');
-    updateLock('每次转动一格。可以回查已读字迹，再压下门闩。');
+    updateStatus();
+    updateLock(story.state.lamp === 'lit' ? '贴近一照，闩底露出个铜丝圈。我小时候踮着脚，刚好够得着它。' : '每次转动一格。可以回查已读字迹，再压下门闩。');
     evidenceJournal.sync();
     document.querySelector('[data-wheel]').focus();
 }
@@ -287,14 +293,14 @@ function ending(choice) {
     if (!story.depart(choice)) return;
     audio.chime();
     const text = choice === 'wake'
-        ? '你循着另一边的灯走过去，第一次回应了自己的名字。\n\n母亲的语音停在「慢一点」。雨没有再落进旧宅，救护车上的人握住了你的手。\n\n你还有机会把这一夜说给活着的人听。\n\n结局 · 破茧'
+        ? '“李明，听得见就捏一下。”\n\n我捏住那人的手指。他冲车门外喊：“有反应了。”手机还贴着我耳朵。妈那句“慢一点”放完，播放器轻轻咔了一声。\n\n结局 · 破茧'
         : choice === 'remember'
-        ? '你转身回到那盏旧灯下。母亲没有责怪，也没有挽留。\n\n你知道门开着，却仍选择让今夜再过一遍。\n\n七月十四，回来一趟。\n\n结局 · 回煞'
+        ? '我没应那声“李明”。厨房里，妈用锅铲敲了两下锅沿，叫我递碗。\n\n碗底磕掉了一块。我用拇指盖住缺口，递给她。门外又有自行车响铃，送信的人到了。\n\n结局 · 回煞'
         : choice === 'stay'
-        ? '你把信放回口袋，给自己盛了一碗热饭。\n\n今晚留下，是因为你想歇一歇。明天，门还会开着。\n\n结局 · 余温'
+        ? '米瓮底还有一小碗米。我淘了两遍，照她教的，把食指伸进锅里量水。\n\n等饭熟的时候，我把第二双筷子收回了抽屉。\n\n结局 · 余温'
         : story.state.records.includes('medicine_letter')
-            ? '你带着那封迟了十年的信走上山路。\n\n她的病不是你的错。厨房里的灯，也从来不是要你留下。\n\n结局 · 归路'
-            : '你走上山路，没有再替任何人把门关上。\n\n厨房的抽屉里还留着一封信。你可以继续回看，也可以把这一夜留在身后。\n\n结局 · 归路';
+            ? '天刚蒙亮，村口卖早点的正在卸炉子。我借了个塑料袋，把信和复诊单套好。\n\n老板问要几个包子。我说两个，想了想，改成了一个。\n\n结局 · 归路'
+            : '下山走到第一个弯，我才想起灶边的抽屉开着。昨晚上车的时候，车窗也忘了关。\n\n我先往车那边走。远远的，听见有辆大车在按喇叭。\n\n结局 · 归路';
     open({ stay: '余温', leave: '归路', wake: '破茧', remember: '回煞' }[choice], text, [['留在现场回看', close], ['返回标题', title]], '回煞 · 你的选择');
 }
 function inspect(item) {
@@ -320,6 +326,11 @@ function inspect(item) {
         open(item.title, item.text, [['再看看旧宅', close], ['走向天光', () => ending('leave')]]); return;
     }
     if (item.id === 'portrait') { portrait(); return; }
+    if (item.id === 'altar' && !story.state.opened && story.state.lamp !== 'lit') {
+        const take = story.state.lamp === 'out' ? '用供烛重新点灯' : '端起守夜灯';
+        readRecord(item, [[take, () => { if (story.takeLamp()) audio.latch(); close(); }], ['留在供桌上', close]]);
+        return;
+    }
     if (item.id === 'threshold') {
         open(item.title, item.text, [['再看看旧宅', close], ['走过门槛', () => {
             if (!story.finish()) return;
@@ -361,6 +372,14 @@ $('journal').addEventListener('click', () => journal(!!scene.inspectionReturn));
 $('map').addEventListener('click', () => showMap());
 $('pause').addEventListener('click', pause);
 $('title-settings').addEventListener('click', titleSettings);
+$('shield-flame').addEventListener('click', () => {
+    if (isPaused() || story.state.lamp !== 'lit') return;
+    story.state.shielded = !story.state.shielded; save();
+});
+$('lock-hang').addEventListener('click', () => {
+    if (reader.open || scene.inspectionKind !== 'lock' || !story.hangLamp()) return;
+    audio.latch(); leaveInspection(); save();
+});
 $('prompt').addEventListener('click', () => scene.interaction.activate());
 document.querySelectorAll('[data-wheel]').forEach(button => button.addEventListener('click', () => rotateLock(Number(button.dataset.wheel))));
 $('lock-leave').addEventListener('click', () => leaveInspection());
@@ -427,6 +446,7 @@ window.addEventListener('keydown', event => {
     }
     if (event.code === 'KeyJ') { event.preventDefault(); journal(!!scene.inspectionReturn); }
     if (event.code === 'KeyM') { event.preventDefault(); showMap(); }
+    if (event.code === 'KeyF' && !scene.inspectionReturn && story.state.lamp === 'lit') { event.preventDefault(); $('shield-flame').click(); }
     if (event.code === 'Escape') { event.preventDefault(); scene.inspectionReturn ? leaveInspection() : pause(); }
 });
 const touches = new Map();
@@ -456,6 +476,18 @@ try {
         getPreferences: () => preferences.values,
         isReading: () => reader.open || document.hidden || mode !== 'game',
         onMechanismEvent: event => { if (event === 'door-release') audio.knock(); },
+        onWatchEvent: (kind, pan) => {
+            const panel = $('yard-watch');
+            const words = {yard:'院门边，有人正提着灯往这边照。右手厨房里亮着灶火。',still:'灯扫到脚边了。站住，等光过去。',warning:'纸鞋在擦地。别动，或者躲到廊檐下。',caught:'那双鞋在你脚边停下。再睁眼，你又站在刚跨过的门槛上。',safe:'进了厨房。那双鞋在台阶上擦了一下，没跟进来。'};
+            if (!kind && ['caught','safe'].includes(panel.dataset.cue)) return;
+            panel.hidden = !kind; panel.textContent = words[kind] || ''; panel.dataset.cue = kind;
+            if (kind === 'still' || kind === 'warning' || kind === 'caught') audio.watchStep(pan,kind!=='still');
+            if (kind === 'caught' || kind === 'safe') {
+                audio.resetPosition(); updateStatus();
+                const message = panel.textContent;
+                setTimeout(() => { if (panel.textContent === message) panel.hidden = true; }, 4200);
+            }
+        },
         onScaleEvent: event => {
             if (event.phase === 'ready') {
                 updateWater();
@@ -473,6 +505,9 @@ try {
         onFrame: (position, paused) => {
             audio.update(position, paused, story.state.memory || 'house');
             if (!paused) story.visitPosition(position);
+            if (!paused && story.state.lamp === 'lit' && story.inDraft(position) && !story.state.shielded) {
+                story.crossDraft(scene.playerSnapshot()); updateStatus();
+            }
             if (scene.inspectionKind === 'portrait' && !reader.open) updatePortrait();
             if (scene.inspectionKind === 'document' && !reader.open) updateDocument();
             if (!paused && !story.state.memory && story.state.opened && position.z < -15.2 && story.enterCourtyard()) updateStatus();

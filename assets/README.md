@@ -1,5 +1,7 @@
 # 3D 美术与许可
 
+雨庭的分层砌井使用 Rock Face 03 的颜色、法线与粗糙度贴图，井中木桶使用 James Ray Cock 的 Wooden Bucket 01 实体模型，地面使用 Cobblestone Floor 05。夜空由 Greg Zaal 的 Moonless Golf 色调映射全景缩小为 2048×1024。四项资源均为 Poly Haven CC0，运行时从项目本地加载。原始下载校验与全景衍生文件摘要见 [资源清单](sources.json)。[井石](https://polyhaven.com/a/rock_face_03) · [木桶](https://polyhaven.com/a/wooden_bucket_01) · [地面](https://polyhaven.com/a/cobblestone_floor_05) · [夜空](https://polyhaven.com/a/moonless_golf)
+
 本版不使用旧原型的场景照片、家具照片或棋盘底贴片。圈椅、条案、木柜、学校课桌/椅与轮椅为实际 glTF 网格，带 1K PBR 贴图，随包离线分发。原始来源元数据保存于每个模型目录的 `source.json`，几何和贴图未修改；导入时调整尺寸、位置与朝向。
 
 | 目录 / 文件 | 来源 | 作者 | 许可与用途 |

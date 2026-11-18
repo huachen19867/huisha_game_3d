@@ -55,7 +55,7 @@ async function boot(saved, preferences) {
                         scene = this; this.scene = new THREE.Scene(); this.camera = new THREE.PerspectiveCamera(66, 16 / 9, 0.06, 60);
                         const canvas = document.createElement('canvas'); this.root.append(canvas);
                         this.renderer = { domElement: canvas, toneMappingExposure: 1.28, dispose() {} };
-                        this.materials = Object.fromEntries(['wood', 'darkWood', 'brass', 'portrait', 'paper', 'cloth', 'red', 'stone', 'plaster', 'floor'].map(name => [name, new THREE.MeshStandardMaterial()]));
+                        this.materials = Object.fromEntries(['wood', 'darkWood', 'brass', 'portrait', 'paper', 'cloth', 'red', 'stone', 'plaster', 'paving', 'floor'].map(name => [name, new THREE.MeshStandardMaterial()]));
                         this.portrait = new game.ThreePortrait(this); this.portrait.build();
                         this.door = new THREE.Group(); this.door.position.set(this.map.door.hingeX, 0, this.map.door.hingeZ); this.scene.add(this.door);
                         this.outsideLight = { intensity: 4 }; this.doorMechanism = new game.ThreeDoorMechanism(this); this.doorMechanism.build();
