@@ -58,6 +58,10 @@
                 h.box(`guard-post-${side}-${i}`, [0.08, 0.9, 0.1], [side * 3.8, 0.42, i * 2], m.stone, undefined, root);
                 h.box(`guard-rail-${side}-${i}`, [0.08, 0.22, 1.98], [side * 3.8, 0.7, i * 2], m.ash, undefined, root);
             }
+            for (const end of [-1, 1]) {
+                h.box('accident-cordon', [7.5,.16,.06], [0,.95,end*8.06], m.wax, undefined, root);
+                for (const x of [-3.3,0,3.3]) h.box('cordon-post', [.07,1.12,.07], [x,.55,end*8.09], m.stone, undefined, root);
+            }
             const bent = h.box('bent-guardrail', [0.08, 0.22, 2], [-3.5, 0.65, 0], m.ash, undefined, root); bent.rotation.y = 0.5;
             h.box('phone-stone', [0.55, 0.65, 0.55], [-1.65, 0.32, 1.2], m.stone, 'crash_phone', root);
             h.phone = new game.ThreePhone(h); h.phone.build(root);

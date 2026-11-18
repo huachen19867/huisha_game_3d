@@ -23,6 +23,7 @@
             this.renderer.toneMappingExposure = 1.28;
             this.renderer.shadowMap.enabled = true;
             this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            this.renderer.domElement.tabIndex = -1;
             this.root.appendChild(this.renderer.domElement);
             this.createMaterials();
             this.createArchitecture();
@@ -153,8 +154,7 @@
             const m = this.materials;
             this.box('hall-floor', [10, 0.15, 8.7], [0, -0.1, 0], m.floor);
             this.box('hall-ceiling', [10, 0.15, 8.7], [0, 3.35, 0], m.darkWood);
-            this.box('entrance-wall', [10, 3.4, 0.2], [0, 1.6, 4.45], m.plaster);
-            this.box('entrance-door', [1.9, 2.7, 0.12], [0, 1.35, 4.3], m.darkWood);
+            game.buildVillageLane(this);
             for (const side of [-1, 1]) {
                 this.box(`back-wall-${side}`, [3.65, 3.4, 0.2], [side * 3.175, 1.6, -4.3], m.wall);
                 if (side > 0) this.box('corridor-wall-right', [0.2, 3.1, 7.2], [1.4, 1.5, -7.8], m.wall);
@@ -222,13 +222,13 @@
             const distant = new THREE.MeshBasicMaterial({ color: 0x182127 });
             for (let i = 0; i < 6; i++) {
                 const mountain = this.mesh(`mountain-${i}`, new THREE.ConeGeometry(7, 6 + i % 3, 7), distant,
-                    [-17 + i * 7, 0.8, -35 - i % 2 * 3]); mountain.scale.z = 0.5;
+                    [-17 + i * 7, 0.8, -55 - i % 2 * 3]); mountain.scale.z = 0.5;
             }
         }
         createProps() {
             const m = this.materials;
             const altar = new THREE.Group(); altar.position.set(-2.75, 0, -3.12); this.scene.add(altar);
-            this.label('altar-note', '灯照亡人\n人面归门\n雨留在外', [0.67, 0.48], [0, 1.1, 0.3], [-Math.PI / 2.7, 0, 0], 'altar', altar);
+            this.label('altar-note', '修锁便条\n三个字轮\n不用雨字', [0.67, 0.48], [0, 1.1, 0.3], [-Math.PI / 2.7, 0, 0], 'altar', altar);
             const profile = [new THREE.Vector2(0.1, 0), new THREE.Vector2(0.2, 0.06), new THREE.Vector2(0.26, 0.18), new THREE.Vector2(0.29, 0.25)];
             this.mesh('incense-bowl', new THREE.LatheGeometry(profile, 24), m.brass, [0, 1.1, -0.18], 'altar', altar);
             this.cylinder('incense-ash', 0.24, 0.24, 0.02, [0, 1.29, -0.18], m.ash, 'altar', altar);
@@ -398,6 +398,7 @@
         }
         syncState(immediate = false) {
             const s = this.story.state;
+            this.frontDoor.visible = s.arrival !== 'home';
             this.portrait.sync(immediate);
             this.wheels.forEach((wheel, i) => {
                 if (immediate) this.wheelTargets[i] = s.wheels[i] * Math.PI / 2;
@@ -481,7 +482,7 @@
             if (this.inspectionKind === 'phone') this.phone.end();
             if (this.inspectionKind === 'document') this.documents.end();
             if (this.inspectionKind === 'water') this.courtyard.cancelWeigh();
-            this.camera.position.set(pose.x, this.map.playerStart.y, pose.z);
+            this.controls.teleport(pose);
             this.camera.fov = this.inspectionFov; this.camera.clearViewOffset(); this.camera.updateProjectionMatrix();
             this.controls.yaw = pose.yaw; this.controls.pitch = pose.pitch;
             this.inspectionReturn = null; this.inspectionKind = null; this.controls.clear(); this.controls.applyLook(); this.syncState();
@@ -489,6 +490,9 @@
         animate() {
             this.animationId = global.requestAnimationFrame(() => this.animate());
             const delta = Math.min(this.clock.getDelta(), 0.05);
+            if (this.showingFilm) return;
+            this.laneRain.visible = this.camera.position.z > 3.8 && !this.story.state.memory;
+            if (this.laneRain.visible && !this.reducedMotion?.matches) this.laneRain.position.y = -((-this.laneRain.position.y+delta*4.8)%1.3);
             this.controls.update(delta); this.syncState(); this.moveWheels(delta);
             this.watch.update(delta);
             this.portrait.update(delta);

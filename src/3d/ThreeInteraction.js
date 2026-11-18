@@ -29,7 +29,7 @@
             for (let node = object; node; node = node.parent) if (!node.visible) return false;
             return true;
         }
-        update(delta) {
+        update(delta, pointer) {
             if (this.isPaused()) {
                 this.current = null; this.untilQuery = 0; this.showPrompt(); return;
             }
@@ -53,8 +53,12 @@
                 if (distanceSquared > item.radius * item.radius) continue;
                 this.projected.set(item.position.x, item.position.y, item.position.z).project(this.camera);
                 if (!this.inViewport()) continue;
+                if (pointer && Math.hypot((this.projected.x-pointer.x)*pointer.width/2,
+                    (this.projected.y-pointer.y)*pointer.height/2) > pointer.tolerance) continue;
                 const distance = Math.sqrt(distanceSquared), facing = distance ? this.delta.dot(this.direction) / distance : 1;
-                if (facing >= 0.78) candidates.push({ item, distance, score: distance + (1 - facing) * 3 });
+                if (pointer || facing >= 0.78) candidates.push({ item, distance, score: pointer
+                    ? Math.hypot((this.projected.x-pointer.x)*pointer.width,(this.projected.y-pointer.y)*pointer.height)
+                    : distance + (1 - facing) * 3 });
             }
             candidates.sort((a, b) => a.score - b.score);
             const occluders = this.occluders.get(space) || [];
@@ -78,7 +82,7 @@
                     if (this.story.state.lamp === 'altar') title = '供桌上的守夜灯';
                     if (this.story.state.lamp === 'out') title = '供桌上的烛火';
                 }
-                const label = `E · ${title}${this.story.state.records.includes(this.current.id) ? ' · 已观察' : ''}`;
+                const label = `E / 点击 · ${title}${this.story.state.records.includes(this.current.id) ? ' · 已观察' : ''}`;
                 if (this.prompt.textContent !== label) this.prompt.textContent = label;
             }
             this.updateMarker();
@@ -101,8 +105,13 @@
             this.focusMarker.style.top = `${(1 - this.projected.y) * 50}%`;
             this.focusMarker.dataset.observed = String(this.story.state.records.includes(this.current.id));
         }
-        activate() {
-            this.update();
+        activate(point, canvas) {
+            const bounds = point && canvas?.getBoundingClientRect();
+            const pointer = bounds?.width && bounds?.height ? {
+                x: (point.x-bounds.left)*2/bounds.width-1, y: 1-(point.y-bounds.top)*2/bounds.height,
+                width: bounds.width, height: bounds.height, tolerance: Math.max(50, Math.min(bounds.width,bounds.height)*.13)
+            } : null;
+            this.update(undefined,pointer);
             if (!this.current || this.isPaused()) return;
             if (this.current.journal !== false) this.story.record(this.current.id);
             this.onInspect(this.current);

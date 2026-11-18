@@ -1,5 +1,7 @@
 # 3D 参考与来源
 
+雨夜镜头移植自封存 2D 版的 [IntroScene](https://github.com/huachen19867/huisha_game_AI/blob/main/src/scenes/IntroScene.js)。跳跃复用 Three.js r160 示例中的着地判定、垂直速度与重力积分思路，村路保留本作的门扇碰撞和连续地面判定。[本地参考](games_fps-r160.html) · [上游原文](https://github.com/mrdoob/three.js/blob/r160/examples/games_fps.html) · [MIT 许可](../../vendor/THREE-LICENSE.txt)
+
 雨庭的守夜纸人复用本地引擎及 Kenney 脚步声，灯扫过来的方位随玩家朝向变换。聚光灯目标、锥角和边缘衰减参照 Three.js r160 官方实现，渲染与玩法共用扫灯转角、半角和距离。[本地参考](SpotLight-r160.js) · [上游代码](https://github.com/mrdoob/three.js/blob/r160/src/lights/SpotLight.js)
 
 守夜灯的油壶和玻璃罩使用工作区已有 Three.js r160 的旋转体几何。开工时下载同版官方实现，核对剖面半径、高度和旋转轴；游戏模型使用自行绘制的剖面。许可随本地引擎分发。[LatheGeometry 本地原文](LatheGeometry-r160.js) · [上游源码](https://github.com/mrdoob/three.js/blob/r160/src/geometries/LatheGeometry.js)

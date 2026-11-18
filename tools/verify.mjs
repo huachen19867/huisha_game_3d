@@ -19,7 +19,7 @@ const canvasContext = { fillRect() {}, strokeRect() {}, fillText() {} };
 const document = { ...eventTarget, createElement() { return { getContext() { return canvasContext; } }; }, hidden: false };
 const window = { ...eventTarget, THREE, Huisha3D: {} };
 const context = vm.createContext({ window, document, console });
-for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeAudio', 'ThreeControls', 'ThreeInteraction', 'ThreeWindowWall', 'ThreeCourtyard', 'ThreePhone', 'ThreeDocument', 'ThreeMemoryScenes', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeHouseScene']) {
+for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeAudio', 'ThreeControls', 'ThreeInteraction', 'ThreeWindowWall', 'ThreeCourtyard', 'ThreePhone', 'ThreeDocument', 'ThreeMemoryScenes', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeVillageLane', 'ThreeHouseScene']) {
     vm.runInContext(await text(`src/3d/${name}.js`), context, { filename: `${name}.js` });
 }
 const game = window.Huisha3D;
@@ -91,6 +91,7 @@ assert.equal(rainChanges.length, 1, 'unchanged ambience never reschedules gain a
 const storage = new Map();
 const adapter = { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value) };
 const story = new game.ThreeStory(adapter);
+story.state.arrival = 'home';
 const untouched = JSON.stringify(story.state);
 assert.match(story.guidance().text, /入口右手边/);
 assert.doesNotMatch(story.guidance(1).text, /已经确定|说的是中轮|说明雨字/,
@@ -104,7 +105,7 @@ assert.match(story.guidance(1).text, /已经确定/);
 assert.doesNotMatch(story.guidance(1).text, /说的是中轮/, 'unobserved height marks must not be quoted as known evidence');
 story.record('wall_marks'); assert.match(story.guidance().text, /供桌/);
 story.record('altar'); assert.match(story.guidance(1).text, /说明雨字/);
-story.reset();
+story.reset(); story.state.arrival = 'home';
 assert.equal(story.finish(), false, 'cannot finish through a closed door');
 for (const item of game.MAIN_HALL_MAP.interactables) story.record(item.id);
 assert.equal(story.state.opened, false, 'reading everything must not solve the lock');
@@ -416,8 +417,7 @@ paused = true; const before = camera.position.clone(); controls.keys.add('KeyW')
 assert.equal(camera.position.distanceTo(before), 0); assert.equal(controls.keys.size, 0);
 interaction.update(); assert.equal(prompt.hidden, true); paused = false;
 
-function flood() {
-    const origin = game.MEMORIES[story.state.memory]?.start || game.WORLD_MAP.playerStart;
+function flood(origin = game.MEMORIES[story.state.memory]?.start || game.WORLD_MAP.playerStart) {
     const step = 0.15, start = [Math.round(origin.x / step), Math.round(origin.z / step)], queue = [start], visited = new Set([start.join(',')]);
     assert.equal(controls.canOccupy(start[0] * step, start[1] * step), true, 'flood starts from a valid player spawn');
     for (let i = 0; i < queue.length; i++) {
@@ -431,7 +431,12 @@ function flood() {
     }
     return queue.map(([x, z]) => ({ x: x * step, z: z * step }));
 }
+const roadside = flood(game.WORLD_MAP.roadStart);
+assert.ok(roadside.every(p => p.z > 4.4), 'the locked front door blocks entry');
+for (const item of game.WORLD_MAP.interactables.filter(item => ['lane','porch'].includes(item.area))) verifyReachable(item,roadside);
+story.state.arrival = 'home'; house.syncState(true); house.scene.updateMatrixWorld(true);
 const reachable = flood();
+assert.ok(reachable.some(p => p.z > 30), 'both porch seams are walkable after unlocking');
 assert.ok(reachable.length > 2000);
 function verifyReachable(item, points) {
     let focusPoint;
@@ -578,6 +583,8 @@ assert.ok(roadPoints.some(point => point.z < -30.5), 'operating the scale opens 
 for (const item of game.WORLD_MAP.interactables.filter(item => !item.space && item.requiresWater)) verifyReachable(item, roadPoints);
 assert.equal(story.state.departure, null, 'reading clues and reaching the road do not choose an ending');
 assert.equal(story.depart('stay'), true); assert.equal(new game.ThreeStory(adapter).state.departure, 'stay');
+assert.equal(story.depart('leave'), false); assert.equal(story.signalBus('house'), false);
+assert.equal(story.signalBus('bridge'),true); assert.equal(new game.ThreeStory(adapter).state.busCalled,true);
 assert.equal(story.depart('leave'), true); assert.equal(new game.ThreeStory(adapter).state.departure, 'leave');
 console.log('Courtyard: connected kitchen, real object picks in six viewports, volume conservation, save recovery, moving props, gated road and explicit endings passed.');
 const returnPose = { x: 6.6, z: -23.5, yaw: 0.8, pitch: -0.1 };

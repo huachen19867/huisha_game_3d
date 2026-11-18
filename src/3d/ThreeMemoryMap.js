@@ -82,7 +82,7 @@
         xMin: -32 + x - 0.25, xMax: -32 + x + 0.25, zMin: z + 0.6, zMax: z + 1.1 });
     obstacles.push({ id: 'hospital-wheelchair', space: 'hospital', xMin: 28.4, xMax: 29.5, zMin: -1.7, zMax: -0.6 },
         { id: 'hospital-desk', space: 'hospital', xMin: 33.5, xMax: 36.1, zMin: -3.8, zMax: -2.8 });
-    regions.push({ id: 'crash', title: game.MEMORIES.crash.title, xMin: -3.5, xMax: 3.5, zMin: -64, zMax: -48, space: 'crash', requiresState: 'waterSolved' });
+    regions.push({ id: 'crash', title: game.MEMORIES.crash.title, xMin: -3.74, xMax: 3.74, zMin: -64, zMax: -48, space: 'crash', requiresState: 'waterSolved' });
     obstacles.push({ id: 'phone-stone', space: 'crash', xMin: -1.925, xMax: -1.375, zMin: -55.075, zMax: -54.525 },
         { id: 'emergency-case', space: 'crash', xMin: 1.3, xMax: 2.1, zMin: -60.825, zMax: -60.175 });
     for (const side of [-1, 1]) obstacles.push({ id: `rescue-post-${side}`, space: 'crash',

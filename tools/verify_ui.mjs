@@ -20,6 +20,7 @@ async function boot(saved, preferences) {
     // jsdom does not implement native dialog modality, default Escape behavior or layout.
     window.HTMLDialogElement.prototype.showModal = function () { this.open = true; };
     window.HTMLDialogElement.prototype.close = function () { this.open = false; this.dispatchEvent(new window.Event('close')); };
+    window.HTMLCanvasElement.prototype.getContext = () => null;
     if (saved) window.localStorage.setItem(saveKey, saved);
     if (preferences) window.localStorage.setItem('huisha.3d.preferences.v1', preferences);
     let scene;
@@ -143,7 +144,35 @@ try {
     ui.click('返回标题'); assert.equal(ui.scene.story.state.position, null); assert.equal(ui.$('restart').hidden, true);
     ui.destroy(); ui = await boot(null, savedPreferences);
     assert.equal(ui.scene.renderer.toneMappingExposure, 1.57, 'production boot reapplies saved brightness');
-    ui.$('begin').click();
+    ui.$('begin').click(); assert.equal(ui.$('drive').hidden, false);
+    ui.key('Escape'); assert.equal(ui.$('reader-title').textContent,'下车');
+    ui.click('开始探索'); assert.equal(ui.scene.controls.snapshot().z,31.1);
+    const movement = ui.scene.controls;
+    const roadPose = movement.snapshot();
+    movement.teleport({x:0,z:17.12,yaw:Math.PI,pitch:0});
+    ui.key('KeyW'); movement.update(.05); assert.ok(!movement.sprinting);
+    ui.key('KeyW',ui.window,{repeat:true}); assert.ok(!movement.sprinting);
+    ui.window.dispatchEvent(new ui.window.KeyboardEvent('keyup',{code:'KeyW'})); ui.key('KeyW');
+    assert.ok(movement.sprinting); for(let i=0;i<5;i++) movement.update(.05);
+    assert.ok(movement.snapshot().z>16.26,'timber blocks a grounded sprint');
+    ui.key('Space'); for(let i=0;i<5;i++) movement.update(.05);
+    assert.ok(ui.scene.camera.position.y>1.9 && movement.snapshot().z<16);
+    for(let i=0;i<25;i++) movement.update(.05);
+    assert.equal(ui.scene.camera.position.y,1.6);
+    ui.window.dispatchEvent(new ui.window.KeyboardEvent('keyup',{code:'KeyW'})); assert.ok(!movement.sprinting);
+    movement.teleport(roadPose);
+    ui.key('KeyE'); assert.equal(ui.$('reader-title').textContent,'车窗上的信封');
+    ui.key('KeyE'); assert.equal(ui.$('reader').open,false);
+    const roadsideSave = ui.window.localStorage.getItem(saveKey);
+    ui.destroy(); ui = await boot(roadsideSave,savedPreferences);
+    ui.$('replay-drive').click(); ui.$('skip-drive').click(); assert.equal(ui.$('title-screen').hidden,false);
+    assert.equal(ui.window.localStorage.getItem(saveKey),roadsideSave); ui.$('begin').click();
+    assert.equal(ui.$('drive').hidden,true); assert.equal(ui.scene.story.state.arrival,'ledger');
+    ui.inspect('duty_book'); ui.key('KeyE'); ui.inspect('key_board'); ui.click('东街 9 号');
+    assert.equal(ui.scene.story.state.arrival,'keys'); ui.click('再选一把'); ui.click('东街 6 号'); ui.click('收好钥匙');
+    ui.inspect('front_gate'); ui.click('用六号钥匙开门'); assert.equal(ui.scene.story.state.arrival,'home');
+    // Existing hall saves start at their original pose and keep the old discovery history.
+    ui.destroy(); ui = await boot(JSON.stringify({version:1,position:{x:0,z:3.4,yaw:Math.PI,pitch:0}}),savedPreferences); ui.$('begin').click();
     ui.key('KeyM'); assert.equal(ui.$('reader-title').textContent, '探索地图');
     assert.deepEqual([...ui.document.querySelectorAll('[data-map-area]')].map(element => element.dataset.mapArea), ['hall']);
     assert.equal(ui.document.querySelector('[data-map-point="letter"]'), null, 'the map never reveals an unread record');
@@ -184,7 +213,7 @@ try {
     assert.equal(ui.scene.story.state.records.includes('portrait_back'), false);
     const liftedSave = new ui.window.Huisha3D.ThreeStory(ui.window.localStorage);
     assert.equal(liftedSave.state.portrait, true); assert.equal(liftedSave.state.portraitBackRead, false, 'uncovered-but-unread progress survives saving');
-    ui.scene.portrait.update(1); ui.$('portrait-leave').click();
+    ui.scene.portrait.update(1); ui.key('KeyE'); assert.equal(ui.$('portrait-inspector').hidden, true);
     assert.deepEqual({ ...ui.scene.controls.snapshot() }, portraitPose);
     ui.inspect('portrait');
     const heldPose = { ...ui.scene.playerSnapshot() };
@@ -410,7 +439,8 @@ try {
     ui.inspect('rescue_light'); ui.click('回应救护灯，醒来'); assert.equal(ui.$('reader-title').textContent, '破茧');
     ui.inspect('rescue_light'); ui.click('留在母亲的记忆里'); assert.equal(ui.$('reader-title').textContent, '回煞');
     ui.click('留在现场回看'); ui.$('pause').click(); ui.click('回到厨房');
-    ui.inspect('road_exit'); ui.click('走向天光'); assert.equal(ui.scene.story.state.departure, 'leave');
+    ui.inspect('road_exit'); ui.click('去候车棚'); ui.inspect('bus_notice'); ui.key('KeyE'); ui.inspect('stop_signal');
+    ui.click('转向老宅'); ui.click('再转一次'); ui.click('转向石桥'); ui.click('去站牌'); ui.inspect('road_exit'); ui.click('坐车下山'); assert.equal(ui.scene.story.state.departure, 'leave');
     ui.inspect('medicine_letter'); ui.click('今晚留下，给自己煮碗饭'); assert.equal(ui.scene.story.state.departure, 'stay');
     ui.click('返回标题'); ui.$('restart').click(); ui.click('保留进度'); assert.equal(ui.scene.story.state.waterSolved, true);
     ui.$('restart').click(); ui.click('确认重新开始');

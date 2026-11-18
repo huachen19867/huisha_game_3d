@@ -4,16 +4,17 @@
     game.WORLD_MAP = {
         ...hall,
         audioZones: [
+            { xMin: -4, xMax: 4, zMin: 4.5, zMax: 35, audio: { surface: 'concrete', rain: 0.14, cutoff: 3600 } },
             { xMin: 6, xMax: 11, zMin: -25, zMax: -17, audio: { surface: 'wood', rain: 0.05, cutoff: 1000 } },
             { xMin: -6, xMax: 6, zMin: -27.5, zMax: -14, audio: { surface: 'concrete', rain: 0.12, cutoff: 3600 } },
-            { xMin: -2, xMax: 2, zMin: -33, zMax: -27.5, audio: { surface: 'concrete', rain: 0.1, cutoff: 4500 } }
+            { xMin: -2, xMax: 2, zMin: -46, zMax: -27.5, audio: { surface: 'concrete', rain: 0.1, cutoff: 4500 } }
         ],
         extraDoors: [{ id: 'yard', stateField: 'waterSolved', hingeX: -1, hingeZ: -27.5, width: 2,
             thickness: 0.16, frontDepth: 0.25, openAngle: Math.PI / 2 }],
         walkable: [...hall.walkable,
             { id: 'yard', title: '雨庭', xMin: -5.8, xMax: 5.8, zMin: -27.2, zMax: -13.8, requiresState: 'opened' },
             { id: 'kitchen', title: '厨房', xMin: 5, xMax: 10.8, zMin: -24.7, zMax: -17.7, requiresState: 'opened' },
-            { id: 'road', title: '院外山路', mapLabel: '山路', xMin: -1.25, xMax: 1.25, zMin: -32, zMax: -26.5, requiresState: 'waterSolved' }
+            { id: 'road', title: '院外山路', mapLabel: '山路', xMin: -1.25, xMax: 1.25, zMin: -46, zMax: -26.5, requiresState: 'waterSolved' }
         ],
         obstacles: [...hall.obstacles,
             { id: 'yard-front-left', xMin: -6.1, xMax: -1.375, zMin: -14.2, zMax: -14 },
@@ -41,8 +42,12 @@
                 requiresOpen: true, requiresWater: true, text: '抽屉里没有符纸，只有一封没寄出的信和一张复诊单。\n\n「不是你走了，我才病的。更不是你回来，我就能好。\n\n你爹做的这张量水桌，我一直没拆。等你回家，我们还可以慢慢试。\n\n要是没等到，就带着这封信出去吧。别把自己也留在屋里。」\n\n复诊单上的日期，比你离家的日子早了两年。' },
             { id: 'yard_gate', title: '通往归路的院门', location: '雨庭', position: { x: 0, y: 1.35, z: -27.2 }, radius: 1.8,
                 requiresOpen: true, text: '一根旧铜索从厨房桌下穿过檐廊，接在院门门闩上。门外是一条没有灯的山路。' },
-            { id: 'road_exit', title: '山路上的天光', location: '归路', position: { x: 0, y: 1.2, z: -31.1 }, radius: 1.8,
-                requiresOpen: true, requiresWater: true, text: '山路上渐渐亮起来。身后的厨房还留着一盏灯。\n\n这次，你可以把它留在身后。' }
+            { id: 'bus_notice', title: '路口的接驳通知', location: '归路', position: {x: .99,y: 1.55,z:-31.2}, radius: 2.2,
+                requiresOpen:true, requiresWater:true, text:'塌方封路，县里临时开了接驳车。候车棚没有电，要乘车就把信号杆的反光牌转向来车。\n\n手绘路线：车从石桥开来，接上人后开往县城。老宅方向今晚停班。' },
+            { id: 'stop_signal', title: '候车棚的反光信号杆', location: '归路', position: {x:-.9,y:1.35,z:-40.5}, radius:2,
+                requiresOpen:true, requiresWater:true, text:'杆上装着一块能转向的反光牌。司机在弯道看见亮面，就知道这里有人等车。' },
+            { id: 'road_exit', title: '山路接驳站', location: '归路', position: { x: 0, y: 1.2, z: -44.7 }, radius: 1.8,
+                requiresOpen: true, requiresWater: true, text: '隔着最后一道护栏能看见进站的弯道。车来了就在这里上车。' }
         ]
     };
     for (const item of game.WORLD_MAP.interactables) {

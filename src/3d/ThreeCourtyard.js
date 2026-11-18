@@ -48,8 +48,24 @@
             this.buildLinkage();
             h.label('yard-gate-sign', '归　路', [1.1, 0.3], [1, 2, 0.1], [0, 0, 0], 'yard_gate', this.gate,'#382b23','#ccb189');
             h.box('road', [2.6, 0.16, 5], [0, -0.1, -30], m.paving, 'road_exit');
-            for (const side of [-1, 1]) h.box(`road-edge-${side}`, [0.18, 0.25, 4.2], [side * 1.35, 0.05, -30], m.wood);
-            h.label('road-note', '天　亮　了', [1.1, 0.25], [0, 0.08, -31.1], [-Math.PI / 2, 0, 0], 'road_exit');
+            for (const side of [-1, 1]) h.box(`road-edge-${side}`, [0.18, 0.76, 18.5], [side * 1.35, 0.36, -36.85], m.wood);
+            h.box('bus-path',[2.7,.16,18.7],[0,-.1,-36.8],m.paving);
+            h.box('road-barrier', [2.8,.96,.18], [0,.48,-46.09], m.wood, 'road_exit');
+            h.label('road-end-sign', '接驳车　上客处', [1.3,.32], [0,.75,-45.98], [0,0,0], 'road_exit');
+            h.box('bus-notice-post',[.09,1.9,.09],[1.22,.95,-31.4],m.wood,'bus_notice');
+            h.label('bus-notice','塌方接驳\n来车方向：石桥',[.9,.6],[.99,1.55,-31.22],[0,-.32,0],'bus_notice');
+            h.box('shelter-roof',[2.82,.15,3.4],[0,2.65,-40.8],m.darkWood);
+            for(const z of [-39.25,-42.35]) for(const x of [-1.32,1.32]) h.box('shelter-post',[.11,2.6,.11],[x,1.3,z],m.wood);
+            h.box('signal-pole',[.1,1.71,.11],[-1.21,.86,-40.5],m.stone,'stop_signal');
+            this.signalBoard=h.box('signal-board',[.63,.37,.06],[-.98,1.54,-40.5],m.brass,'stop_signal');
+            h.label('stop-name','石桥接驳站',[1.44,.33],[0,2.36,-39.12],[0,0,0],'stop_signal');
+            this.busLights=new THREE.Group(); h.scene.add(this.busLights);
+            for(const x of [-.76,.76]) h.box('bus-headlamp',[.39,.19,.08],[x,1,-46.4],
+                new THREE.MeshBasicMaterial({color:0xffdf9e}),'road_exit',this.busLights);
+            h.box('waiting-bus',[2.46,1.96,3.3],[0,1.04,-48.15],m.stone,'road_exit',this.busLights);
+            h.box('bus-windscreen',[2.12,.79,.08],[0,1.59,-46.45],m.cloth,'road_exit',this.busLights);
+            h.label('bus-destination','县城接驳',[.88,.22],[0,2.08,-46.41],[0,0,0],'road_exit',this.busLights);
+
             // These fill lights add no shadow maps; the existing candle remains the sole shadow caster.
             for (const [color, intensity, distance, position] of [
                 [0xaec7db, 15, 17, [0, 5, -21]], [0xffc38a, 12, 9, [8.6, 2.4, -21]], [0xd3dfdb, 10, 9, [0, 3, -30]]
@@ -255,6 +271,8 @@
         }
         sync(immediate) {
             const s = this.house.story.state;
+            this.busLights.visible = s.busCalled;
+            this.signalBoard.rotation.y = s.busCalled ? -.64 : Math.PI / 2;
             this.letter.visible = s.waterSolved && this.drawer.position.z > -21.75;
             this.marker.visible = this.house.inspectionKind === 'water' && !s.waterSolved;
             if (immediate) {
@@ -288,6 +306,8 @@
                 level.position.y = 0.035 + level.scale.y / 2; level.visible = s.buckets[i] > 0;
             });
             this.drawer.position.z += ((s.waterSolved ? -21.57 : -22.23) - this.drawer.position.z) * step;
+            this.busLights.visible = s.busCalled;
+            this.signalBoard.rotation.y = s.busCalled ? -.64 : Math.PI / 2;
             this.letter.visible = s.waterSolved && this.drawer.position.z > -21.75;
             const obstacle = this.house.map.obstacles.find(item => item.id === 'open-drawer');
             obstacle.zMin = this.drawer.position.z - 0.68; obstacle.zMax = this.drawer.position.z + 0.11;

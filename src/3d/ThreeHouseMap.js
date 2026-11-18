@@ -5,14 +5,22 @@
     game.MAIN_HALL_MAP = {
         id: 'homecoming',
         playerStart: { x: 0, y: 1.6, z: 3.4, yaw: Math.PI },
+        roadStart: { x: 0.15, z: 31.1, yaw: -2.42, pitch: -0.2 },
         playerRadius: 0.25,
         door: { hingeX: -1.17, hingeZ: -11.5, width: 2.34, thickness: 0.18, frontDepth: 0.6, openAngle: Math.PI / 2 },
         walkable: [
             { id: 'hall', title: '正厅', xMin: -4.8, xMax: 4.8, zMin: -4.1, zMax: 4.2 },
             { id: 'corridor', title: '走廊', xMin: -1.25, xMax: 1.25, zMin: -11.5, zMax: -3.3 },
-            { id: 'path', title: '门外石路', mapLabel: '石路', xMin: -1.25, xMax: 1.25, zMin: -14.5, zMax: -10.9, requiresState: 'opened' }
+            { id: 'path', title: '门外石路', mapLabel: '石路', xMin: -1.25, xMax: 1.25, zMin: -14.5, zMax: -10.9, requiresState: 'opened' },
+            { id: 'porch', title: '老宅门廊', xMin: -1, xMax: 1, zMin: 4.2, zMax: 5.1 },
+            { id: 'lane', title: '村口旧路', xMin: -3.6, xMax: 3.6, zMin: 5.1, zMax: 34 }
         ],
         obstacles: [
+            { id: 'front-door', xMin: -1, xMax: 1, zMin: 4.32, zMax: 4.52, closedUntilHome: true },
+            { id: 'parked-car', xMin: -3.15, xMax: -1.15, zMin: 27.5, zMax: 31.9 },
+            { id: 'key-cabinet', xMin: -3.63, xMax: -3.355, zMin: 10.84, zMax: 12.16 },
+            { id: 'duty-counter', xMin: 2.6, xMax: 3.6, zMin: 19.8, zMax: 22.2 },
+            { id: 'fallen-timber', xMin: -3.6, xMax: 0.9, zMin: 16, zMax: 16.26, height: 0.29 },
             { id: 'altar', xMin: -4, xMax: -1.5, zMin: -3.7, zMax: -2.6 },
             { id: 'cabinet', xMin: 2.65, xMax: 4.15, zMin: -3.85, zMax: -2.95 },
             { id: 'coffin', xMin: -1.4, xMax: 1.4, zMin: -0.15, zMax: 1.35 },
@@ -22,12 +30,20 @@
             { id: 'pillar_right', xMin: 3.85, xMax: 4.35, zMin: -1.75, zMax: -1.25 }
         ],
         interactables: [
+            { id: 'car_envelope', title: '车窗上的信封', area: 'lane', position: {x: -1.11, y: 1.08, z: 29.8}, radius: 2.4,
+                text: '收件人：李明。寄件地址：槐树巷十四号。\n\n信封背面有母亲的字：门钥匙交给村口值班室了，报旧门牌就行。' },
+            { id: 'duty_book', title: '值班室换牌登记簿', area: 'lane', position: {x: 2.62, y: 1.1, z: 21.1}, radius: 2.2,
+                text: '换牌登记　　旧门牌 → 新门牌\n槐树巷四号　　东街九号\n槐树巷十四号　东街六号\n槐树巷四十号　东街十六号\n\n钥匙移到了老宅对面的木柜，钥匙牌已换成新号。' },
+            { id: 'key_board', title: '路边的钥匙柜', area: 'lane', position: {x: -3.28, y: 1.4, z: 11.5}, radius: 2.2,
+                text: '三把门钥匙挂在柜里，铜牌上刻着东街的新门牌号。' },
+            { id: 'front_gate', title: '李家老宅前门', area: 'porch', position: {x: 0.45, y: 1.27, z: 4.61}, radius: 2,
+                text: '门上的搪瓷牌还是旧的：槐树巷十四号。锁眼就在拉手下面。' },
             { id: 'letter', title: '门边来信', position: { x: 2.65, y: 1.1, z: 3.95 }, radius: 1.85,
                 text: '明，十四回来吃饭。\n走廊漏风，端灯记得拢着手。\n\n妈\n\n“饭”字的最后一捺穿破了信纸。她写欠条也使这么大劲。信封上印着家里的旧邮编，投递章却是昨天的。' },
             { id: 'altar', title: '供桌旧纸', position: { x: -2.75, y: 1.18, z: -2.7 }, radius: 1.8,
-                text: '香炉边是那盏煤油灯。灯把上缠的还是我的红鞋带，打了个怎么也解不开的死结。\n\n油碟底下压着一片纸：「灯照亡人，人面归门。雨留在外，不入三位。」\n\n小时候够不着门闩，妈就教我把铜丝圈往上挑。关了灯，那圈细铜丝贴在木头上，怎么摸都摸不到。' },
+                text: '煤油灯的提把烫手。我小时候把红鞋带绕在上面，妈一直没拆。\n\n油碟下面有张修锁的便条：「三个字轮不用雨字。」\n\n纸背上还有半句：「要是字轮卡住，端灯照门闩。看见铜丝圈，往上挑。」' },
             { id: 'coffin', title: '棺上刻痕', position: { x: 0, y: 0.86, z: 0.65 }, radius: 2.25,
-                text: '棺盖上有三条没落灰的细印，一直延到走廊。伸手抹了一下，指腹上沾了红绳的绒毛。\n\n棺沿刻着「左位留灯，右位留门」。那个“门”字刻反了。我小时候写门，就是这么写的。' },
+                text: '三根红绳贴着棺沿，一直连到走廊的门闩。\n\n棺沿刻着「左位留灯，右位留门」。那个“门”字刻反了。我小时候写门，就是这么写的。' },
             { id: 'portrait', title: '蒙布相框', position: { x: -2.75, y: 1.9, z: -3.87 }, radius: 2.1,
                 text: '黑布只在上沿搭着，布角被攥得发白。可以揭开它，也可以先看看别处。' },
             { id: 'wall_marks', title: '墙上身高线', position: { x: 1.1, y: 1.45, z: -7.1 }, radius: 1.65,

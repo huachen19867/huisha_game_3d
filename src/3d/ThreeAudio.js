@@ -30,6 +30,19 @@
                 this.context.resume()?.catch?.(() => {});
             } catch (_) { /* Sound is optional; exploration remains available. */ }
         }
+        startEngine() {
+            if (this.muted || !this.gain || this.engine) return;
+            const ctx = this.context, engine = ctx.createOscillator(), level = ctx.createGain();
+            engine.type = 'triangle'; engine.frequency.setValueAtTime(69,ctx.currentTime);
+            engine.frequency.setValueAtTime(69,ctx.currentTime+11);
+            engine.frequency.linearRampToValueAtTime(39,ctx.currentTime+15);
+            level.gain.value = .23; engine.connect(level); level.connect(this.gain);
+            engine.onended = () => { engine.disconnect(); level.disconnect(); };
+            engine.start(); this.engine = engine;
+        }
+        stopEngine() {
+            if (this.engine) {this.engine.stop(); this.engine = null;}
+        }
         loadSamples() {
             if (this.loading || !global.fetch) return this.loading;
             const context = this.context;
@@ -123,7 +136,7 @@
             if (value) this.pause(); else if (changed && resume) this.start();
         }
         toggle() { this.setMuted(!this.muted); }
-        dispose() { this.disposed = true; this.sampleAbort?.abort(); this.samples.clear(); this.rain?.stop(); this.context?.close()?.catch?.(() => {}); }
+        dispose() { this.stopEngine(); this.disposed = true; this.sampleAbort?.abort(); this.samples.clear(); this.rain?.stop(); this.context?.close()?.catch?.(() => {}); }
     }
     global.Huisha3D.ThreeAudio = ThreeAudio;
 })(window);
