@@ -16,6 +16,15 @@ for (const name of sceneModules) await import(`./3d/${name}.js`);
 const $ = id => document.getElementById(id);
 const game = window.Huisha3D;
 const story = new game.ThreeStory();
+// On a resume, request the carried object's photograph before the room starts streaming its models.
+function preloadHeightStitch() {
+    if ($('height-stitch-preload')) return;
+    const link=document.createElement('link');
+    link.id='height-stitch-preload'; link.rel='preload'; link.as='image';
+    link.href='assets/art/height-stitch.jpg'; link.fetchPriority='high';
+    document.head.append(link);
+}
+if (story.state.heightStripTaken) preloadHeightStitch();
 const preferences = new game.ThreePreferences();
 const settings = new game.ThreeSettings({ preferences, onChange: applyPreferences });
 const reader = $('reader');
@@ -506,6 +515,7 @@ function inspect(item) {
         const taken = story.state.heightStripTaken;
         const move = () => {
             story.state.heightStripTaken = !taken;
+            if (!taken) preloadHeightStitch();
             audio.paper(); scene.syncState(); close();
         };
         if (taken) open('挂布带的两颗钉子', '布带取下来了。两颗钉子中间的木头颜色浅些。', [

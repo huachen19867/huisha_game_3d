@@ -2,7 +2,7 @@
   "generator": "Built-in imagegen",
   "prompt": "Photorealistic-natural. Wide cinematic macro evidence photograph inside a rural Chinese household mystery game. A narrow strip of aged unbleached oatmeal-coloured cotton linen, 12 cm wide, folded over on an old dark wooden table, reverse face showing. Across its upper third one reasonably straight short horizontal row of ordinary black running stitches. A few centimetres below it, one shorter, endearingly crooked horizontal row of faded red running stitches sewn by a child, with a small loose knot on the reverse. Both marks in sharp focus, tiny fibres, folds and worn dull side hems. Soft window light, muted warm neutrals, intimate, plainly used, not a decorative embroidery sampler. Straight overhead oblique close view, cropped down to this small section of a longer ribbon. No text, no hands, no embroidery hoops, no extra props, no ruler numerals.",
   "files": {
-    "height-stitch.jpg": "Generated reverse-side study resized to 960 by 640.",
+    "height-stitch.jpg": "Generated reverse-side study resized to 720 by 480 and encoded as JPEG at quality 72.",
     "height-strip-front.png": "Front-face material assembled from an unmarked area of the same cotton, with seven black stitch lines and the name 明."
   }
 }

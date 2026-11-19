@@ -260,6 +260,7 @@ try {
     assert.deepEqual([...ui.scene.story.state.pinnedRecords], ['coffin', 'wall_marks']);
     ui.$('reader-close').click();
     ui.inspect('wall_marks'); ui.click('从钉子上摘下，卷好带走');
+    assert.equal(ui.$('height-stitch-preload').getAttribute('href'),'assets/art/height-stitch.jpg');
     assert.ok(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).carried().includes('heightStrip'));
     assert.ok(!ui.scene.story.state.records.includes('height_stitch'));
     ui.key('KeyB'); ui.click('量身高的布带'); ui.click('翻看布背');
