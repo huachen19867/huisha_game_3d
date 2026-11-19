@@ -24,6 +24,7 @@
                 this.open(definition.title, this.story.conclusionFor(id), actions, '已经核对的记忆');
                 const container = document.getElementById('reader-body');
                 const originals=[...definition.records];
+                if (id === 'hospital') originals.push('hospital_fare');
                 if(id==='school' && this.story.hasDocumentFace('school_draft','front')) originals.push('school_draft');
                 for (const record of this.knownRecords().filter(record => originals.includes(record.id))) {
                     const detail = document.createElement('details'), summary = document.createElement('summary'), text = document.createElement('p');

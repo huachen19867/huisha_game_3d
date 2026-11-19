@@ -69,6 +69,23 @@
             if (tileMeters) material.userData.tileMeters = [...tileMeters];
             return material;
         }
+        loadClinicFinishes(room, steel) {
+            room.getObjectByName('hospital-floor').material = this.pbr('terrazzo',[5.25,5],0xd0d0c5);
+            const plaster = this.pbr('clinic-plaster',[3,1],0xe1ded1);
+            plaster.normalScale.setScalar(.25);
+            room.traverse(object => {
+                if (object.material === this.materials.plaster || object.name === 'hospital-roof') object.material = plaster;
+            });
+            const wainscot = plaster.clone();
+            wainscot.color.setHex(0x799d92);
+            room.getObjectByName('hospital-wall-dado').material = wainscot;
+            const wear = new THREE.TextureLoader().load('assets/materials/seat-roughness.jpg', undefined,
+                () => this.onAssetError?.('seat-roughness'));
+            wear.wrapS = wear.wrapT = THREE.RepeatWrapping;
+            steel.roughnessMap = wear;
+            steel.needsUpdate = true;
+            this.textures.push(wear);
+        }
         createMaterials() {
             const mat = (color, map) => new THREE.MeshStandardMaterial({ color, map, roughness: 0.88 });
             const planks = this.pbr('wood', [3, 3], 0xb0a99b);
@@ -531,7 +548,7 @@
             if (immediate) this.door.rotation.y = s.opened ? this.map.door.openAngle : 0;
             this.doorMechanism.sync(immediate);
             this.courtyard?.sync(immediate);
-            this.memories?.sync();
+            this.memories?.sync(delta);
         }
         moveWheels(delta) {
             const immediate = this.reducedMotion?.matches;

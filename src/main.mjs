@@ -506,6 +506,15 @@ function inspect(item) {
         return;
     }
     if (item.id === 'memory_album') { album(); return; }
+    if (item.id === 'hospital_fare') {
+        if (!story.state.fareTinOpen) {
+            story.state.fareTinOpen = true;
+            audio.latch();
+            save();
+            return;
+        }
+        story.record(item.id);
+    }
     if (item.id === 'crash_phone') { phone(); return; }
     if (Object.hasOwn(game.DOCUMENTS, item.id)) { documentInspect(item.id); return; }
     if (item.returnMemory) { open(item.title, item.text, [['继续观察', close], ['回到厨房', returnMemory]]); return; }

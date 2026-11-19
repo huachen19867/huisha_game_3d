@@ -4,7 +4,7 @@
     const symbols = ['雨', '门', '人', '灯'];
     const freshState = () => ({ arrival: 'intro', chapterEdition: 2, basketDown:false, cellarOpen:false, filterClear:false, sumpDrained:false, oldCoffinLatch:false, gear: [], wardrobeOpen: false, chestOpen: false, calibrated: false, vigil: 0, coffinOpen: false, photoFiled:false, busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
         courtyard: false, crossedYard: false, maskHung:false, formJoined:false, buckets: [0, 0], waterSolved: false, departure: null, rememberPlace:null, position: null, lamp: 'altar', shielded: false,
-        memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, reasoningRevision: 2, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
+        memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, fareTinOpen: false, reasoningRevision: 2, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
     class ThreeStory {
         constructor(storage) {
@@ -73,6 +73,7 @@
                         if (!this.state.documentViews[id].length) this.state.records = this.state.records.filter(record => record !== id);
                         else if (!this.state.records.includes(id)) this.state.records.push(id);
                     }
+                    this.state.fareTinOpen = this.state.waterSolved && (saved.fareTinOpen === true || this.state.records.includes('hospital_fare'));
                     this.state.formJoined=this.state.waterSolved && (saved.formJoined===true || this.state.records.includes('school_draft'));
                     this.state.pinnedRecords = [...new Set((Array.isArray(saved.pinnedRecords) ? saved.pinnedRecords : [])
                         .filter(id => this.state.records.includes(id)))].slice(0, 2);
@@ -277,6 +278,8 @@
         }
         conclusionFor(id){
             const base=game.MEMORY_CASES[id].conclusion;
+            if (id === 'hospital' && this.state.records.includes('hospital_fare'))
+                return base + '\n\n看到那两摞车钱，我才想起在窗口是妈自己问的：「能给我留个九点的号吗？」';
             if(id!=='school' || !this.hasDocumentFace('school_draft','front')) return base;
             return base+'\n\n草表上爸的蓝字挤在格子外面。「第一志愿」里是我填的铁道车辆。七月寄到家里的录取通知上，也是这四个字。';
         }
@@ -328,7 +331,11 @@
             const s=this.state;
             if(this.arrivalTask()) return {intro:'回村',letter:'找到老宅',ledger:'找值班员',keys:'取备用钥匙',gate:'打开家门'}[s.arrival];
             if(s.departure) return this.objective();
-            if(s.memory) return game.MEMORIES[s.memory].title;
+            if (s.memory) {
+                if (s.memory === 'crash' && this.truthSolved()) return '决定要不要回应车外的人';
+                if (s.deductions[s.memory]) return '已核对 · 可继续调查或回厨房';
+                return {school:'查清父亲什么时候签了回执', hospital:'查清母亲何时开始看病', crash:'查清今晚石桥上发生的事'}[s.memory];
+            }
             const area=game.ThreeExplorationMap.areaAt(pose,'house',s)?.id;
             if(area==='attic'||area==='attic_steps') return s.gear.includes('paper')?'纸元宝已收好':'取回晾篮里的纸元宝';
             if(area==='cellar'||area==='cellar_steps') return s.gear.includes('coffinKey')?'回正厅查看棺锁':s.sumpDrained?'找回水槽里的钥匙':'排走储水间的积水';
@@ -378,7 +385,9 @@
                 if (record === 'crash_phone') {
                     if (this.state.phoneViews.length < 2) return direction + '，分别记下通话记录和录音资料。';
                 } else if (game.DOCUMENTS[record]) {
-                    if (!this.documentComplete(record)) return direction + '，翻面并分别点「阅读」。';
+                    const needed = game.MEMORY_CASES[id].requiredFaces[record];
+                    if (needed.some(face => !this.hasDocumentFace(record, face)))
+                        return direction + (needed.length === 1 ? '，点「阅读」记下日期。' : '，翻面并分别点「阅读」。');
                 } else if (!this.state.records.includes(record)) return direction + '，记下时间。';
             }
             return '按 J 打开手记，点「整理」：选两份记录，按日期排序，再提交判断。';
@@ -430,7 +439,7 @@
             if (id === 'crash' && this.truthSolved()) return { text: '三段记忆已经核对。继续走向路尽头的红蓝救护灯，靠近后主动决定是否回应。也可以先回厨房。' };
             if (this.state.deductions[id]) return { text: this.conclusionFor(id) + '\n\n可以继续观察，或从门边、暂停菜单回到厨房。' };
             if (stage === 0) return { text: { school: '近处左侧课桌留着录取通知，远处右侧课桌有家长回执。拿近并翻看正反面，再用“整理记忆”核对。',
-                hospital: '看看右前方桌上的初诊病历，再去左侧轮椅旁拿近复诊安排。比较年份，核对签字和背面的复诊办法。',
+                hospital: '右前方桌上有初诊病历，左侧轮椅旁有复诊安排。核对日期、签字和背面的安排。想知道母亲怎么去县城，可以看看墙钟下的候诊椅。',
                 crash: '来路左侧石块上有手机，前方右侧放着救护交接单。拿近手机，分别查看通话记录和本地录音资料，留意日期。' }[id], next: '再想一想原文' };
             if (stage === 1) return { text: '选两份不同的已读原文，把有明确日期的片段从早到晚放上时间线，再选择解释。没有具体日期的描述或猜想，可以先留在旁边。选好后仍需主动提交。', next: '直接查看这段推理做法' };
             const titles = definition.records.map(record => game.WORLD_MAP.interactables.find(item => item.id === record).title);

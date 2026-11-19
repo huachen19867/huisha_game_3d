@@ -87,6 +87,7 @@
             });
             if (data.signature) { ctx.font = '72px "KaiTi", "STKaiti", serif'; ctx.textAlign = 'right'; ctx.fillText(data.signature, 610, 810); }
             const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace; this.house.textures.push(texture);
+            if (medical) return new THREE.MeshBasicMaterial({ map: texture, toneMapped: false, side: face === 'front' ? THREE.FrontSide : THREE.BackSide });
             return new THREE.MeshStandardMaterial({ map: texture, roughness: 0.95, side: face === 'front' ? THREE.FrontSide : THREE.BackSide });
         }
         drawDraft(ctx,face,lines){

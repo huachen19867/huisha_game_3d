@@ -485,7 +485,19 @@ try {
         }
         assert.equal(ui.scene.story.state.deductions[id], false); ui.click('提交推理');
         assert.equal(ui.scene.story.state.memory, id, 'correct submission does not auto-return');
-        if (id === 'hospital') ui.click('回到厨房');
+        if (id === 'hospital') {
+            ui.inspect('hospital_fare');
+            const openedTin = new ui.window.Huisha3D.ThreeStory(ui.window.localStorage);
+            assert.equal(openedTin.state.fareTinOpen, true);
+            assert.equal(openedTin.state.records.includes('hospital_fare'), false);
+            assert.doesNotMatch(openedTin.conclusionFor('hospital'), /九点的号/);
+            ui.inspect('hospital_fare');
+            assert.match(ui.$('reader-body').textContent, /右边是回去的/);
+            ui.click('整理这段记忆');
+            assert.match(ui.$('reader-body').textContent, /能给我留个九点的号吗/);
+            assert.equal(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).state.deductions.hospital, true);
+            ui.click('回到厨房');
+        }
     }
     ui.inspect('rescue_light');ui.click('听母亲说完');assert.match(ui.$('reader-body').textContent,/面该坨了/);
     ui.click('再听车门外的人');ui.key('KeyE');assert.equal(ui.scene.story.state.departure,null);

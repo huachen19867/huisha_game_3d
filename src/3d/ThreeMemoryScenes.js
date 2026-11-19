@@ -38,17 +38,115 @@
         hospital() {
             const h = this.house, m = h.materials, root = this.rooms.hospital;
             const pale = new THREE.MeshStandardMaterial({ color: 0xa8b9b3, roughness: 0.75 });
-            for (let i = -4; i <= 4; i++) {
-                h.box(`hospital-grout-x-${i}`, [0.012, 0.003, 9.5], [i, 0, 0], m.ash, undefined, root, false);
-                h.box(`hospital-grout-z-${i}`, [10, 0.003, 0.012], [0, 0, i], m.ash, undefined, root, false);
-            }
-            h.label('hospital-label', '门　诊', [1.7, 0.45], [2.7, 2, -4.73], [0, 0, 0], undefined, root, '#a8b9b3', '#304743');
             h.box('hospital-clipboard', [0.55, 0.62, 0.04], [-2.8, 1.32, -0.83], pale, 'hospital_plan', root);
             h.documents.build(root);
             h.cylinder('clipboard-stand', 0.018, 0.018, 1.25, [-2.8, 0.62, -0.9], m.brass, 'hospital_plan', root);
-            const clock = h.cylinder('hospital-clock', 0.32, 0.32, 0.07, [0, 2.1, -4.7], pale, 'hospital_clock', root); clock.rotation.x = Math.PI / 2;
-            h.box('clock-hand-hour', [0.025, 0.17, 0.015], [-0.06, 2.15, -4.65], m.darkWood, 'hospital_clock', root).rotation.z = 0.6;
-            h.box('clock-hand-minute', [0.02, 0.27, 0.015], [0, 2.18, -4.64], m.darkWood, 'hospital_clock', root);
+            const enamel = new THREE.MeshStandardMaterial({ color: 0xe7e2ca, roughness: .47 });
+            const steel = new THREE.MeshStandardMaterial({ color: 0xadb1aa, metalness: .69, roughness: .72 });
+            this.clinicSteel = steel;
+            const rail = new THREE.MeshStandardMaterial({ color: 0x456760, roughness: .7 });
+            h.box('hospital-wall-dado', [10.2, 1.04, .036], [0,.52,-4.738], pale, undefined, root);
+            h.box('clinic-skirting',[10.2,.105,.055],[0,.052,-4.722],rail,undefined,root);
+            h.box('hospital-wall-rail', [10.2,.085,.055], [0,1.08,-4.72], rail, undefined, root);
+            h.cylinder('hospital-clock', .335,.335,.065,[0,2.1,-4.7],rail,'hospital_clock',root).rotation.x = Math.PI / 2;
+            h.cylinder('clock-dial', .309,.309,.018,[0,2.1,-4.658],enamel,'hospital_clock',root).rotation.x = Math.PI / 2;
+            const clockBar = (name, angle, radius, length, width, z) => {
+                const pos = [Math.sin(angle)*radius, 2.1+Math.cos(angle)*radius, z];
+                h.box(name,[width,length,.009],pos,m.darkWood,'hospital_clock',root).rotation.z = -angle;
+            };
+            for (let i=0; i<12; i++) clockBar('clock-tick', i*Math.PI/6, .268, i%3===0 ? .053 : .028, .013, -4.643);
+            clockBar('clock-hand-hour', (4+20/60)*Math.PI/6, .075,.15,.024,-4.63);
+            clockBar('clock-hand-minute', 20*Math.PI/30, .115,.23,.012,-4.618);
+            h.cylinder('clock-hub',.022,.022,.018,[0,2.1,-4.61],steel,'hospital_clock',root).rotation.x = Math.PI/2;
+            this.waitingBench(root, steel, rail);
+            this.fareTin(root, steel);
+            const counter = new THREE.Group();
+            counter.position.set(2.7,0,-3.84); root.add(counter);
+            h.box('clinic-counter-plinth',[2.39,.11,1.60],[0,.055,-.025],rail,undefined,counter);
+            h.box('clinic-counter-body',[2.46,.83,1.62],[0,.515,-.015],pale,undefined,counter);
+            for (let i=-1; i<=1; i++) {
+                h.box('clinic-cabinet-door',[.795,.76,.028],[i*.812,.514,.811],enamel,undefined,counter);
+                h.box('clinic-cabinet-pull',[.13,.018,.036],[i*.812+.22,.83,.841],steel,undefined,counter);
+            }
+            h.box('clinic-counter-edge',[2.55,.069,1.8],[0,.9545,0],steel,'hospital_record',counter);
+            h.box('clinic-countertop',[2.55,.011,1.8],[2.7,.9945,-3.84],enamel,'hospital_record',root);
+            h.box('clinic-writing-mat',[.58,.002,.63],[2.3,1.001,-3.27],rail,'hospital_record',root);
+            const pen = h.cylinder('clinic-ballpoint',.006,.006,.145,[2.54,1.01,-3.31],m.cloth,'hospital_record',root);
+            pen.rotation.set(Math.PI/2,0,-.21);
+            h.mesh('clinic-pen-cord',new THREE.TubeGeometry(new THREE.CatmullRomCurve3([
+                [2.553,1.013,-3.38],[2.58,1.008,-3.46],[2.63,1.007,-3.43],[2.69,1.008,-3.54]
+            ].map(p=>new THREE.Vector3(...p))),16,.0025,5,false),m.cloth,[0,0,0],'hospital_record',root);
+            // The appointment window faces the aisle, behind the desk holding the chart.
+            h.box('clinic-window-frame',[2.7,.91,.085],[2.7,1.56,-4.69],steel,undefined,root);
+            const glass = new THREE.MeshStandardMaterial({color:0x84988b,metalness:.36,roughness:.23});
+            h.box('clinic-window-glass',[2.62,.78,.024],[2.7,1.59,-4.635],glass,undefined,root);
+            h.box('clinic-pass-slot',[1.01,.13,.024],[2.32,1.2,-4.615],m.cloth,undefined,root);
+            h.cylinder('clinic-speaker',.082,.082,.016,[2.35,1.64,-4.607],steel,undefined,root).rotation.x=Math.PI/2;
+            for(const offset of [-.033,0,.033]) h.box('clinic-intercom-slot',[.071,.006,.008],[2.35,1.64+offset,-4.594],m.cloth,undefined,root);
+            h.box('clinic-window-rail',[.036,.85,.045],[2.88,1.56,-4.61],steel,undefined,root);
+            h.box('clinic-window-sill',[2.8,.055,.25],[2.7,1.1,-4.6],enamel,undefined,root);
+            h.label('clinic-window-sign','挂号　·　复诊',[1.2,.28],[2.7,2.24,-4.70],[0,0,0],undefined,root,'#d6ded4','#285449');
+            h.box('clinic-strip-housing',[1.46,.055,.18],[1.2,3.12,-3.0],steel,undefined,root);
+            h.box('clinic-strip-diffuser',[1.38,.025,.15],[1.2,3.08,-3.0],new THREE.MeshBasicMaterial({color:0xe3eee8}),undefined,root);
+            const fill = new THREE.SpotLight(0xf1f1d9,18,8,1.1,.58,2);
+            fill.position.set(1.2,2.93,-3.0); fill.target.position.set(-.7,.08,-4.1);
+            fill.castShadow = true; fill.shadow.mapSize.set(1024,1024);
+            fill.shadow.normalBias=.012; fill.shadow.autoUpdate=false; fill.shadow.needsUpdate=true;
+            root.add(fill,fill.target);
+        }
+        waitingBench(root, steel, rail) {
+            const h = this.house, bench = new THREE.Group();
+            bench.position.set(-1.3,0,-4.24); root.add(bench);
+            h.box('bench-crossbeam',[1.88,.07,.075],[0,.34,0],steel,undefined,bench);
+            for (const x of [-.73,.73]) {
+                h.box('bench-leg',[.06,.31,.07],[x,.18,0],steel,undefined,bench);
+                h.box('bench-foot',[.09,.052,.59],[x,.035,0],rail,undefined,bench);
+            }
+            const pan = new THREE.Shape();
+            // Cross section of the rolled metal seat, extruded across its width.
+            pan.moveTo(.29,.449); pan.quadraticCurveTo(.32,.489,.23,.484);
+            pan.lineTo(-.13,.466); pan.quadraticCurveTo(-.215,.467,-.222,.57);
+            pan.lineTo(-.235,.568); pan.quadraticCurveTo(-.228,.448,-.13,.453);
+            pan.lineTo(.23,.471); pan.quadraticCurveTo(.30,.478,.278,.451); pan.closePath();
+            const seat = new THREE.ExtrudeGeometry(pan,{depth:.54,bevelEnabled:false});
+            seat.rotateY(-Math.PI/2); seat.translate(.27,0,0);
+            const outline = new THREE.Shape();
+            outline.moveTo(-.27,0); outline.lineTo(.27,0); outline.lineTo(.27,.30);
+            outline.quadraticCurveTo(.27,.34,.23,.34); outline.lineTo(-.23,.34);
+            outline.quadraticCurveTo(-.27,.34,-.27,.30); outline.closePath();
+            for (let row=0; row<5; row++) for (let col=-3; col<=3; col++) {
+                const hole = new THREE.Path();
+                hole.absellipse(col*.052,.066+row*.048,.012,.013,0,Math.PI*2,true,0);
+                outline.holes.push(hole);
+            }
+            const backrest = new THREE.ExtrudeGeometry(outline,{depth:.012,curveSegments:4,bevelEnabled:false});
+            for (const x of [-.62,0,.62]) {
+                h.mesh('clinic-waiting-seat',seat,steel,[x,0,0],undefined,bench);
+                h.mesh('clinic-seat-back',backrest,steel,[x,.567,-.235],undefined,bench).rotation.x=-.18;
+            }
+            for (const x of [-.945,.945]) {
+                const curve = new THREE.CatmullRomCurve3([[x,.35,.21],[x,.61,.20],[x,.64,.12],[x,.64,-.17],[x,.47,-.22]].map(p=>new THREE.Vector3(...p)));
+                h.mesh('bench-armrest',new THREE.TubeGeometry(curve,18,.018,8,false),rail,[0,0,0],undefined,bench);
+            }
+        }
+        fareTin(root, steel) {
+            const h = this.house, item = 'hospital_fare', tin = new THREE.Group();
+            tin.position.set(-1.3,.48,-4.16); root.add(tin);
+            const lacquer = new THREE.MeshStandardMaterial({color:0x953b2c,metalness:.38,roughness:.43});
+            const coin = new THREE.MeshStandardMaterial({color:0xc3bda8,metalness:.6,roughness:.39});
+            const profile=[[0,.003],[.104,.003],[.109,.009],[.109,.044],[.111,.046],[.108,.049],[.105,.046],[.103,.01],[0,.01]];
+            h.mesh('fare-tin',new THREE.LatheGeometry(profile.map(p=>new THREE.Vector2(...p)),48),steel,[0,0,0],item,tin);
+            for (const x of [-.048,.048]) {
+                for (let i=0;i<5;i++) h.cylinder('fare-coin',.013,.013,.0024,[x+.0008*(i%2),.0115+i*.0027,0],coin,item,tin);
+            }
+            h.box('folded-sweet-wrapper',[.028,.002,.086],[-.005,.016,0],h.materials.paper,item,tin).rotation.z=.42;
+            h.box('folded-sweet-wrapper',[.028,.002,.086],[.019,.016,0],h.materials.paper,item,tin).rotation.z=-.42;
+            this.tinLid = new THREE.Group(); this.tinLid.position.set(0,.049,-.106); tin.add(this.tinLid);
+            h.cylinder('fare-tin-lid',.113,.113,.012,[0,0,.106],lacquer,item,this.tinLid);
+            h.cylinder('tin-lid-inside',.107,.107,.002,[0,-.006,.106],steel,item,this.tinLid);
+            const edging = new THREE.TorusGeometry(.103,.0017,6,48);
+            h.mesh('tin-gold-edging',edging,h.materials.brass,[0,.007,.106],item,this.tinLid).rotation.x=Math.PI/2;
+            h.label('tin-lid-print','什 锦 糖',[.142,.058],[0,.0075,.106],[-Math.PI/2,0,0],item,this.tinLid,'#8e3528','#eed49c');
         }
         crash() {
             const h = this.house, m = h.materials, root = this.rooms.crash;
@@ -151,7 +249,6 @@
                 this.rooms.school.add(place('SchoolChair_01', [0.5, 0.85, 0.5], [x, 0, z + 0.85], 0));
             }
             this.rooms.hospital.add(place('wheelchair_01', [0.95, 1.15, 1], [-2.8, 0, -1.2], 0, 'hospital_plan'));
-            this.rooms.hospital.add(place('chinese_console_table', [2.5, 1, 0.95], [2.7, 0, -3.35], 0, 'hospital_record', true));
         }
         sealHome() {
             const h = this.house; h.homeRoot = new THREE.Group(); h.homeRoot.name = 'old-house';
@@ -160,9 +257,18 @@
             }
             h.scene.add(h.homeRoot);
         }
-        sync() {
+        sync(delta) {
             const h = this.house, space = h.story.state.memory;
+            if (space === 'hospital' && this.tinLid) {
+                const angle = h.story.state.fareTinOpen ? -1.93 : 0;
+                this.tinLid.rotation.x = this.lastSpace !== space || !delta || h.reducedMotion?.matches
+                    ? angle : THREE.MathUtils.damp(this.tinLid.rotation.x,angle,11,delta);
+            }
             if (space === this.lastSpace) return;
+            if (space === 'hospital' && !this.clinicFinished) {
+                h.loadClinicFinishes(this.rooms.hospital, this.clinicSteel);
+                this.clinicFinished = true;
+            }
             this.lastSpace = space;
             if (h.homeRoot) h.homeRoot.visible = !space;
             for (const [id, root] of Object.entries(this.rooms)) root.visible = id === space;

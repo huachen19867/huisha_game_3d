@@ -190,6 +190,7 @@ for (const id of ['chinese_armchair', 'chinese_console_table', 'chinese_cabinet'
 }
 game.GLTFLoader = class { async loadAsync(url) { return parsedModels.get(url.split('/')[2]); } };
 const house = new game.ThreeHouseScene({ story });
+house.loadClinicFinishes = () => {}; // Texture decoding is exercised in the browser.
 house.scene = new THREE.Scene();
 house.materials = Object.fromEntries(['wall', 'floor', 'wood', 'darkWood', 'brass', 'red', 'cloth', 'paper', 'portrait', 'stone', 'wax', 'ash', 'plaster', 'paving'].map(key => [key, new THREE.MeshStandardMaterial()]));
 house.createArchitecture(); house.createProps(); await house.loadModels();
@@ -243,11 +244,11 @@ for (const [id, paper] of house.documents.papers) {
     }
     const p = paper.root.getWorldPosition(new THREE.Vector3());
     const desk = house.memories.rooms[definition.space].children.find(object => {
-        if (!['SchoolDesk_01', 'chinese_console_table'].includes(object.name)) return false;
+        if (!['SchoolDesk_01', 'clinic-countertop'].includes(object.name)) return false;
         const bounds = new THREE.Box3().setFromObject(object); return p.x >= bounds.min.x && p.x <= bounds.max.x && p.z >= bounds.min.z && p.z <= bounds.max.z;
     });
     const gap = new THREE.Box3().setFromObject(paper.root).min.y - new THREE.Box3().setFromObject(desk).max.y;
-    assert.ok(gap >= 0 && gap < 0.01, 'paper rests just above the actual imported desk surface');
+    assert.ok(gap >= 0 && gap < 0.01, 'paper rests just above the desk surface');
 }
 console.log('Assets: all nineteen glTF models, binary buffers, texture dependencies and scene placement passed.');
 for (const prefix of ['hall', 'school', 'hospital']) for (const side of [-1, 1]) {

@@ -628,9 +628,44 @@
       "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/pot_enamel_01/pot_enamel_01.bin",
       "md5": "d8845287663697c274192b8ba35cb7a1",
       "path": "models/pot_enamel_01/pot_enamel_01.bin"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/terrazzo_tiles/terrazzo_tiles_diff_1k.jpg",
+      "md5": "12c27a579c2ed49de854b8a86e33647b",
+      "path": "materials/terrazzo-color.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/terrazzo_tiles/terrazzo_tiles_nor_gl_1k.jpg",
+      "md5": "a5f6d05f27db4151227535bdbc82c048",
+      "path": "materials/terrazzo-normal.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/terrazzo_tiles/terrazzo_tiles_rough_1k.jpg",
+      "md5": "e34bfd2f4fee1b2b9f310a71588aad17",
+      "path": "materials/terrazzo-roughness.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/metal_plate_02/metal_plate_02_rough_1k.jpg",
+      "md5": "1fa97d5031aa575656a316bfd404ca4d",
+      "path": "materials/seat-roughness.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_diff_1k.jpg",
+      "md5": "15ba8c1f63a5ab412b1eabe31728540a",
+      "path": "materials/clinic-plaster-color.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_nor_gl_1k.jpg",
+      "md5": "43fff290583dbdfc9bfa088a2750e840",
+      "path": "materials/clinic-plaster-normal.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_rough_1k.jpg",
+      "md5": "e076a6360329a2bc18c7397dc50c074a",
+      "path": "materials/clinic-plaster-roughness.jpg"
     }
   ],
-  "updated": "2026-11-18",
+  "updated": "2026-11-19",
   "derivatives": [
     {
       "path": "materials/night-court.jpg",

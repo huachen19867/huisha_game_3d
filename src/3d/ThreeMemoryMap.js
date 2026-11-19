@@ -32,7 +32,7 @@
             back: { title: '背面 · 父亲的留言', lines: ['明，车钱在缝纫机', '第二个抽屉。', '那天我把你的志愿草表撕了，', '这事是我做错。', '要我送，出门前敲一下门。爸'],
                 text: '回执沿虚线撕开了，家里留下的这一联背面有爸的字：「明，车钱在缝纫机第二个抽屉。那天我把你的志愿草表撕了，这事是我做错。要我送，出门前敲一下门。爸」' }
         } },
-        hospital_record: { title: '初诊病历', space: 'hospital', position: [2.3, 1.004, -2.95], introducedRevision: 2, style: 'medical', faces: {
+        hospital_record: { title: '初诊病历', space: 'hospital', position: [2.3, 1.004, -3.27], introducedRevision: 2, style: 'medical', faces: {
             front: { title: '正面 · 初诊日期', lines: ['初诊病历', '二〇一二年', '八月二十三日'], text: '初诊日期：二〇一二年八月二十三日。' },
             back: { title: '背面 · 后续记录', lines: ['后续记录', '反复检查', '长期用药'],
                 text: '后续栏里是反复检查与长期用药的记录。那时候，你还没有收到录取通知，更没有离家。' }
@@ -58,7 +58,7 @@
             facts: [
                 { id: 'diagnosis', record: 'hospital_record', documentFace: 'front', title: '初诊记录', quote: '初诊日期：二〇一二年八月二十三日。' },
                 { id: 'plan', record: 'hospital_plan', documentFace: 'front', title: '母亲签字安排复诊', quote: '二〇一四年八月二十日。…患者签字是母亲的名字。' },
-                { id: 'clock', record: 'hospital_clock', title: '如果早一点回来', quote: '你曾反复想象：如果再早一点回来，会不会不一样。', dated: false }
+                { id: 'clock', record: 'hospital_clock', title: '候诊室的钟面', quote: '四点二十。表盘上只有十二道刻度，没有日期。', dated: false }
             ], timelineOrder: ['diagnosis', 'plan'],
             conclusion: '初诊写着二〇一二年，复诊安排写着二〇一四年。我离家上学前，妈已经在看病。九月的复诊她自己签了字，代取药那一栏填的是邻居老周。' },
         crash: { title: '手机与交接单记录了什么', records: ['crash_report', 'crash_phone'],
@@ -86,8 +86,9 @@
         xMin: -32 + x - 0.65, xMax: -32 + x + 0.65, zMin: z - 0.5, zMax: z + 0.5 });
     for (const x of [-2, 2]) for (const z of [-1.5, 1]) obstacles.push({ id: `school-chair-${x}-${z}`, space: 'school',
         xMin: -32 + x - 0.25, xMax: -32 + x + 0.25, zMin: z + 0.6, zMax: z + 1.1 });
-    obstacles.push({ id: 'hospital-wheelchair', space: 'hospital', xMin: 28.4, xMax: 29.5, zMin: -1.7, zMax: -0.6 },
-        { id: 'hospital-desk', space: 'hospital', xMin: 33.5, xMax: 36.1, zMin: -3.8, zMax: -2.8 });
+    obstacles.push({ id: 'hospital-bench', space: 'hospital', xMin: 29.72, xMax: 31.68, zMin: -4.57, zMax: -3.91 },
+        { id: 'hospital-wheelchair', space: 'hospital', xMin: 28.4, xMax: 29.5, zMin: -1.7, zMax: -0.6 },
+        { id: 'hospital-desk', space: 'hospital', xMin: 33.425, xMax: 35.975, zMin: -4.74, zMax: -2.94 });
     regions.push({ id: 'crash', title: game.MEMORIES.crash.title, xMin: -3.74, xMax: 3.74, zMin: -64, zMax: -48, space: 'crash', requiresState: 'waterSolved' });
     obstacles.push({ id: 'phone-stone', space: 'crash', xMin: -1.925, xMax: -1.375, zMin: -55.075, zMax: -54.525 },
         { id: 'emergency-case', space: 'crash', xMin: 1.3, xMax: 2.1, zMin: -60.825, zMax: -60.175 });
@@ -101,12 +102,14 @@
         '二〇一四年七月二十日，家长回执上是父亲的签名。\n\n回执沿虚线撕开了，家里留下的这一联背面有爸的字：「明，车钱在缝纫机第二个抽屉。那天我把你的志愿草表撕了，这事是我做错。要我送，出门前敲一下门。爸」', { deduction: 'school', journal: false });
     add('school', 'school_rules', '黑板上的交表通知', 0, 1.7, -4.45,
         '「交表前核对院校、专业代码。草表自己留。」\n\n粉笔槽里搁着板擦。那天收齐一组，班长就上去擦掉一个组号。轮到我们组，我才发现自己的笔还落在前排桌上。', { deduction: 'school' });
-    add('hospital', 'hospital_record', '初诊病历', 2.3, 1.02, -2.85,
+    add('hospital', 'hospital_record', '初诊病历', 2.3, 1.02, -3.22,
         '初诊日期：二〇一二年八月二十三日。\n\n后续栏里是反复检查与长期用药的记录。那时候，你还没有收到录取通知，更没有离家。', { deduction: 'hospital', journal: false });
     add('hospital', 'hospital_plan', '母亲签过字的复诊安排', -2.8, 1.32, -0.8,
         '二〇一四年八月二十日。\n\n「九月起本人按月复诊。代取药联系人：周福生（邻居）。联系电话见挂号页。」\n\n患者签字是母亲的名字。周字写小了些，刚好挤进联系人那一格。', { deduction: 'hospital', journal: false });
     add('hospital', 'hospital_clock', '候诊室的钟', 0, 2.1, -4.4,
-        '你曾反复想象：如果再早一点回来，会不会不一样。\n\n分针卡在四点二十。我挪了把椅子，站上去看。钟壳背后连电池都没有。', { deduction: 'hospital' });
+        '四点二十。表盘上只有十二道刻度，没有日期。\n\n我记得自己那天老往上看。妈说：「你看我一眼行不行？帮我把椅子上的盒子递过来。」', { deduction: 'hospital' });
+    add('hospital', 'hospital_fare', '候诊椅上的糖盒', -1.3, .54, -4.16,
+        '盒里有两摞一块钱的硬币，每摞五枚，中间隔着一片折起的糖纸。\n\n我记得那天在窗口，护士问下个月约几点。妈问：「村里的头班车八点才进城。能给我留个九点的号吗？」\n\n我伸手想把散钱一起收起来。她拦了我一下：「分开，右边是回去的。」', { deduction: 'hospital', journal: false });
     obstacles.push({id:'old-bridge-post',space:'crash',xMin:-3.68,xMax:-3.18,zMin:-52.25,zMax:-51.75});
     obstacles.push({id:'accident-wagon',space:'crash',xMin:-4.89,xMax:-.42,zMin:-57.07,zMax:-54.92});
     obstacles.push({id:'rescue-cot',space:'crash',xMin:-.36,xMax:.36,zMin:-63.91,zMax:-62.03});
