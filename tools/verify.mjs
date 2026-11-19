@@ -280,7 +280,7 @@ console.log('Architecture: six real window openings, solid reveals, distinct pan
 let paused = false;
 const camera = new THREE.PerspectiveCamera(66, 1, 0.06, 60);
 const controls = new game.ThreeControls({ camera, domElement: eventTarget, map: game.WORLD_MAP, story,
-    isPaused: () => paused, getDoorAngle: id => id === 'yard' ? house.courtyard.gate.rotation.y : house.door.rotation.y });
+    isPaused: () => paused, getDoorAngle: id => house.doorAngle(id) });
 for (const [opened, waterSolved, z, expectedZ] of [[false, false, -20, 3.4], [true, false, -31, 3.4], [true, true, -31, -31]]) {
     const resumeStory = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, opened, waterSolved,
         position: { x: 0, z, yaw: Math.PI, pitch: 0 } }), setItem() {} });

@@ -187,7 +187,6 @@
                 if ((rect.space || 'house') !== space) return false;
                 if (rect.requiresState && !this.story.state[rect.requiresState]) return false;
                 if (rect.untilState && this.story.state[rect.untilState]) return false;
-                if (rect.closedUntilHome && this.story.state.arrival === 'home') return false;
                 if (rect.height && this.height >= rect.height) return false;
                 return this.overlaps(rect,x,z);
             });
@@ -196,9 +195,9 @@
             if (this.story.state.memory) return false;
             return [this.map.door, ...(this.map.extraDoors || [])].filter(Boolean).some(door => this.blocksLeaf(x, z, door));
         }
-        blocksLeaf(x, z, door) {
-            const opened = this.story.state[door.stateField || 'opened'];
-            const angle = this.getDoorAngle?.(door.id) ?? (opened ? door.openAngle : 0);
+        blocksLeaf(x, z, door, angle = this.getDoorAngle?.(door.id)) {
+            const opened = this.story.state[door.stateField || 'opened'] === (door.openValue ?? true);
+            angle ??= opened ? door.openAngle : 0;
             const dx = x - door.hingeX, dz = z - door.hingeZ;
             // Transform the player into the rotating leaf's local space, then test circle vs rectangle.
             const localX = Math.cos(angle) * dx - Math.sin(angle) * dz;

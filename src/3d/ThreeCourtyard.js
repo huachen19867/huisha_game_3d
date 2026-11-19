@@ -38,7 +38,7 @@
             h.cylinder('stove-pot', 0.31, 0.25, 0.2, [10, 0.91, -18.6], m.darkWood, 'kitchen_note');
             h.label('calibration-note', '四升台秤\n左盘校准　右盘盛水', [0.72, 0.55], [10.45, 1.55, -17.62], [0, Math.PI, 0], 'kitchen_note');
             this.buildWater(water);
-            const door = h.map.extraDoors[0];
+            const door = this.gateSpec = h.map.extraDoors.find(leaf=>leaf.id==='yard');
             this.gate = new THREE.Group(); this.gate.position.set(door.hingeX, 0, door.hingeZ); h.scene.add(this.gate);
             h.box('yard-gate', [door.width, 2.7, door.thickness], [door.width / 2, 1.35, 0], m.wood, 'yard_gate', this.gate);
             this.gateBolt = h.box('yard-gate-latch', [1.2, 0.1, 0.1], [1.6, 1.3, 0.14], m.brass, 'yard_gate', this.gate);
@@ -314,7 +314,7 @@
             if (immediate) {
                 this.weighing = null;
                 this.releaseProgress = s.waterSolved ? 1 : 0;
-                this.gate.rotation.y = s.waterSolved ? this.house.map.extraDoors[0].openAngle : 0;
+                this.gate.rotation.y = s.waterSolved ? this.gateSpec.openAngle : 0;
                 this.update(1, true);
             }
         }
@@ -357,7 +357,7 @@
             this.marker.position.x = this.buckets[this.selected].position.x;
         }
         moveGate(delta) {
-            const target = this.house.story.state.waterSolved && this.releaseProgress >= 1 ? this.house.map.extraDoors[0].openAngle : 0;
+            const target = this.house.story.state.waterSolved && this.releaseProgress >= 1 ? this.gateSpec.openAngle : 0;
             const remaining = target - this.gate.rotation.y;
             this.gate.rotation.y += this.house.reducedMotion?.matches || Math.abs(remaining) < 0.001 ? remaining : remaining * Math.min(1, delta * 4);
         }

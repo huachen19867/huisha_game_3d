@@ -34,7 +34,7 @@
             this.syncState(true);
             this.controls = new game.ThreeControls({ camera: this.camera, domElement: this.renderer.domElement,
                 map: this.map, story: this.story, isPaused: this.isPaused,
-                getDoorAngle: id => id === 'yard' ? this.courtyard.gate.rotation.y : this.door.rotation.y, getPreferences: this.getPreferences });
+                getDoorAngle: id => this.doorAngle(id), getPreferences: this.getPreferences });
             this.interaction = new game.ThreeInteraction({ camera: this.camera, map: this.map, scene: this.scene,
                 prompt: this.prompt, focusMarker: this.focusMarker, story: this.story, isPaused: this.isPaused, onInspect: this.onInspect });
             this.onResize = () => {
@@ -124,6 +124,7 @@
                 wood: mat(0x7d5036, this.texture('木梁', [1, 1])),
                 darkWood: oldWood, brass: new THREE.MeshStandardMaterial({color:0xab8654,roughness:.47,metalness:.62}), red: mat(0x862f24),
                 cloth: mat(0x17171b), paper: mat(0xc6b689), stone: mat(0x555f63),
+                heightStrip: mat(0xe7dfce, this.texture('height-strip-front',[1,1])),
                 wax: mat(0xbfa77b), ash: mat(0x8c8a80)
             };
         }
@@ -222,9 +223,37 @@
             for (let i = 0; i < 4; i++) this.box(`corridor-beam-${i}`, [2.6, 0.15, 0.18], [0, 2.85, -4.5 - i * 2], m.wood);
             this.box('threshold', [2.6, 0.09, 0.25], [0, 0.01, -13.9], m.stone, 'threshold');
             this.createOutside();
-            for (let i = 0; i < 7; i++) this.box(`height-mark-${i}`, [0.015, 0.012, 0.23 + i * 0.025], [1.285, 0.62 + i * 0.15, -7.1], m.paper, 'wall_marks', undefined, false);
-            this.label('height-note', '灯与门之间\n是回家的人', [0.65, 0.43], [1.278, 1.7, -7.1], [0, -Math.PI / 2, 0], 'wall_marks');
+            this.buildHeightStrip();
             this.label('hall-sign', '归　门', [1.5, 0.5], [0, 2.55, -4.16], [0, 0, 0],undefined,this.scene,'#312821','#ceb386');
+        }
+        buildHeightStrip() {
+            const wall = new THREE.Group(), item = 'wall_marks';
+            wall.position.set(1.293,1.27,-7.1); wall.rotation.y = -Math.PI/2;
+            this.scene.add(wall);
+            const cloth = new THREE.PlaneGeometry(.16,1.12,10,48), vertices = cloth.attributes.position;
+            for (let i=0; i<vertices.count; i++) {
+                const x=vertices.getX(i), y=vertices.getY(i), drop=(.56-y)/1.12;
+                const fold=.004*Math.cos(x*107+y*3) + .006*Math.sin(y*13);
+                const hem = Math.max(0,(drop-.96)/.04);
+                vertices.setXYZ(i,x+.009*drop*Math.sin(y*7),y+.006*hem*Math.sin(x*76),.014+drop*(fold+.012*drop)+hem*.012*Math.cos(x*29));
+            }
+            cloth.computeVertexNormals();
+            this.heightStrip=this.mesh('hanging-height-strip',cloth,this.materials.heightStrip || this.materials.paper,[0,0,0],item,wall,false);
+            const fringe=[];
+            for (let i=0; i<31; i++) {
+                const x=-.07+i*.0049, hemY=-.56+.006*Math.sin(x*76);
+                fringe.push(x+.007,hemY,.03,x+.008+.002*Math.sin(i*9),hemY-.004-.006*(.5+.5*Math.sin(i*17)),.032);
+            }
+            const geometry=new THREE.BufferGeometry();
+            geometry.setAttribute('position',new THREE.Float32BufferAttribute(fringe,3));
+            this.heightStrip.add(new THREE.LineSegments(geometry,new THREE.LineBasicMaterial({color:0xb2a080})));
+            for (const x of [-.055,.055]) {
+                const eyelet=this.mesh('stitched-buttonhole',new THREE.TorusGeometry(.007,.0016,5,16),this.materials.paper,[x,.543,.015],item,this.heightStrip,false);
+                eyelet.scale.x=.71;
+                const pin=this.cylinder('height-strip-nail',.004,.004,.03,[x,.544,.016],this.materials.darkWood,item,wall);
+                pin.rotation.x=Math.PI/2;
+                this.cylinder('nail-head',.0065,.0065,.0025,[x,.544,.032],this.materials.brass,item,wall).rotation.x=Math.PI/2;
+            }
         }
         createOutside() {
             const m = this.materials;
@@ -521,6 +550,10 @@
             this.flashlight = new THREE.SpotLight(0xffedd1, 5, 9, 0.5, 0.75, 1.4);
             this.flashTarget = new THREE.Object3D(); this.scene.add(this.flashlight, this.flashTarget); this.flashlight.target = this.flashTarget;
         }
+        doorAngle(id) {
+            if (id === 'front') return this.frontHinge.rotation.y;
+            return id === 'yard' ? this.courtyard.gate.rotation.y : this.door.rotation.y;
+        }
         syncState(immediate = false, delta = 0) {
             const s = this.story.state;
             this.documents?.syncTear();
@@ -537,7 +570,15 @@
             this.coffinPadlock.visible=!s.coffinOpen;
             this.coffinLid.rotation.x = s.coffinOpen ? -1.37 : 0;
             this.uniform.visible = s.coffinOpen && !s.records.includes('uniform_collar');
-            this.frontDoor.visible = s.arrival !== 'home';
+            const target = s.arrival === 'home' ? this.frontDoorSpec.openAngle : 0;
+            if (immediate) this.frontHinge.rotation.y = target;
+            else if (target !== this.frontHinge.rotation.y) {
+                const current = this.frontHinge.rotation.y, step = delta*2.4;
+                const angle = this.reducedMotion?.matches ? target : current + THREE.MathUtils.clamp(target-current,-step,step);
+                if (!this.controls?.blocksLeaf(this.camera.position.x,this.camera.position.z,this.frontDoorSpec,angle)) this.frontHinge.rotation.y = angle;
+            }
+            this.heightStrip.visible = !s.heightStripTaken;
+            this.houseKey.visible = s.arrival !== 'gate' && !(s.arrival === 'home' && s.records.includes('key_board'));
             this.portrait.sync(immediate);
             this.wheels.forEach((wheel, i) => {
                 if (immediate) this.wheelTargets[i] = s.wheels[i] * Math.PI / 2;

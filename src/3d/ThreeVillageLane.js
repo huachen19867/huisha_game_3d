@@ -202,9 +202,19 @@
             }
         }
         h.box('front-lintel',[2,.52,.28],[0,3.08,4.45],m.darkWood);
-        h.frontDoor = h.box('village-front-door',[2,2.84,.2],[0,1.42,4.42],m.darkWood,'front_gate');
+        h.frontDoorSpec=h.map.extraDoors.find(door=>door.id==='front');
+        h.frontHinge=new THREE.Group();
+        h.frontHinge.position.set(h.frontDoorSpec.hingeX,0,h.frontDoorSpec.hingeZ); h.scene.add(h.frontHinge);
+        h.frontDoor = h.box('village-front-door',[2,2.84,.2],[1,1.42,0],m.darkWood,'front_gate',h.frontHinge);
+        for(const y of [.42,2.42]) {
+            h.box('gate-hinge-strap',[.23,.046,.013],[-.89,y-1.42,.107],m.brass,'front_gate',h.frontDoor);
+            h.cylinder('gate-hinge-pin',.019,.019,.125,[-.992,y-1.42,.108],m.brass,'front_gate',h.frontDoor);
+        }
         h.label('old-number','槐树巷\n十四号',[.57,.45],[1.41,1.78,4.56],[0,0,0],'front_gate',undefined,'#304745','#e2e2bc');
         h.box('front-handle',[.08,.23,.06],[.45,-.15,.12],m.brass,'front_gate',h.frontDoor);
+        h.cylinder('front-key-escutcheon',.04,.04,.012,[.45,-.33,.108],m.brass,'front_gate',h.frontDoor).rotation.x=Math.PI/2;
+        h.box('front-keyway',[.009,.027,.004],[.45,-.335,.117],m.cloth,'front_gate',h.frontDoor);
+        h.box('carpenter-chalk',[.16,.007,.003],[-.63,-.93,.103],m.paper,'front_gate',h.frontDoor).rotation.z=.07;
         h.box('landslide-barrier',[7.3,.82,.24],[0,.4,34.14],m.stone);
         h.label('landslide-sign','前方塌方　封路',[2,.4],[0,.58,34],[0,Math.PI,0],undefined,undefined,'#593c31','#ffdfa5');
         for (const slope of [-1,1]) {
@@ -230,13 +240,24 @@
         h.box('duty-canopy',[2.4,.15,3.4],[3.52,2.79,21],m.roof||m.darkWood);
         h.label('duty-sign','村口值班室',[1.64,.42],[2.66,2.55,21],[0,-Math.PI/2,0],'duty_book');
         h.label('open-ledger','旧牌　新牌\n换牌登记',[.69,.46],[2.99,1.079,21.1],[-Math.PI/2,0,Math.PI/2],'duty_book');
-        h.box('key-board',[.27,1.22,1.32],[-3.49,1.38,11.5],m.darkWood,'key_board');
-        h.label('key-sign','钥 匙 寄 存',[1.18,.24],[-3.33,1.81,11.5],[0,Math.PI/2,0],'key_board');
+        const cabinet=new THREE.Group();
+        cabinet.position.set(3.48,1.57,21.82); cabinet.rotation.y=-Math.PI/2; h.scene.add(cabinet);
+        for (const x of [-.42,.42]) h.box('key-stand-foot',[.052,.23,.13],[x,-.42,0],m.wood,'key_board',cabinet);
+        h.box('key-board',[1.06,.65,.09],[0,0,0],m.darkWood,'key_board',cabinet);
+        h.label('key-sign','住 户 钥 匙',[.74,.13],[0,.21,.051],[0,0,0],'key_board',cabinet);
         for (let i=0;i<3;i++) {
-            const z=11.12+i*.37;
-            h.mesh('key-ring',new THREE.TorusGeometry(.055,.011,8,16),m.brass,[-3.31,1.47,z],'key_board').rotation.y=Math.PI/2;
-            h.box('key-shaft',[.025,.14,.025],[-3.31,1.36,z],m.brass,'key_board');
+            const x=(i-1)*.31, number=[9,6,16][i], key=new THREE.Group();
+            key.position.set(x,.01,.094); cabinet.add(key);
+            if (number===6) h.houseKey=key;
+            h.mesh('key-ring',new THREE.TorusGeometry(.039,.007,8,20),m.brass,[0,0,0],'key_board',key);
+            h.box('key-shaft',[.018,.101,.011],[-.018,-.078,.003],m.brass,'key_board',key).rotation.z=-.16;
+            for (const y of [-.109,-.126]) h.box('key-tooth',[.029,.009,.014],[-.015,y,.003],m.brass,'key_board',key);
+            h.label('hanging-key-tag',String(number),[.083,.092],[.046,-.064,.014],[0,0,.13],'key_board',key,'#a78150','#271b13');
+            h.box('key-peg',[.018,.018,.066],[x,.047,.073],m.brass,'key_board',cabinet);
         }
+        h.box('lane-repair-post',[.08,1.65,.08],[-3.52,.825,11.5],m.wood);
+        h.box('lane-repair-board',[.06,.41,.83],[-3.46,1.37,11.5],m.darkWood);
+        h.label('lane-repair-contact','旧宅修缮\n领钥匙请到值班室',[.78,.36],[-3.425,1.37,11.5],[0,Math.PI/2,0],undefined,undefined,'#aca998','#283c37');
         for (const [x,z] of [[2.94,21],[-3.26,11.5],[1.2,4.85]]) {
             const light = new THREE.PointLight(0xffca83,5,7,1.65);
             light.position.set(x-.26,2.14,z); h.scene.add(light);

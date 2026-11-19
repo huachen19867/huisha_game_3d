@@ -79,6 +79,7 @@
                 let title = this.current.title, observed = this.story.state.records.includes(this.current.id);
                 if (this.current.id === 'hospital_fare')
                     title = this.story.state.fareTinOpen ? '看盒里的两摞零钱' : '掀开候诊椅上的糖盒';
+                if (this.current.id === 'wall_marks' && this.story.state.heightStripTaken) title = '挂布带的两颗钉子';
                 if (this.current.id === 'coffin' && this.story.state.coffinOpen) {
                     observed = this.story.state.records.includes('uniform_collar');
                     title = observed ? '棺底的黄布兜' : '布兜里的蓝外套';

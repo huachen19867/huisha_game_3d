@@ -9,7 +9,7 @@
             { xMin: -6, xMax: 6, zMin: -27.5, zMax: -14, audio: { surface: 'concrete', rain: 0.12, cutoff: 3600 } },
             { xMin: -2, xMax: 2, zMin: -46, zMax: -27.5, audio: { surface: 'concrete', rain: 0.1, cutoff: 4500 } }
         ],
-        extraDoors: [{ id: 'yard', stateField: 'waterSolved', hingeX: -1, hingeZ: -27.5, width: 2,
+        extraDoors: [...hall.extraDoors, { id: 'yard', stateField: 'waterSolved', hingeX: -1, hingeZ: -27.5, width: 2,
             thickness: 0.16, frontDepth: 0.25, openAngle: Math.PI / 2 }],
         walkable: [...hall.walkable,
             { id: 'yard', title: '雨庭', xMin: -5.8, xMax: 5.8, zMin: -27.2, zMax: -13.8, requiresState: 'opened' },

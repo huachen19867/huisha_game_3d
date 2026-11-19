@@ -4,7 +4,7 @@
     const symbols = ['雨', '门', '人', '灯'];
     const freshState = () => ({ arrival: 'intro', chapterEdition: 2, basketDown:false, cellarOpen:false, filterClear:false, sumpDrained:false, oldCoffinLatch:false, gear: [], wardrobeOpen: false, chestOpen: false, calibrated: false, vigil: 0, coffinOpen: false, photoFiled:false, busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
         courtyard: false, crossedYard: false, maskHung:false, formJoined:false, buckets: [0, 0], waterSolved: false, departure: null, rememberPlace:null, position: null, lamp: 'altar', shielded: false,
-        memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, fareTinOpen: false, reasoningRevision: 2, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
+        memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, fareTinOpen: false, heightStripTaken: false, reasoningRevision: 2, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
     class ThreeStory {
         constructor(storage) {
@@ -74,6 +74,7 @@
                         else if (!this.state.records.includes(id)) this.state.records.push(id);
                     }
                     this.state.fareTinOpen = this.state.waterSolved && (saved.fareTinOpen === true || this.state.records.includes('hospital_fare'));
+                    this.state.heightStripTaken = saved.heightStripTaken === true && this.state.records.includes('wall_marks');
                     this.state.formJoined=this.state.waterSolved && (saved.formJoined===true || this.state.records.includes('school_draft'));
                     this.state.pinnedRecords = [...new Set((Array.isArray(saved.pinnedRecords) ? saved.pinnedRecords : [])
                         .filter(id => this.state.records.includes(id)))].slice(0, 2);
@@ -220,6 +221,7 @@
                 ids.push(id);
             }
             if(s.records.includes('uniform_collar')) ids.push('uniform');
+            if(s.heightStripTaken) ids.push('heightStrip');
             if(s.records.includes('bend_photo') && !s.photoFiled) ids.push('roadPhoto');
             return ids;
         }
@@ -317,8 +319,8 @@
                 intro: '开车回村，查清是谁寄了这封信。',
                 letter: '按 B 打开背包，查看随身来信上的旧门牌。',
                 ledger: '去路边亮灯的值班室，找周师傅问钥匙。他手边有换牌登记簿。',
-                keys: '去前门对面的木柜，按登记簿上的新门牌取钥匙。横木可以跳过，也可以从旁边绕过去。',
-                gate: '拿钥匙打开路尽头挂着「十四号」牌子的老宅前门。'
+                keys: '在值班窗口报出李家的新门牌，找周师傅领钥匙。',
+                gate: '路尽头挂着「十四号」的就是家门。横木可以跳过，也可以绕过去。'
             }[this.state.arrival];
         }
         advanceArrival(from, to) {
@@ -344,6 +346,7 @@
             if(s.waterSolved && s.coffinOpen && !s.photoFiled) return s.records.includes('bend_photo')?'把旧照放回相册，或下山':'查查旧校服，或下山';
             if(s.waterSolved) return s.coffinOpen ? '查清雨夜的事，或下山' : '查清棺里放着什么，或下山';
             if(s.courtyard) return !s.calibrated ? '找回灶间的秤砣' : '打开量水桌的抽屉';
+            if (!s.opened && s.lamp === 'altar' && s.records.includes('key_board') && !s.records.includes('wall_marks')) return '找回量身高的布带';
             return s.opened ? '穿过雨庭' : '打开老宅后门';
         }
         objective() {
@@ -414,7 +417,8 @@
             const read = id => this.state.records.includes(id);
             if (stage <= 0) {
                 let text;
-                if (!read('letter')) text = '入口右手边的小木架上有一张全家福。看看是谁站在中间，两侧各有什么。';
+                if (read('key_board') && !read('wall_marks')) text = '从正厅绕过棺木，往里走。量身高的布带挂在走廊右手边的木墙上。';
+                else if (!read('letter')) text = '入口右手边的小木架上有一张全家福。看看是谁站在中间，两侧各有什么。';
                 else if (!read('lock')) text = '沿地上的红绳去走廊尽头，把门上三个字轮和照片对照。';
                 else text = '看全家福里从左到右的排列，再回来转轮。也可以从供桌端灯照门闩。';
                 return { text, next: '对照已读字迹' };

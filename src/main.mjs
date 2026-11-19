@@ -157,9 +157,18 @@ function inspectUniform(){
     };
     readRecord({...collar,text},[...(!found?[['摸一摸右边内袋',showBridgePhoto]]:[]),['展开左袖',inspectCuff],['收好校服',close]]);
 }
+function lookAtHeightStrip() {
+    const back = game.WORLD_MAP.interactables.find(item => item.id === 'height_stitch');
+    open('量身高的布带', '我把布卷摊在手上。几道黑线都朝着我，最上面那道的旁边，还露了一小截红线头。', [
+        ['翻看布背', () => {
+            story.record(back.id);
+            readRecord(back, [['翻回正面', lookAtHeightStrip], ['卷起来', close]]);
+        }], ['回到背包', backpack], ['卷起来', close]
+    ]);
+}
 function backpack() {
     const choices=story.carried().map(id=>[equipment[id][0],id==='envelope'?pocketLetter:id==='uniform'?inspectUniform:id==='roadPhoto'?showBridgePhoto:
-        ()=>open(equipment[id][0],equipment[id][1],[['回到背包',backpack],['返回探索',close]],'随身背包')]);
+        id==='heightStrip'?lookAtHeightStrip:()=>open(equipment[id][0],equipment[id][1],[['回到背包',backpack],['返回探索',close]],'随身背包')]);
     open('背包',choices.length?'':'包里暂时没有东西。',[...choices,['收起背包',close]],'随身物品');
 }
 function knownRecords() {
@@ -168,6 +177,8 @@ function knownRecords() {
         : game.WORLD_MAP.interactables.find(item => item.id === id)).filter(Boolean).map(presentRecord);
 }
 function presentRecord(item) {
+    if (item.id === 'duty_book' && story.carried().includes('key'))
+        return {...item,text:item.text.replace('李家这一行还空着。','东街六号那一行，是我刚签的名字。')};
     if (Object.hasOwn(game.DOCUMENTS, item.id)) return { ...item, text: story.documentText(item.id) };
     if (item.id === 'crash_phone') return { ...item, text: story.phoneText() };
     return item.id === 'yard_gate' && story.state.waterSolved ? { ...item,
@@ -192,7 +203,7 @@ function readRecord(item, actions) {
     const choices = [...actions];
     if (!choices.some(([label]) => label === '打开手记')) choices.push(['打开手记', () => journal(!!scene?.inspectionReturn)]);
     open(item.title, item.text, choices);
-    const photographs={letter:'family-new-year',wedding_photo:'silver-wedding',bend_photo:'bridge-bicycle'};
+    const photographs={letter:'family-new-year',wedding_photo:'silver-wedding',bend_photo:'bridge-bicycle',height_stitch:'height-stitch'};
     if(photographs[item.id]){
         $('reader-body').prepend(recordPhoto(photographs[item.id],item.title));
     }
@@ -398,6 +409,17 @@ function waterAction(action) {
     if (changed) audio.water(action);
     updateWater(message);
 }
+function busEnding() {
+    const {records,heightStripTaken} = story.state;
+    const paragraphs = [records.includes('medicine_letter')
+        ? '天刚蒙亮，村口卖早点的正在卸炉子。我借了个塑料袋，把信和复诊单套好。\n\n老板问要几个包子。我说两个，想了想，改成了一个。'
+        : '车开过第一个弯，我才想起厨房的抽屉还开着。我问司机明天还有没有这趟车。\n\n他说有，把第一班车的时间写在了我的票背面。'];
+    if (heightStripTaken) paragraphs.push(records.includes('height_stitch')
+        ? '车一颠，布卷从外套口袋里滑出来。旁座替我接住，问：「裁衣服的尺？」我把黑线和红线指给她看：「这个是我。矮一点的那个，是我妈。」'
+        : '布卷从外套口袋里滑出来一截。我往里塞了塞，把口袋上的扣子扣好。');
+    if (records.includes('forwarding_slip')) paragraphs.push('到了县城，钥匙在口袋里硌了一下。我照底单上的号码给老周发消息：「您哪天值班？我把钥匙给您送回来。」\n\n「周三。别赶早，我上夜班。」我把号码存下来，名字填了个「周叔」。');
+    return [...paragraphs,'结局 · 归路'].join('\n\n');
+}
 function ending(choice, memoryPlace) {
     if (!story.depart(choice,memoryPlace)) return;
     audio.chime();
@@ -407,19 +429,13 @@ function ending(choice, memoryPlace) {
         ? '我把碗端稳。妈用筷子把最后几根面拨进我碗里，留了一根，自己尝尝软硬。「这回没煮过吧？」\n\n我摇头，嘴里还含着面。门外喊「李明」的那个人又等了一会儿。妈把醋往我手边推了推。\n\n结局 · 回煞'
         : choice === 'stay'
         ? '米瓮底还有一小碗米。我淘了两遍，照她教的，把食指伸进锅里量水。\n\n等饭熟的时候，我把第二双筷子收回了抽屉。\n\n结局 · 余温'
-        : story.state.records.includes('medicine_letter')
-            ? '天刚蒙亮，村口卖早点的正在卸炉子。我借了个塑料袋，把信和复诊单套好。\n\n老板问要几个包子。我说两个，想了想，改成了一个。\n\n结局 · 归路'
-            : '车开过第一个弯，我才想起厨房的抽屉还开着。我问司机明天还有没有这趟车。\n\n他说有，把第一班车的时间写在了我的票背面。\n\n结局 · 归路';
+        : busEnding();
     let endingText=text;
     if(choice==='stay' && story.state.records.includes('clerk_holdall') && story.state.records.includes('clerk_cuff')) {
         endingText='我淘了一碗米，坐在灶边等锅开。校服的左袖还摊在我腿上。水池边有块用薄了的肥皂，我接了半盆水，把那三颗扣子解开，只把袖口浸进去。\n\n搓到最后一颗扣子，米汤扑了出来。我一只手提着湿袖口，一只手赶紧去揭锅盖。\n\n结局 · 余温';
     }
     if(choice==='remember' && story.state.rememberPlace==='bridge') {
         endingText='我踩下踏板。爸松了手，在后头跟了两步就跑不动了。我回过头来，妈才把相机举稳。\n\n「这回拍到没有？」她拿指甲拨了一下过片轮，笑我：「哪有人骑车还顾着看镜头的。」桥那头喊我名字的人又等了一会儿。我扶正车把，骑回去替她拿相机套。\n\n结局 · 回煞';
-    }
-    if(choice==='leave' && story.state.records.includes('forwarding_slip')) {
-        const ride=text.slice(0,text.lastIndexOf('\n\n结局'));
-        endingText=ride+'\n\n到了县城，钥匙在口袋里硌了一下。我照底单上的号码给老周发消息：「您哪天值班？我把钥匙给您送回来。」\n\n「周三。别赶早，我上夜班。」我把号码存下来，名字填了个「周叔」。\n\n结局 · 归路';
     }
     open({ stay: '余温', leave: '归路', wake: '破茧', remember: '回煞' }[choice], endingText, [['留在现场回看', close], ['返回标题', title]], '回煞 · 你的选择');
 }
@@ -428,6 +444,8 @@ function inspectVillage(item) {
     if (item.id === 'clerk') {
         const after=phase==='letter'?'老周把眼镜往上一推。「你说你是李家的？信给我瞧瞧，村里的门牌去年都换过了。」':
             phase==='ledger'?'周师傅翻开登记簿。「十四号我记得。新号在这页上，你自己对一下，省得拿错人家的钥匙。」':
+            phase==='keys'?'老周拧开圆珠笔的笔帽递过来。「你看好了？告诉我新门牌，我给你拿。」':
+            phase==='gate'?'老周把登记簿收回窗里。「木工下周二才来。你慢慢收拾，走的时候把门带上。」':
             '「你爸修秤那间屋还在，」周师傅把搪瓷缸挪到炉边，「后来他在门口挡了个大衣柜。你小时候老往里钻。」';
         const askAboutPost=['这封信是谁寄的？',()=>{
             const slip=game.WORLD_MAP.interactables.find(entry=>entry.id==='forwarding_slip');
@@ -441,6 +459,7 @@ function inspectVillage(item) {
             readRecord(account,[['再问一句',()=>inspectVillage(item)],['告辞',close]]);
         };
         const questions=[];
+        if (phase==='keys') questions.push(['向周师傅领钥匙',()=>inspectVillage(game.WORLD_MAP.interactables.find(entry=>entry.id==='key_board'))]);
         if(story.state.coffinOpen || story.state.records.includes('coffin')) questions.push(['正厅那口棺是谁的？',()=>discuss('clerk_holdall')]);
         if(story.state.records.includes('uniform_cuff')) questions.push(['给周师傅看左袖',()=>discuss('clerk_cuff')]);
         open('值夜的周师傅',after,phase==='letter'?[['拿出内袋里的信',pocketLetter],['告辞',close]]:[...questions,['翻看登记簿',()=>{
@@ -448,21 +467,29 @@ function inspectVillage(item) {
         }],askAboutPost,['告辞',close]]);return true;
     }
     if (item.id === 'car_envelope') {pocketLetter();return true;}
-    else if (item.id === 'duty_book') story.advanceArrival('ledger', 'keys');
+    else if (item.id === 'duty_book') {
+        story.advanceArrival('ledger','keys');
+        const actions = [['返回',close]];
+        if (story.state.arrival === 'keys') actions.unshift(['向周师傅领钥匙',()=>inspectVillage(game.WORLD_MAP.interactables.find(entry=>entry.id==='key_board'))]);
+        readRecord(presentRecord(item),actions); return true;
+    }
+    else if (item.id === 'key_board' && story.carried().includes('key')) {
+        open(item.title,'中间的挂钩空了，九号和十六号还挂着。六号钥匙在我身上。',[['返回',close]]); return true;
+    }
     else if (item.id === 'key_board' && phase === 'keys') {
         const choose = number => {
             if (number === 6) {
-                story.advanceArrival('keys','gate'); audio.latch();
-                open('拿到六号钥匙', '把铜钥匙揣进口袋。老宅在路尽头，门旁还挂着旧门牌。', [['收好钥匙', close]]);
+                story.record('key_board'); story.advanceArrival('keys','gate'); scene.syncState(); audio.latch();
+                open('拿到六号钥匙', '我在六号那一行签了名。老周转身摘了钥匙，递过来时还捏着铜牌，让我先拿稳。\n\n「锁有点涩。插到底，往回退一点就转得动。」', [['收好钥匙', close]]);
             } else {
-                open('钥匙牌对不上', '信封写的是槐树巷十四号。翻一下值班室的换牌登记，核对它对应的新号。', [['再选一把', () => inspectVillage(item)], ['回路上', close]]);
+                open('钥匙牌对不上', '老周的手停在挂钩上。「这户不姓李。你再看一眼十四号那行？」', [['重看登记簿',()=>inspectVillage(game.WORLD_MAP.interactables.find(entry=>entry.id==='duty_book'))],['再选一把', () => inspectVillage(item)], ['告辞', close]]);
             }
         };
-        open(item.title, item.text + '\n\n李家的旧门牌是十四号。取哪把？', [9,6,16].map(n => [`东街 ${n} 号`, () => choose(n)]));
+        open(item.title, item.text + '\n\n老周把笔递给我：「你家现在是东街几号？」', [9,6,16].map(n => [`东街 ${n} 号`, () => choose(n)]));
         return true;
     } else if (item.id === 'front_gate' && phase === 'gate') {
-        open(item.title, item.text, [['用六号钥匙开门', () => {
-            story.advanceArrival('gate','home'); audio.latch(); scene.syncState(true); close();
+        open(item.title, item.text + '\n\n门板靠下新画了道粉笔印。我春天签过字，下周二木工就来拆走廊。我想进去看看，妈钉的布带还在不在。', [['用六号钥匙开门', () => {
+            story.advanceArrival('gate','home'); audio.latch(); close();
         }], ['返回路上', close]]);
         return true;
     } else if (!['key_board','front_gate'].includes(item.id)) return false;
@@ -475,6 +502,18 @@ function inspect(item) {
     ['lock', 'water_station'].includes(item.id) ? audio.knock() : audio.paper();
     if (['car_envelope','clerk','duty_book','key_board','front_gate'].includes(item.id) && inspectVillage(item)) return;
     if (household({story,scene,open,close,audio,inspectUniform},item)) return;
+    if (item.id === 'wall_marks') {
+        const taken = story.state.heightStripTaken;
+        const move = () => {
+            story.state.heightStripTaken = !taken;
+            audio.paper(); scene.syncState(); close();
+        };
+        if (taken) open('挂布带的两颗钉子', '布带取下来了。两颗钉子中间的木头颜色浅些。', [
+            ['把布带挂回去', move], ['继续带在身上', close]
+        ]);
+        else readRecord(item, [['从钉子上摘下，卷好带走', move], ['留在墙上', close]]);
+        return;
+    }
     if(item.id==='paper_mask' || item.id==='wiper_print'){
         const records=story.state.records;
         const show=(id,actions)=>{
