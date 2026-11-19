@@ -1,9 +1,10 @@
 (function (global) {
+    const copyText=global.HuishaCopy;
     const game = global.Huisha3D || (global.Huisha3D = {});
     const THREE = global.THREE;
     class ThreeHouseScene {
-        constructor({ root, prompt, focusMarker, story, isPaused, isReading, onInspect, onAssetError, onFrame, getPreferences, onMechanismEvent, onScaleEvent, onWatchEvent }) {
-            Object.assign(this, { root, prompt, focusMarker, story, isPaused, isReading, onInspect, onAssetError, onFrame, getPreferences, onMechanismEvent, onScaleEvent, onWatchEvent });
+        constructor({ root, prompt, focusMarker, story, isPaused, isReading, onInspect, onAssetError, onFrame, getPreferences, onMechanismEvent, onScaleEvent, onWatchEvent, onKitchenDrip }) {
+            Object.assign(this, { root, prompt, focusMarker, story, isPaused, isReading, onInspect, onAssetError, onFrame, getPreferences, onMechanismEvent, onScaleEvent, onWatchEvent, onKitchenDrip });
             this.map = game.WORLD_MAP || game.MAIN_HALL_MAP;
             this.clock = new THREE.Clock();
             this.textures = [];
@@ -30,7 +31,7 @@
             this.createProps();
             this.createLights();
             this.modelLoading = this.loadModels();
-            this.watch = new game.ThreeYardWatch(this);
+            this.watch = new game.ThreeWellChase(this);
             this.syncState(true);
             this.controls = new game.ThreeControls({ camera: this.camera, domElement: this.renderer.domElement,
                 map: this.map, story: this.story, isPaused: this.isPaused,
@@ -224,7 +225,7 @@
             this.box('threshold', [2.6, 0.09, 0.25], [0, 0.01, -13.9], m.stone, 'threshold');
             this.createOutside();
             this.buildHeightStrip();
-            this.label('hall-sign', '归　门', [1.5, 0.5], [0, 2.55, -4.16], [0, 0, 0],undefined,this.scene,'#312821','#ceb386');
+            this.label('hall-sign', copyText('housescene.hall-sign'), [1.5, 0.5], [0, 2.55, -4.16], [0, 0, 0],undefined,this.scene,'#312821','#ceb386');
         }
         buildHeightStrip() {
             const wall = new THREE.Group(), item = 'wall_marks';
@@ -269,7 +270,7 @@
                 this.box(`stone-post-${side}`, [0.36, 1.2, 0.36], [side * 1.2, 0.5, -14.2], m.stone, 'threshold');
                 this.box(`stone-post-cap-${side}`, [0.48, 0.13, 0.48], [side * 1.2, 1.15, -14.2], m.stone, 'threshold');
             }
-            this.label('path-sign', '归\n路', [0.22, 0.5], [1.2, 0.7, -13.995], [0, 0, 0], 'threshold', undefined, '#4e5551', '#b4b6a4');
+            this.label('path-sign', copyText('housescene.path-sign'), [0.22, 0.5], [1.2, 0.7, -13.995], [0, 0, 0], 'threshold', undefined, '#4e5551', '#b4b6a4');
             const foliage = new THREE.MeshStandardMaterial({ color: 0x1d302d, roughness: 1 });
             for (let i = 0; i < 16; i++) {
                 const side = i % 2 ? 1 : -1, x = side * (13.5 + (i % 3) * 1.65), z = -18 - Math.floor(i / 2) * 2.1;
@@ -346,7 +347,9 @@
                 for(const offset of [-.018,.018]) this.box('school-stripe',[.012,.006,.306],[offset,.034,0],m.paper,'coffin',sleeve);
                 if(side===-1) for(const z of [-.125,-.04,.045]) this.cylinder('sleeve-snap',.013,.013,.008,[-.039,.03,z],m.brass,'coffin',sleeve);
             }
-            this.offeringRice = this.cylinder('offered-rice',.18,.12,.13,[-.66,1.17,.14],m.paper,'altar',altar);
+            this.offeringRice = game.ThreeKitchen.bowl(this,altar,[-.66,1.09,.14],'altar');
+            this.offeringRice.rotation.y=Math.PI;
+            this.offeredPork=this.offeringRice.getObjectByName('braised-pork');
             this.offeringEmber = this.mesh('incense-ember',new THREE.SphereGeometry(.024,8,6),new THREE.MeshBasicMaterial({color:0xff813a}),[0,1.62,-.18],'altar',altar);
             this.paperAsh = this.box('offering-ash',[.2,.025,.18],[.47,1.11,.2],m.ash,'altar',altar);
             for (const [name,width,depth,y,thickness,material] of [
@@ -368,7 +371,7 @@
                 }
             }
             this.box('letter-shelf', [0.95, 0.1, 0.35], [2.65, 0.95, 4.07], m.wood, 'letter');
-            const print=this.label('letter', '春节留影', [0.6, 0.4], [2.65, 1.15, 3.98], [0, Math.PI, 0], 'letter');
+            const print=this.label('letter', copyText('housescene.letter'), [0.6, 0.4], [2.65, 1.15, 3.98], [0, Math.PI, 0], 'letter');
             if (this.renderer?.isWebGLRenderer) {
                 const photo=new THREE.TextureLoader().load('assets/art/family-new-year.jpg');
                 photo.colorSpace=THREE.SRGBColorSpace;this.textures.push(photo);
@@ -395,7 +398,7 @@
                 this.wheels.push(drum);
             }
             this.wheelTargets = [0, 0, 0]; this.wheelSymbols = [0, 0, 0];
-            this.label('lock-heading', '归　门', [1.3, 0.4], [1.17, 2.2, 0.11], [0, 0, 0], 'lock', this.door, '#352321', '#c9b389');
+            this.label('lock-heading', copyText('housescene.hall-sign'), [1.3, 0.4], [1.17, 2.2, 0.11], [0, 0, 0], 'lock', this.door, '#352321', '#c9b389');
             this.doorMechanism = new game.ThreeDoorMechanism(this); this.doorMechanism.build();
             this.buildWakeLamp();
             if (game.ThreeCourtyard) { this.courtyard = new game.ThreeCourtyard(this); this.courtyard.build(); }
@@ -563,8 +566,8 @@
             this.westLid.rotation.x = s.chestOpen ? -1.05 : 0;
             this.spareWeight.visible = !s.gear.includes('weight');
             this.matchTin.visible = !s.gear.includes('matches');
-            this.riceBowl.visible = !s.gear.includes('rice');
             this.offeringRice.visible = s.vigil >= 1;
+            this.offeredPork.visible = s.porkOnRice;
             this.offeringEmber.visible = s.vigil >= 2;
             this.paperAsh.visible = s.vigil >= 3;
             this.coffinPadlock.visible=!s.coffinOpen;
@@ -588,7 +591,7 @@
             });
             if (immediate) this.door.rotation.y = s.opened ? this.map.door.openAngle : 0;
             this.doorMechanism.sync(immediate);
-            this.courtyard?.sync(immediate);
+            this.courtyard?.sync(immediate,delta);
             this.memories?.sync(delta);
         }
         moveWheels(delta) {
@@ -598,7 +601,7 @@
                 wheel.rotation.x += immediate || Math.abs(remaining) < 0.001 ? remaining : remaining * Math.min(1, delta * 15);
             });
         }
-        playerSnapshot() { return this.inspectionReturn || this.controls.snapshot(); }
+        playerSnapshot() { return this.watch?.returnPose || this.inspectionReturn || this.controls.snapshot(); }
         frameLock() {
             const height = this.root?.clientHeight || 720;
             const width = this.root?.clientWidth || height * this.camera.aspect;
@@ -669,7 +672,8 @@
         }
         animate() {
             this.animationId = global.requestAnimationFrame(() => this.animate());
-            const delta = Math.min(this.clock.getDelta(), 0.05);
+            const elapsed=this.clock.getDelta();
+            const delta = Math.min(elapsed, 0.05);
             if (this.showingFilm) return;
             this.laneRain.visible = this.camera.position.z > 3.8 && !this.story.state.memory;
             this.hemisphere.intensity = this.laneRain.visible ? .79 : 1.8;
@@ -684,7 +688,7 @@
                 this.clerkHead.rotation.y=THREE.MathUtils.damp(this.clerkHead.rotation.y,turn,4,delta);
                 this.clerkHead.rotation.x=THREE.MathUtils.damp(this.clerkHead.rotation.x,nearby?0:.21,3,delta);
             }
-            this.watch.update(delta);
+            this.watch.update(this.watch.phase==='film'?Math.min(elapsed,.25):delta);
             this.portrait.update(delta);
             this.documents?.update(delta);
             this.moveDoor(delta);

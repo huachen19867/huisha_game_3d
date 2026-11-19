@@ -1,8 +1,9 @@
 (function (global) {
+    const copyText=global.HuishaCopy;
     const THREE=global.THREE, game = global.Huisha3D, world = game.WORLD_MAP;
     world.walkable.push(
-        {id:'west_room',title:'父母卧房',xMin:-12.5,xMax:-5.8,zMin:-21,zMax:-15,requiresState:'opened'},
-        {id:'workshop',title:'柜后修理间',xMin:-17.5,xMax:-12.5,zMin:-21,zMax:-15,requiresState:'wardrobeOpen'}
+        {id:'west_room',title:copyText('westroom.west_room.title'),xMin:-12.5,xMax:-5.8,zMin:-21,zMax:-15,requiresState:'opened'},
+        {id:'workshop',title:copyText('westroom.workshop.title'),xMin:-17.5,xMax:-12.5,zMin:-21,zMax:-15,requiresState:'wardrobeOpen'}
     );
     const block = (id,xMin,xMax,zMin,zMax,extra={}) => world.obstacles.push({id,xMin,xMax,zMin,zMax,...extra});
     for (const x of [-6,-12.5]) {
@@ -16,15 +17,17 @@
     block('wedding-chest',-8.5,-7.35,-15.75,-15.08);
     block('workbench',-17.4,-16.55,-20.1,-17.2);
     function site(id,title,area,x,y,z,text,extra={}) {
-        world.interactables.push({id,title,area,location:{west_room:'西厢卧房',workshop:'修理间',kitchen:'厨房'}[area],
+        world.interactables.push({id,title,area,location:{west_room:copyText('westroom.site.west_room'),workshop:copyText('storeys.addsite.workshop'),kitchen:copyText('courtyardmap.kitchen.title')}[area],
             position:{x,y,z},radius:2,requiresOpen:true,text,...extra});
     }
-    site('wardrobe','靠墙的大衣柜','west_room',-11.72,1.28,-18,'柜脚下有两条滑轨，顺着墙一直通到床尾。把手上缠着一截旧毛巾。');
-    site('wedding_photo','银婚合影','west_room',-9.35,1.52,-20.83,'两个人挤在照相馆的小凳上。相框底下的小牌上印着「2011.06　结婚二十五周年」。背面写着他俩的名字。');
-    site('wedding_chest','床尾的樟木箱','west_room',-7.92,.82,-15.78,'母亲收衣裳的箱子。四位数字锁旁压着半张红双喜。小时候她的存折、箱子，全用结婚那一年的数字。');
-    site('brass_weight','拆开的旧台秤','workshop',-16.52,1.09,-19.47,'父亲把坏秤拆了一半。布包里有一枚磨亮的铜砣，底面打着「灶间」两个冲印字。',{requiresState:'wardrobeOpen'});
-    site('matchbox','铁皮火柴盒','workshop',-16.52,1.04,-17.58,'火柴装在密封铁盒里。揭开盖，硫磺头还是干的。',{requiresState:'wardrobeOpen'});
-    site('rice_bowl','灶上的蒸笼','kitchen',10.02,1.23,-18.96,'掀开蒸笼，里面留着一碗白饭。碗沿磕了个小口。');
+    site('wardrobe',copyText('westroom.wardrobe'),'west_room',-11.72,1.28,-18,copyText('westroom.wardrobe.2'));
+    site('wedding_photo',copyText('westroom.wedding_photo'),'west_room',-9.35,1.52,-20.83,copyText('westroom.wedding_photo.2'));
+    site('wedding_chest',copyText('westroom.wedding_chest'),'west_room',-7.92,.82,-15.78,copyText('westroom.wedding_chest.2'));
+    site('brass_weight',copyText('westroom.brass_weight'),'workshop',-16.52,1.09,-19.47,copyText('westroom.brass_weight.2'),{requiresState:'wardrobeOpen'});
+    site('matchbox',copyText('westroom.matchbox'),'workshop',-16.52,1.04,-17.58,copyText('westroom.matchbox.2'),{requiresState:'wardrobeOpen'});
+    site('rice_bowl',copyText('westroom.rice_bowl'),'kitchen',10,1.08,-18.65,copyText('westroom.rice_bowl.2'),{journal:false});
+    site('leak_basin',copyText('westroom.leak_basin'),'kitchen',7.24,.47,-18.65,copyText('westroom.leak_basin.2'));
+    block('basin-stool',6.98,7.50,-18.91,-18.39);
     game.buildWestRoom = function(h) {
         const m=h.materials;
         const box=(name,size,pos,mat,item,parent)=>h.box(name,size,pos,mat,item,parent);
@@ -44,7 +47,7 @@
         }
         for(const x of [-17.22,-14.8,-12.4,-10.1,-7.7]) box('ceiling-joist',[.13,.19,6.0],[x,2.90,-18],m.darkWood);
         box('workshop-back-wall',[.2,3.08,6.2],[-17.61,1.5,-18],m.wall);
-        h.label('west-sign','西 厢',[.74,.3],[-5.86,2.62,-18],[0,Math.PI/2,0]);
+        h.label('west-sign',copyText('westroom.west-sign'),[.74,.3],[-5.86,2.62,-18],[0,Math.PI/2,0]);
         // The quilt sags over the mattress edges; each stitched panel has a little loft.
         const quilting=new THREE.PlaneGeometry(1.62,1.68,54,42);
         quilting.rotateX(-Math.PI/2);
@@ -77,18 +80,17 @@
             photo.colorSpace=THREE.SRGBColorSpace;h.textures.push(photo);
             h.mesh('wedding-print',new THREE.PlaneGeometry(.84,.56),new THREE.MeshStandardMaterial({map:photo,roughness:.62}),[-9.35,1.57,-20.909],'wedding_photo');
         }
-        h.label('wedding-date','结婚二十五周年　2011年6月',[.76,.088],[-9.35,1.235,-20.907],[0,0,0],'wedding_photo');
+        h.label('wedding-date',copyText('westroom.wedding-date'),[.76,.088],[-9.35,1.235,-20.907],[0,0,0],'wedding_photo');
         h.wardrobe = new THREE.Group(); h.wardrobe.position.set(-12.14,0,-18);h.scene.add(h.wardrobe);
         h.wardrobeSite=world.interactables.find(item=>item.id==='wardrobe');
         for(const z of [-18.65,-17.35]) box('wardrobe-track',[.5,.026,2.35],[-12.11,.013,z+.82],m.stone);
         box('chest-body',[1.15,.68,.65],[-7.92,.34,-15.42],m.wood,'wedding_chest');
         h.westLid=box('chest-lid',[1.19,.12,.68],[-7.92,.74,-15.42],m.darkWood,'wedding_chest');
-        h.label('chest-lock','囍',[.19,.17],[-7.92,.55,-15.76],[0,Math.PI,0],'wedding_chest');
+        h.label('chest-lock',copyText('westroom.chest-lock'),[.19,.17],[-7.92,.55,-15.76],[0,Math.PI,0],'wedding_chest');
         box('repair-table',[.86,.12,2.9],[-17,.91,-18.65],m.wood);
         for(const z of [-19.86,-17.4]) box('bench-legs',[.76,.87,.12],[-17,.43,z],m.darkWood);
         h.spareWeight=h.cylinder('brass-counterweight',.096,.15,.22,[-16.74,1.09,-19.47],m.brass,'brass_weight');
         h.matchTin=box('match-tin',[.23,.08,.13],[-16.7,1.04,-17.58],m.brass,'matchbox');
-        h.riceBowl=h.cylinder('rice-bowl',.2,.12,.12,[10.02,1.16,-18.96],m.paper,'rice_bowl');
         for(const [x,z] of [[-9,-18],[-15.8,-18.8]]){
             box('ceiling-bulb',[.12,.18,.12],[x,2.76,z],m.paper);
             const lamp=new THREE.PointLight(0xffcb91,7,8,1.6);lamp.position.set(x,2.55,z);h.scene.add(lamp);

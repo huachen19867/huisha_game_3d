@@ -1,4 +1,5 @@
 (function (global) {
+    const copyText=global.HuishaCopy;
     const game = global.Huisha3D;
     const hall = game.MAIN_HALL_MAP;
     game.WORLD_MAP = {
@@ -12,9 +13,9 @@
         extraDoors: [...hall.extraDoors, { id: 'yard', stateField: 'waterSolved', hingeX: -1, hingeZ: -27.5, width: 2,
             thickness: 0.16, frontDepth: 0.25, openAngle: Math.PI / 2 }],
         walkable: [...hall.walkable,
-            { id: 'yard', title: '雨庭', xMin: -5.8, xMax: 5.8, zMin: -27.2, zMax: -13.8, requiresState: 'opened' },
-            { id: 'kitchen', title: '厨房', xMin: 5, xMax: 10.8, zMin: -24.7, zMax: -17.7, requiresState: 'opened' },
-            { id: 'road', title: '院外山路', mapLabel: '山路', xMin: -1.25, xMax: 1.25, zMin: -46, zMax: -26.5, requiresState: 'waterSolved' }
+            { id: 'yard', title: copyText('courtyardmap.yard.title'), xMin: -5.8, xMax: 5.8, zMin: -27.2, zMax: -13.8, requiresState: 'opened' },
+            { id: 'kitchen', title: copyText('courtyardmap.kitchen.title'), xMin: 5, xMax: 10.8, zMin: -24.7, zMax: -17.7, requiresState: 'opened' },
+            { id: 'road', title: copyText('courtyardmap.road.title'), mapLabel: copyText('courtyardmap.road.maplabel'), xMin: -1.25, xMax: 1.25, zMin: -46, zMax: -26.5, requiresState: 'waterSolved' }
         ],
         obstacles: [...hall.obstacles,
             { id: 'yard-front-left', xMin: -6.1, xMax: -1.375, zMin: -14.2, zMax: -14 },
@@ -32,28 +33,28 @@
                 xMin: side * 4.75 - 0.09, xMax: side * 4.75 + 0.09, zMin: -16 - i * 3.1 - 0.09, zMax: -16 - i * 3.1 + 0.09 })))
         ],
         interactables: [...hall.interactables,
-            {id:'paper_mask',title:'灶间门边的纸脸',area:'yard',location:'雨庭',requiresOpen:true,requiresState:'crossedYard',position:{x:5.78,y:.21,z:-19.15},radius:2.1,
-                text:'我捏住纸边，鼻梁咔地响了一下。对着我这边，左脸一个红圆，右脸却有两个，第二下颜色浅，还压到了头一下的边。我记得这印子。小时候我拿汽水瓶盖蘸印泥，手一滑，想盖住它，反而印成了三个。' },
-            {id:'mask_strap',title:'纸脸背后的格子布带',area:'yard',location:'雨庭',requiresState:'crossedYard',inventoryOnly:true,position:{x:5.78,y:.21,z:-19.15},
-                text:'眼洞后面横着一条红格子布带，一头还留着个活扣。我用两根指头撑开它。轮到爸戴，就得把这截放长。\n\n那年十五，我戴着它举手电照人，谁动谁就换我。妈端着一碗刚盛的热汤从我面前走过去，我一路追到灶间。爸在背后拉住我：「厨房里头不抓人，让你妈把汤搁下。」' },
-            {id:'mask_transfer',title:'两处叠在一起的红印',area:'yard',location:'村口与雨庭',inventoryOnly:true,position:{x:5.78,y:.21,z:-19.15},
-                text:'纸脸上多印的那一下浅，风挡上也是一深一浅。刚才我还当是雨刷蹭花的。纸脸拿在手里，那重出来的半个圆，怎么擦也擦不掉。' },
-            { id: 'yard_well', title: '雨庭旧井', location: '雨庭', position: { x: -3, y: 0.92, z: -21.5 }, radius: 2,
-                requiresOpen: true, text: '井沿磨出了两道提桶的凹槽，一宽一窄。水面映着厨房的灯。\n\n母亲曾让你把三升、五升提桶里的水倒来倒去。你只记得，那时候做错了，也不必重新打水。' },
-            { id: 'kitchen_note', title: '灶旁校秤纸', location: '厨房', position: { x: 10.45, y: 1.55, z: -18.2 }, radius: 1.8,
-                requiresOpen: true, text: '一块沾着米浆的旧秤铭牌。额定四升，左盘校准，右盘盛水。校准盘的凹槽里缺了一枚铜砣。' },
-            { id: 'water_station', title: '三升五升量水秤', location: '厨房', position: { x: 8.5, y: 1.25, z: -22 }, radius: 2,
-                requiresOpen: true, text: '两只提桶刻着三升、五升。秤盘与桌下的抽屉由一根铜杆连着。旁边有添水的水缸和倒水槽。' },
-            { id: 'medicine_letter', title: '没有寄出的家书', location: '厨房', position: { x: 8.5, y: 0.63, z: -21.9 }, radius: 1.7,
-                requiresOpen: true, requiresWater: true, text: '一封没封口的信，夹在复诊单里。信封只写到「学生宿舍」，门牌那儿空着。\n\n「明，你托同学捎来的钱收到了。我在信封里又给你装回去了，你月底还要买饭票。下回写信，把宿舍几栋几号写全。上封信在邮局贴了半天，人家还是叫我拿回来。」\n\n信封里夹着两张十块。复诊单是二〇一四年八月二十日的，背面用铅笔试写了三个宿舍号，又都划掉了。' },
-            { id: 'yard_gate', title: '通往归路的院门', location: '雨庭', position: { x: 0, y: 1.35, z: -27.2 }, radius: 1.8,
-                requiresOpen: true, text: '一根旧铜索从厨房桌下穿过檐廊，接在院门门闩上。门外是一条没有灯的山路。' },
-            { id: 'bus_notice', title: '路口的接驳通知', location: '归路', position: {x: .99,y: 1.55,z:-31.2}, radius: 2.2,
-                requiresOpen:true, requiresWater:true, text:'塌方封路，县里临时开了接驳车。候车棚没有电，要乘车就把信号杆的反光牌转向来车。\n\n手绘路线：车从石桥开来，接上人后开往县城。老宅方向今晚停班。' },
-            { id: 'stop_signal', title: '候车棚的反光信号杆', location: '归路', position: {x:-.9,y:1.35,z:-40.5}, radius:2,
-                requiresOpen:true, requiresWater:true, text:'杆上装着一块能转向的反光牌。司机在弯道看见亮面，就知道这里有人等车。' },
-            { id: 'road_exit', title: '山路接驳站', location: '归路', position: { x: 0, y: 1.2, z: -44.7 }, radius: 1.8,
-                requiresOpen: true, requiresWater: true, text: '隔着最后一道护栏能看见进站的弯道。车来了就在这里上车。' }
+            {id:'paper_mask',title:copyText('courtyardmap.paper_mask.title'),area:'yard',location:copyText('courtyardmap.yard.title'),requiresOpen:true,requiresState:'crossedYard',position:{x:5.78,y:.21,z:-19.15},radius:2.1,
+                text:copyText('courtyardmap.paper_mask.text') },
+            {id:'mask_strap',title:copyText('courtyardmap.mask_strap.title'),area:'yard',location:copyText('courtyardmap.yard.title'),requiresState:'crossedYard',inventoryOnly:true,position:{x:5.78,y:.21,z:-19.15},
+                text:copyText('courtyardmap.mask_strap.text') },
+            {id:'mask_transfer',title:copyText('courtyardmap.mask_transfer.title'),area:'yard',location:copyText('courtyardmap.mask_transfer.location'),inventoryOnly:true,position:{x:5.78,y:.21,z:-19.15},
+                text:copyText('courtyardmap.mask_transfer.text') },
+            { id: 'yard_well', title: copyText('courtyardmap.yard_well.title'), location: copyText('courtyardmap.yard.title'), position: { x: -3, y: 0.92, z: -21.5 }, radius: 2,
+                requiresOpen: true, text: copyText('courtyardmap.yard_well.text') },
+            { id: 'kitchen_note', title: copyText('courtyardmap.kitchen_note.title'), location: copyText('courtyardmap.kitchen.title'), position: { x: 9.45, y: .899, z: -22.204 }, radius: 1.8,
+                requiresOpen: true, text: copyText('courtyardmap.kitchen_note.text') },
+            { id: 'water_station', title: copyText('courtyardmap.water_station.title'), location: copyText('courtyardmap.kitchen.title'), position: { x: 8.5, y: 1.25, z: -22 }, radius: 2,
+                requiresOpen: true, text: copyText('courtyardmap.water_station.text') },
+            { id: 'medicine_letter', title: copyText('courtyardmap.medicine_letter.title'), location: copyText('courtyardmap.kitchen.title'), position: { x: 8.5, y: 0.63, z: -21.9 }, radius: 1.7,
+                requiresOpen: true, requiresWater: true, text: copyText('courtyardmap.medicine_letter.text') },
+            { id: 'yard_gate', title: copyText('courtyardmap.yard_gate.title'), location: copyText('courtyardmap.yard.title'), position: { x: 0, y: 1.35, z: -27.2 }, radius: 1.8,
+                requiresOpen: true, text: copyText('courtyardmap.yard_gate.text') },
+            { id: 'bus_notice', title: copyText('courtyardmap.bus_notice.title'), location: copyText('courtyardmap.bus_notice.location'), position: {x: .99,y: 1.55,z:-31.2}, radius: 2.2,
+                requiresOpen:true, requiresWater:true, text:copyText('courtyardmap.bus_notice.text') },
+            { id: 'stop_signal', title: copyText('courtyardmap.stop_signal.title'), location: copyText('courtyardmap.bus_notice.location'), position: {x:-.9,y:1.35,z:-40.5}, radius:2,
+                requiresOpen:true, requiresWater:true, text:copyText('courtyardmap.stop_signal.text') },
+            { id: 'road_exit', title: copyText('courtyardmap.road_exit.title'), location: copyText('courtyardmap.bus_notice.location'), position: { x: 0, y: 1.2, z: -44.7 }, radius: 1.8,
+                requiresOpen: true, requiresWater: true, text: copyText('courtyardmap.road_exit.text') }
         ]
     };
     for (const item of game.WORLD_MAP.interactables) {

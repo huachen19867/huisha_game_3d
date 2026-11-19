@@ -1,4 +1,5 @@
 (function (global) {
+    const copyText=global.HuishaCopy;
     class ThreeMemoryTimeline {
         constructor(options) { Object.assign(this, options); }
         mount(parent, before) {
@@ -16,10 +17,10 @@
             this.root.replaceChildren(); const evidence = this.getEvidence();
             const facts = this.definition.facts.filter(fact => this.story.knowsFact(fact));
             const order = this.story.state.drafts[this.id]?.timeline || [];
-            const heading = document.createElement('h3'); heading.textContent = '把时间放回原处'; heading.tabIndex = -1;
+            const heading = document.createElement('h3'); heading.textContent = copyText('memorytimeline.refresh'); heading.tabIndex = -1;
             const help = document.createElement('p'); help.className = 'memory-timeline-help';
-            help.textContent = '从当前两份原文中取出片段，按从早到晚排列。没有明确日期的描述可以留在旁边。换原文时会保留现有时间线草稿。';
-            const list = document.createElement('ol'); list.className = 'memory-timeline'; list.setAttribute('aria-label', '你排列的时间线');
+            help.textContent = copyText('memorytimeline.refresh.2');
+            const list = document.createElement('ol'); list.className = 'memory-timeline'; list.setAttribute('aria-label', copyText('memorytimeline.refresh.3'));
             this.root.append(heading, help, list);
             const button = (parent, fact, action, text, callback, disabled = false) => {
                 const element = document.createElement('button'); element.type = 'button'; element.dataset.fact = fact.id; element.dataset.action = action;
@@ -29,13 +30,13 @@
             const card = (fact, parent) => {
                 const article = document.createElement('article'); article.className = 'memory-fact-card';
                 const title = document.createElement('h4'); title.textContent = fact.title;
-                const source = document.createElement('small'); source.textContent = `来自：${this.records.find(record => record.id === fact.record)?.title || ''}`;
+                const source = document.createElement('small'); source.textContent = copyText('memorytimeline.refresh.4', this.records.find(record => record.id === fact.record)?.title || '');
                 const quote = document.createElement('blockquote'); quote.textContent = fact.quote;
                 const actions = document.createElement('div'); actions.className = 'memory-fact-actions';
                 article.append(title, source, quote);
                 if (!evidence.includes(fact.record)) {
                     const warning = document.createElement('p'); warning.className = 'memory-fact-warning';
-                    warning.textContent = '这个片段的来源不在当前两份选证里。'; article.append(warning);
+                    warning.textContent = copyText('memorytimeline.refresh.5'); article.append(warning);
                 }
                 article.append(actions); parent.append(article); return actions;
             };
@@ -47,22 +48,22 @@
                     const next = [...order], target = index + delta;
                     if (target < 0 || target >= next.length) return;
                     [next[index], next[target]] = [next[target], next[index]];
-                    this.change(next, `已把「${fact.title}」移到第 ${target + 1} 位。还要主动提交推理。`, fact.id, delta < 0 ? 'up' : 'down');
+                    this.change(next, copyText('memorytimeline.refresh.6', fact.title, target + 1), fact.id, delta < 0 ? 'up' : 'down');
                 };
-                button(actions, fact, 'up', '上移', () => move(-1), index === 0);
-                button(actions, fact, 'down', '下移', () => move(1), index === order.length - 1);
-                button(actions, fact, 'remove', '放回旁边', () => this.change(order.filter(id => id !== fact.id), `已把「${fact.title}」放回旁边。`, fact.id, 'add'));
+                button(actions, fact, 'up', copyText('memorytimeline.refresh.7'), () => move(-1), index === 0);
+                button(actions, fact, 'down', copyText('memorytimeline.refresh.8'), () => move(1), index === order.length - 1);
+                button(actions, fact, 'remove', copyText('memorytimeline.refresh.9'), () => this.change(order.filter(id => id !== fact.id), copyText('memorytimeline.refresh.10', fact.title), fact.id, 'add'));
             }
-            if (!order.length) { const empty = document.createElement('p'); empty.className = 'memory-timeline-empty'; empty.textContent = '时间线还是空的，先从下面的原文片段中挑选。'; this.root.append(empty); }
+            if (!order.length) { const empty = document.createElement('p'); empty.className = 'memory-timeline-empty'; empty.textContent = copyText('memorytimeline.refresh.11'); this.root.append(empty); }
             const available = facts.filter(fact => evidence.includes(fact.record) && !order.includes(fact.id));
-            const pool = document.createElement('div'); pool.className = 'memory-fact-pool'; pool.setAttribute('aria-label', '当前原文里未放入的片段'); this.root.append(pool);
+            const pool = document.createElement('div'); pool.className = 'memory-fact-pool'; pool.setAttribute('aria-label', copyText('memorytimeline.refresh.12')); this.root.append(pool);
             for (const fact of available) {
                 const actions = card(fact, pool);
-                button(actions, fact, 'add', '放入时间线', () => this.change([...order, fact.id], `已把「${fact.title}」放到时间线末尾。`, fact.id, 'up'));
+                button(actions, fact, 'add', copyText('memorytimeline.refresh.13'), () => this.change([...order, fact.id], copyText('memorytimeline.refresh.14', fact.title), fact.id, 'up'));
             }
             if (!available.length) {
                 const note = document.createElement('p'); note.className = 'memory-timeline-help';
-                note.textContent = order.length ? '当前原文的片段已放入，或还需要换一份原文。可以调整顺序，再提交解释。' : '先在上方选择已读原文，能核对的片段才会出现在这里。';
+                note.textContent = order.length ? copyText('memorytimeline.refresh.15') : copyText('memorytimeline.refresh.16');
                 pool.append(note);
             }
         }

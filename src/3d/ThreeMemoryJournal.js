@@ -1,4 +1,5 @@
 (function (global) {
+    const copyText=global.HuishaCopy;
     const game = global.Huisha3D;
     class ThreeMemoryJournal {
         constructor(options) { Object.assign(this, options); }
@@ -7,10 +8,10 @@
                 game.WORLD_MAP.interactables.find(item => item.id === record)?.deduction === id));
             if (!visited.length) return;
             const section = document.createElement('section'); section.className = 'memory-links';
-            const title = document.createElement('h3'); title.textContent = '整理记忆'; section.append(title);
+            const title = document.createElement('h3'); title.textContent = copyText('memoryjournal.appendlinks'); section.append(title);
             for (const [id] of visited) {
                 const button = document.createElement('button');
-                button.textContent = `${this.story.state.deductions[id] ? '回看判断' : '整理'} · ${game.MEMORIES[id].title}`;
+                button.textContent = `${this.story.state.deductions[id] ? copyText('memoryjournal.appendlinks.2') : copyText('memoryjournal.appendlinks.3')} · ${game.MEMORIES[id].title}`;
                 button.addEventListener('click', () => this.show(id)); section.append(button);
             }
             container.append(section);
@@ -18,10 +19,10 @@
         show(id) {
             const definition = game.MEMORY_CASES[id];
             if (!definition) return;
-            const actions = [['继续观察', this.close], ['回查手记', this.journal]];
-            if (this.story.state.memory) actions.push(['回到厨房', this.onReturn]);
+            const actions = [[copyText('memoryjournal.show'), this.close], [copyText('memoryjournal.show.2'), this.journal]];
+            if (this.story.state.memory) actions.push([copyText('memoryjournal.show.3'), this.onReturn]);
             if (this.story.state.deductions[id]) {
-                this.open(definition.title, this.story.conclusionFor(id), actions, '已经核对的记忆');
+                this.open(definition.title, this.story.conclusionFor(id), actions, copyText('memoryjournal.show.4'));
                 const container = document.getElementById('reader-body');
                 const originals=[...definition.records];
                 if (id === 'hospital') originals.push('hospital_fare');
@@ -34,29 +35,29 @@
                 return;
             }
             let submit;
-            this.open(definition.title, '这两份记录能确认什么？对照已读原文，按日期排列，再选择与原文相符的判断。错误尝试不会清空草稿。',
-                [['提交推理', () => submit()], ...actions], '只用你亲眼见到的记录');
+            this.open(definition.title, copyText('memoryjournal.show.5'),
+                [[copyText('memoryjournal.show.6'), () => submit()], ...actions], copyText('memoryjournal.show.7'));
             const container = document.getElementById('reader-body'), form = document.createElement('div'); form.className = 'memory-draft';
             const draft = this.story.state.drafts[id] || { evidence: ['', ''], interpretation: null, timeline: [] };
             if (draft.questionChanged) {
                 const note = document.createElement('p'); note.className = 'memory-question-update';
-                note.textContent = '核对问题已更新。原文和时间线草稿保留，请重新选择判断。'; container.append(note);
+                note.textContent = copyText('memoryjournal.show.8'); container.append(note);
             }
             const records = this.knownRecords(), selectors = [], quotes = [];
             const option = (value, label) => { const element = document.createElement('option'); element.value = value; element.textContent = label; return element; };
             for (let index = 0; index < 2; index++) {
-                const label = document.createElement('label'); label.textContent = index ? '第二份原文' : '第一份原文';
-                const select = document.createElement('select'); select.append(option('', '选择一份已读记录'));
+                const label = document.createElement('label'); label.textContent = index ? copyText('memoryjournal.show.9') : copyText('memoryjournal.show.10');
+                const select = document.createElement('select'); select.append(option('', copyText('memoryjournal.show.11')));
                 records.forEach(record => select.append(option(record.id, `${record.title}${record.location ? ` · ${record.location}` : ''}`)));
                 select.value = draft.evidence[index]; selectors.push(select);
                 const quote = document.createElement('p'); quote.className = 'memory-quote';
-                const update = () => { quote.textContent = records.find(record => record.id === select.value)?.text || '尚未选择原文。可以先保留草稿，回现场观察。'; };
+                const update = () => { quote.textContent = records.find(record => record.id === select.value)?.text || copyText('memoryjournal.show.12'); };
                 quotes.push(update);
                 select.addEventListener('change', () => { update(); saveDraft(); }); update();
                 label.append(select); form.append(label, quote);
             }
-            const label = document.createElement('label'); label.textContent = '与原文相符的判断';
-            const interpretation = document.createElement('select'); interpretation.append(option('', '选择一个判断'));
+            const label = document.createElement('label'); label.textContent = copyText('memoryjournal.show.13');
+            const interpretation = document.createElement('select'); interpretation.append(option('', copyText('memoryjournal.show.14')));
             definition.choices.forEach((choice, index) => interpretation.append(option(String(index), choice)));
             interpretation.value = draft.interpretation === null ? '' : String(draft.interpretation);
             label.append(interpretation); form.append(label);
@@ -74,10 +75,10 @@
             const pins = this.story.state.pinnedRecords;
             if (pins.length === 2 && pins.every(pin => records.some(record => record.id === pin))) {
                 const usePins = document.createElement('button'); usePins.type = 'button'; usePins.className = 'memory-use-pins';
-                usePins.textContent = '把两份摘记放入草稿';
+                usePins.textContent = copyText('memoryjournal.show.15');
                 usePins.addEventListener('click', () => {
                     selectors.forEach((select, index) => { select.value = pins[index]; quotes[index](); });
-                    saveDraft(); status.textContent = '已放入原文。还要排列时间线、选择解释，再主动提交。';
+                    saveDraft(); status.textContent = copyText('memoryjournal.show.16');
                 });
                 form.prepend(usePins);
             }

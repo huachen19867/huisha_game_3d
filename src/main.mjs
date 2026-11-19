@@ -1,11 +1,23 @@
-import { equipment, household } from './chapter-ui.mjs';
+import { parseStoryCopy, applyStoryLabels } from './story-copy.mjs';
+import { wellCloseups } from './well-closeups.mjs';
 import { playDrive } from './drive-intro.mjs';
 import * as THREE from '../vendor/three.module.mjs';
 import { GLTFLoader } from '../vendor/GLTFLoader.mjs';
 import { mergeGeometries } from '../vendor/BufferGeometryUtils.mjs';
+try {
+    const response=await window.fetch('STORY.md',{cache:'no-cache'});
+    if(!response.ok)throw new Error('STORY.md HTTP '+response.status);
+    window.HuishaCopy=parseStoryCopy(await response.text());
+    applyStoryLabels(document,window.HuishaCopy);
+} catch(error) {
+    document.getElementById('load-status').textContent='无法读取 STORY.md，请刷新页面，或使用 StartGame.bat 打开。';
+    throw error;
+}
+const copyText=window.HuishaCopy;
+const {equipment,household}=await import('./chapter-ui.mjs');
 window.THREE = THREE;
 window.Huisha3D = { GLTFLoader, mergeGeometries };
-const sceneModules = ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeWestRoom', 'ThreeStoreys', 'ThreeClerk', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeSettings', 'ThreeControls', 'ThreeInteraction', 'ThreeWindowWall', 'ThreeCourtyard', 'ThreePhone', 'ThreeDocument', 'ThreeMemoryScenes', 'ThreeMemoryTimeline', 'ThreeMemoryJournal', 'ThreeEvidenceJournal', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeVillageLane', 'ThreeHouseScene', 'ThreeAudio', 'ThreeYardWatch'];
+const sceneModules = ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeWestRoom', 'ThreeStoreys', 'ThreeClerk', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeSettings', 'ThreeControls', 'ThreeInteraction', 'ThreeWindowWall', 'ThreeKitchen', 'ThreeCourtyard', 'ThreePhone', 'ThreeDocument', 'ThreeMemoryScenes', 'ThreeMemoryTimeline', 'ThreeMemoryJournal', 'ThreeEvidenceJournal', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeVillageLane', 'ThreeHouseScene', 'ThreeAudio', 'ThreeWellChase'];
 // Fetch in parallel. Registration still follows map, story, controls and scene order.
 for (const name of sceneModules) {
     const link = document.createElement('link');
@@ -29,40 +41,41 @@ const preferences = new game.ThreePreferences();
 const settings = new game.ThreeSettings({ preferences, onChange: applyPreferences });
 const reader = $('reader');
 const audio = new game.ThreeAudio();
+const wellShots=wellCloseups($('well-closeup'));
 const assetErrors = new Set();
 const evidenceJournal = new game.ThreeEvidenceJournal({ story, knownRecords });
 const explorationMap = new game.ThreeExplorationMap({ story, knownRecords, open, onRead: id => {
     const record = knownRecords().find(record => record.id === id);
-    if (record) readRecord(record, [['回到地图', () => showMap(false)]]);
+    if (record) readRecord(record, [[copyText('main.explorationmap.onread'), () => showMap(false)]]);
 } });
 const memoryJournal = new game.ThreeMemoryJournal({ story, open, close, knownRecords,
     journal: () => journal(!!scene?.inspectionReturn), onReturn: returnMemory,
     onSolved: () => { audio.chime(); scene.syncState(); updateStatus(); } });
-const inputGuide = 'WASD 或方向键移动，鼠标转头。连按两次 W 并按住第二下疾跑，也可以按住 Shift。空格跳跃。\n\n靠近物品，按 E 或用鼠标左键查看。再按 E 或点击空白处返回。B 打开背包，H 查看提示，J 打开手记，M 查看地图，Esc 暂停。\n\n触屏：左下方向键移动，连点两次「前」并按住可跑，点「跳」跨障碍；拖动画面转头，点物品调查。';
+const inputGuide = copyText('main.inputguide');
 let stopDrive, replayOnly = false, restoreMouse = false;
 let mode = 'title', scene, lastFocus, saveTimer, portraitUiState, documentUiState;
-const isPaused = () => mode !== 'game' || reader.open || document.hidden || !!scene?.inspectionReturn;
+const isPaused = () => mode !== 'game' || reader.open || document.hidden || scene?.watch?.phase==='film' || !!scene?.inspectionReturn;
 function updateLoadStatus() {
     $('load-status').textContent = assetErrors.size
-        ? `部分场景资源未载入：${[...assetErrors].join('、')}。画面可能不完整，请检查本地文件。`
-        : story.saveAvailable ? '进度会自动保存 · 可随时暂停' : '此浏览器暂不支持保存，可在当前页面游玩';
+        ? copyText('main.updateloadstatus', [...assetErrors].join('、'))
+        : story.saveAvailable ? copyText('main.updateloadstatus.2') : copyText('main.updateloadstatus.3');
 }
 function updateStatus() {
     $('objective').textContent = story.headline(scene?.controls ? scene.playerSnapshot() : undefined);
     $('shield-flame').hidden = story.state.lamp !== 'lit' || !!scene?.inspectionReturn;
     $('shield-flame').setAttribute('aria-pressed', String(story.state.shielded));
-    $('shield-flame').textContent = story.state.shielded ? '松开手掌 [F]' : '拢住灯火 [F]';
-    $('begin').textContent = story.state.memory ? `继续${game.MEMORIES[story.state.memory].title}`
-        : story.state.records.length || story.state.position ? (story.state.courtyard ? '继续余温' : '继续归门') : '开始游戏';
+    $('shield-flame').textContent = story.state.shielded ? copyText('main.updatestatus') : copyText('main.updatestatus.2');
+    $('begin').textContent = story.state.memory ? copyText('main.updatestatus.3', game.MEMORIES[story.state.memory].title)
+        : story.state.records.length || story.state.position ? (story.state.courtyard ? copyText('main.updatestatus.4') : copyText('main.updatestatus.5')) : copyText('main.updatestatus.6');
     $('restart').hidden = !story.state.records.length && !story.state.position;
     $('replay-drive').hidden = story.state.arrival === 'intro';
     if (story.state.arrival !== 'home' && !story.state.memory) {
-        $('chapter-number').textContent = '序'; $('chapter-name').textContent = '村 口';
-        if (story.state.arrival !== 'intro') $('begin').textContent = '继续村口进度';
+        $('chapter-number').textContent = copyText('main.updatestatus.7'); $('chapter-name').textContent = copyText('main.updatestatus.8');
+        if (story.state.arrival !== 'intro') $('begin').textContent = copyText('main.updatestatus.9');
         return;
     }
-    $('chapter-number').textContent = story.state.memory ? '忆' : story.state.courtyard ? '贰' : '壹';
-    $('chapter-name').textContent = story.state.memory ? game.MEMORIES[story.state.memory].title : story.state.courtyard ? '余 温' : '归 门';
+    $('chapter-number').textContent = story.state.memory ? copyText('main.updatestatus.10') : story.state.courtyard ? copyText('main.updatestatus.11') : copyText('main.updatestatus.12');
+    $('chapter-name').textContent = story.state.memory ? game.MEMORIES[story.state.memory].title : story.state.courtyard ? copyText('main.updatestatus.13') : copyText('main.updatestatus.14');
 }
 function save() {
     if (mode === 'game' && scene?.controls) story.save(scene.playerSnapshot());
@@ -75,7 +88,7 @@ function applyPreferences() {
     if (!preferences.values.pointerLock && document.pointerLockElement) document.exitPointerLock();
 }
 function titleSettings() {
-    open('游玩设置', '先把视角和声音调到舒服的程度。设置即时生效。', [['返回标题', close]], '回煞 · 游玩设置');
+    open(copyText('main.titlesettings'), copyText('main.titlesettings.2'), [[copyText('main.titlesettings.3'), close]], copyText('main.titlesettings.4'));
     settings.append($('reader-body'));
 }
 function releaseMouse() {
@@ -93,7 +106,7 @@ function resumeWorld() {
     }
     restoreMouse = false;
 }
-function open(title, text, actions = [], eyebrow = '旧宅 · 观察记录') {
+function open(title, text, actions = [], eyebrow = copyText('main.open')) {
     if (!reader.open) {
         lastFocus = document.activeElement;
         if (mode === 'game' && scene?.controls) story.save(scene.playerSnapshot());
@@ -124,12 +137,12 @@ function close() {
 }
 const noticeHost = $('acquisitions');
 function progressSignature() {
-    const entries = new Map(story.carried().map(id => ['item.'+id,'“'+equipment[id][0]+'”已加入道具']));
+    const entries = new Map(story.carried().map(id => ['item.'+id,'“'+equipment[id][0]+copyText('main.progresssignature')]));
     for(const id of story.state.records) {
         const title = id==='portrait_back' ? game.PORTRAIT_BACK_RECORD.title : game.WORLD_MAP.interactables.find(item=>item.id===id)?.title;
         if(!title) continue;
         const pages = story.state.documentViews[id] || (id==='crash_phone' ? story.state.phoneViews : []);
-        entries.set('record.'+id+'.'+pages.length,'手记已更新：“'+title+'”');
+        entries.set('record.'+id+'.'+pages.length,copyText('main.progresssignature.2')+title+'”');
     }
     return entries;
 }
@@ -147,38 +160,43 @@ story.onProgress=()=>{
 function pocketLetter() {
     const item=game.WORLD_MAP.interactables.find(entry=>entry.id==='car_envelope');
     story.record(item.id);story.advanceArrival('letter','ledger');
-    readRecord(item,[['回到背包',backpack],['收好来信',close]]);
+    readRecord(item,[[copyText('main.pocketletter'),backpack],[copyText('main.pocketletter.2'),close]]);
 }
 function showBridgePhoto(){
     const record=game.WORLD_MAP.interactables.find(item=>item.id==='bend_photo');
     if(!story.state.records.includes(record.id)) {story.record(record.id);audio.paper();}
-    readRecord(record,[['收好照片',close]]);
+    readRecord(record,[[copyText('main.showbridgephoto'),close]]);
 }
 function inspectUniform(){
     const collar=game.WORLD_MAP.interactables.find(item=>item.id==='uniform_collar');
     if(!story.state.records.includes(collar.id)){story.record(collar.id);scene.syncState();audio.paper();}
     const found=story.state.records.includes('bend_photo');
-    const text=found?collar.text.replace('右边内袋比左边沉。','右边内袋里只剩一点纸屑。'):collar.text;
+    const text=found?copyText('housemap.uniform_collar.text',copyText('main.inspectuniform.2')):collar.text;
     const inspectCuff=()=>{
         const cuff=game.WORLD_MAP.interactables.find(item=>item.id==='uniform_cuff');
         story.record(cuff.id);
-        readRecord(cuff,[['翻回衣领',inspectUniform],['收好校服',close]]);
+        readRecord(cuff,[[copyText('main.inspectuniform.3'),inspectUniform],[copyText('main.inspectuniform.4'),close]]);
     };
-    readRecord({...collar,text},[...(!found?[['摸一摸右边内袋',showBridgePhoto]]:[]),['展开左袖',inspectCuff],['收好校服',close]]);
+    readRecord({...collar,text},[...(!found?[[copyText('main.inspectuniform.5'),showBridgePhoto]]:[]),[copyText('main.inspectuniform.6'),inspectCuff],[copyText('main.inspectuniform.4'),close]]);
 }
 function lookAtHeightStrip() {
     const back = game.WORLD_MAP.interactables.find(item => item.id === 'height_stitch');
-    open('量身高的布带', '我把布卷摊在手上。几道黑线都朝着我，最上面那道的旁边，还露了一小截红线头。', [
-        ['翻看布背', () => {
+    open(copyText('housemap.height_stitch.location'), copyText('main.lookatheightstrip'), [
+        [copyText('main.lookatheightstrip.2'), () => {
             story.record(back.id);
-            readRecord(back, [['翻回正面', lookAtHeightStrip], ['卷起来', close]]);
-        }], ['回到背包', backpack], ['卷起来', close]
+            readRecord(back, [[copyText('main.lookatheightstrip.3'), lookAtHeightStrip], [copyText('main.lookatheightstrip.4'), close]]);
+        }], [copyText('main.pocketletter'), backpack], [copyText('main.lookatheightstrip.4'), close]
     ]);
 }
 function backpack() {
+    const description=id=>{
+        if (id==='rice' && story.state.porkOnRice) return copyText('main.backpack');
+        if (id==='lunchbox' && story.state.riceStage==='served') return copyText('main.backpack.2');
+        return equipment[id][1];
+    };
     const choices=story.carried().map(id=>[equipment[id][0],id==='envelope'?pocketLetter:id==='uniform'?inspectUniform:id==='roadPhoto'?showBridgePhoto:
-        id==='heightStrip'?lookAtHeightStrip:()=>open(equipment[id][0],equipment[id][1],[['回到背包',backpack],['返回探索',close]],'随身背包')]);
-    open('背包',choices.length?'':'包里暂时没有东西。',[...choices,['收起背包',close]],'随身物品');
+        id==='heightStrip'?lookAtHeightStrip:()=>open(equipment[id][0],description(id),[[copyText('main.pocketletter'),backpack],[copyText('main.backpack.3'),close]],copyText('main.backpack.4'))]);
+    open(copyText('main.backpack.5'),choices.length?'':copyText('main.backpack.6'),[...choices,[copyText('main.backpack.7'),close]],copyText('main.backpack.8'));
 }
 function knownRecords() {
     return story.state.records.map(id => id === 'portrait_back'
@@ -187,17 +205,17 @@ function knownRecords() {
 }
 function presentRecord(item) {
     if (item.id === 'duty_book' && story.carried().includes('key'))
-        return {...item,text:item.text.replace('李家这一行还空着。','东街六号那一行，是我刚签的名字。')};
+        return {...item,text:copyText('housemap.duty_book.text',copyText('main.presentrecord.text.2'))};
     if (Object.hasOwn(game.DOCUMENTS, item.id)) return { ...item, text: story.documentText(item.id) };
     if (item.id === 'crash_phone') return { ...item, text: story.phoneText() };
     return item.id === 'yard_gate' && story.state.waterSolved ? { ...item,
-        text: '铜索的绳头垂在门框旁，门闩已经退开。\n\n从厨房压平旧秤后，抽屉与院门接连松了。门外是一条逐渐亮起来的山路。' } : item;
+        text: copyText('main.presentrecord.text.3') } : item;
 }
 function journal(backToLock = false) {
-    open('随身手记', '', [
-        [backToLock ? inspectionLabel() : '继续观察', backToLock ? resumeInspection : close],
-        ['需要一点提示', () => guidance(0, backToLock)]
-    ], '只收录你亲眼见到的内容');
+    open(copyText('main.journal'), '', [
+        [backToLock ? inspectionLabel() : copyText('memoryjournal.show'), backToLock ? resumeInspection : close],
+        [copyText('main.journal.2'), () => guidance(0, backToLock)]
+    ], copyText('main.journal.3'));
     memoryJournal.appendLinks($('reader-body'));
     evidenceJournal.append($('reader-body'));
 }
@@ -210,7 +228,7 @@ function recordPhoto(slug,caption) {
 }
 function readRecord(item, actions) {
     const choices = [...actions];
-    if (!choices.some(([label]) => label === '打开手记')) choices.push(['打开手记', () => journal(!!scene?.inspectionReturn)]);
+    if (!choices.some(([label]) => label === copyText('main.readrecord'))) choices.push([copyText('main.readrecord'), () => journal(!!scene?.inspectionReturn)]);
     open(item.title, item.text, choices);
     const photographs={letter:'family-new-year',wedding_photo:'silver-wedding',bend_photo:'bridge-bicycle',height_stitch:'height-stitch'};
     if(photographs[item.id]){
@@ -227,28 +245,28 @@ function readRecord(item, actions) {
 function showMap(resetScope = true) {
     if (mode !== 'game') return;
     const pose = { ...scene.playerSnapshot() }; story.visitPosition(pose);
-    explorationMap.show({ pose, resetScope, exitLabel: scene.inspectionReturn ? inspectionLabel() : '继续探索',
+    explorationMap.show({ pose, resetScope, exitLabel: scene.inspectionReturn ? inspectionLabel() : copyText('main.showmap.exitlabel'),
         onExit: scene.inspectionReturn ? resumeInspection : close });
 }
 function album() {
     const item = game.WORLD_MAP.interactables.find(item => item.id === 'memory_album');
     const {photoFiled,records}=story.state;
-    const text=photoFiled?'最后一页夹好那张学车照了。桥柱缺的那一角，跟今晚在车灯里看见的一样。':'录取通知和复诊单各占一页。最后一页只剩四个相角，右下角翘起，露出一小块颜色浅些的纸。';
+    const text=photoFiled?copyText('main.album'):copyText('main.album.2');
     const actions=Object.entries(game.MEMORIES).map(([id,definition])=>{
-        if(id==='crash' && !photoFiled && records.includes('bend_photo')) return ['把石桥旧照放进相角',()=>{
+        if(id==='crash' && !photoFiled && records.includes('bend_photo')) return [copyText('main.album.3'),()=>{
             story.state.photoFiled=true;story.save();audio.paper();album();
         }];
-        return [id==='crash'&&!photoFiled?'翻看空着的最后一页':`翻入记忆 · ${definition.title}`,()=>enterMemory(id)];
+        return [id==='crash'&&!photoFiled?copyText('main.album.4'):copyText('main.album.5', definition.title),()=>enterMemory(id)];
     });
-    open(item.title,text,[...actions,['合上相册，继续观察',close]],'回煞 · 厨房相册');
+    open(item.title,text,[...actions,[copyText('main.album.6'),close]],copyText('main.album.7'));
     if(photoFiled){
-        $('reader-body').prepend(recordPhoto('bridge-bicycle','父亲在石桥边松开自行车后座'));
+        $('reader-body').prepend(recordPhoto('bridge-bicycle',copyText('main.album.8')));
     }
 }
 function enterMemory(id) {
     if(id==='crash' && !story.state.photoFiled){
-        const note=story.state.records.includes('uniform_collar')?'我刚收起的校服里，有一边口袋沉甸甸的。':'我记得这张。妈给我洗校服那天，我怕她把照片一起洗了，一路跑回家去掏口袋。';
-        open('缺了一张照片',note,[['回到相册',album],['返回',close]]);return;
+        const note=story.state.records.includes('uniform_collar')?copyText('main.entermemory'):copyText('main.entermemory.2');
+        open(copyText('main.entermemory.3'),note,[[copyText('main.entermemory.4'),album],[copyText('chapter-ui.household'),close]]);return;
     }
     leaveInspection(false);
     if (!story.enterMemory(id, scene.playerSnapshot())) return;
@@ -263,11 +281,11 @@ function returnMemory() {
 }
 function guidance(stage = 0, backToLock = !!scene?.inspectionReturn) {
     const hint = story.guidance(stage,scene.playerSnapshot());
-    const actions = [['回查手记', () => journal(backToLock)], [backToLock ? inspectionLabel() : '继续观察', backToLock ? resumeInspection : close]];
+    const actions = [[copyText('memoryjournal.show.2'), () => journal(backToLock)], [backToLock ? inspectionLabel() : copyText('memoryjournal.show'), backToLock ? resumeInspection : close]];
     if (hint.next) actions.push([hint.next, () => guidance(stage + 1, backToLock)]);
-    open('查看提示', hint.text, actions, stage >= 2 ? '解谜答案 · 按需查看' : '探索提示 · 按需查看');
+    open(copyText('main.guidance'), hint.text, actions, stage >= 2 ? copyText('main.guidance.2') : copyText('main.guidance.3'));
 }
-function inspectionLabel() { return { water: '回到量水桌', portrait: '回到相框', phone: '回到手机', document: '回到纸张' }[scene.inspectionKind] || '回到字轮'; }
+function inspectionLabel() { return { water: copyText('main.inspectionlabel.water'), portrait: copyText('main.inspectionlabel.portrait'), phone: copyText('main.inspectionlabel.phone'), document: copyText('main.inspectionlabel.document') }[scene.inspectionKind] || copyText('main.inspectionlabel'); }
 function resumeInspection() { ({ water, portrait, phone, lock, document: () => documentInspect(scene.documents.activeId) }[scene.inspectionKind] || lock)(); }
 function updateObjectReading(kind, record, space) {
     const host = $(`${kind}-reading`), hadFocus = host.contains(document.activeElement);
@@ -276,10 +294,10 @@ function updateObjectReading(kind, record, space) {
         const detail = document.createElement('details'), summary = document.createElement('summary'), text = document.createElement('p');
         summary.textContent = record.title; text.textContent = record.text; detail.append(summary, text); host.append(detail);
         const actions = document.createElement('div'); actions.className = 'inspection-reading-actions';
-        const expand = document.createElement('button'); expand.type = 'button'; expand.dataset.readExpanded = kind; expand.textContent = '放大阅读';
+        const expand = document.createElement('button'); expand.type = 'button'; expand.dataset.readExpanded = kind; expand.textContent = copyText('main.updateobjectreading');
         expand.addEventListener('click', () => readRecord(record,
-            [[inspectionLabel(), resumeInspection], ['整理这段记忆', () => memoryJournal.show(space)], ['回到厨房', returnMemory]]));
-        const reason = document.createElement('button'); reason.type = 'button'; reason.textContent = '整理这段记忆'; reason.dataset.readDeduce = space;
+            [[inspectionLabel(), resumeInspection], [copyText('main.updateobjectreading.2'), () => memoryJournal.show(space)], [copyText('memoryjournal.show.3'), returnMemory]]));
+        const reason = document.createElement('button'); reason.type = 'button'; reason.textContent = copyText('main.updateobjectreading.2'); reason.dataset.readDeduce = space;
         reason.addEventListener('click', () => memoryJournal.show(space));
         actions.append(expand, reason); evidenceJournal.appendPinAction(actions, record.id); host.append(actions);
     }
@@ -295,9 +313,9 @@ function updateDocument() {
     $('document-join').hidden = !loose;
     $('document-read').hidden = loose;
     $('document-read').disabled = !face || loose;
-    $('document-flip').textContent = targetBack ? '转回正面' : '翻到背面';
-    $('document-status').textContent = loose ? '拖动错开的半张纸，对齐撕口后松手，也可以用下方按钮合上。' : face ? `${game.DOCUMENTS[id].faces[face].title} · ${story.hasDocumentFace(id, face) ? '已记入手记' : '尚未记下'}。可以主动阅读，或翻到另一面。`
-        : '等纸张转到眼前，再阅读这一面。可以拖动纸张调整角度。';
+    $('document-flip').textContent = targetBack ? copyText('main.updatedocument') : copyText('main.updatedocument.2');
+    $('document-status').textContent = loose ? copyText('main.updatedocument.3') : face ? copyText('main.updatedocument.4', game.DOCUMENTS[id].faces[face].title, story.hasDocumentFace(id, face) ? copyText('main.updatedocument.5') : copyText('main.updatedocument.6'))
+        : copyText('main.updatedocument.7');
     const definition = game.DOCUMENTS[id], page = face && definition.faces[face];
     updateObjectReading('document', page && story.hasDocumentFace(id, face)
         ? { id, title: `${definition.title} · ${page.title}`, text: page.text } : null, definition.space);
@@ -313,10 +331,10 @@ function updatePhone() {
     const page = scene.phone.page;
     document.querySelectorAll('[data-phone-page]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.phonePage === page)));
     $('phone-read').disabled = !Object.hasOwn(game.PHONE_PAGES, page);
-    $('phone-status').textContent = page === 'home' ? '分别查看通话与本地录音资料，再把当前页记入手记。'
-        : `${game.PHONE_PAGES[page].title}${story.state.phoneViews.includes(page) ? ' · 已记入手记' : ' · 尚未记下'}。切换页面不会自动记入或提交推理。`;
+    $('phone-status').textContent = page === 'home' ? copyText('main.updatephone')
+        : copyText('main.updatephone.2', game.PHONE_PAGES[page].title, story.state.phoneViews.includes(page) ? copyText('main.updatephone.3') : copyText('main.updatephone.4'));
     updateObjectReading('phone', story.state.phoneViews.includes(page)
-        ? { id: 'crash_phone', title: `手机 · ${game.PHONE_PAGES[page].title}`, text: game.PHONE_PAGES[page].text } : null, 'crash');
+        ? { id: 'crash_phone', title: copyText('main.crash_phone.title', game.PHONE_PAGES[page].title), text: game.PHONE_PAGES[page].text } : null, 'crash');
 }
 function phone() {
     if (story.state.memory !== 'crash') return;
@@ -336,9 +354,9 @@ function updatePortrait(message) {
     if (portraitUiState === state) return;
     portraitUiState = state;
     $('portrait-reveal').hidden = uncovered; $('portrait-flip').disabled = !uncovered; $('portrait-read').disabled = !back;
-    $('portrait-flip').textContent = targetBack ? '转回正面' : '翻到背面';
-    if (!message) $('portrait-status').textContent = !uncovered ? '黑布搭在上沿。可以先揭开，再拿近看看。'
-        : back ? '背面的字迹转到了眼前。可以主动阅读并记入手记。' : '正面是母亲的旧照片。按住画面拖动，或翻到背面查看。';
+    $('portrait-flip').textContent = targetBack ? copyText('main.updatedocument') : copyText('main.updatedocument.2');
+    if (!message) $('portrait-status').textContent = !uncovered ? copyText('main.updateportrait')
+        : back ? copyText('main.updateportrait.2') : copyText('main.updateportrait.3');
 }
 function portrait() {
     if (reader.open) reader.close(); releaseMouse();
@@ -351,8 +369,8 @@ function updateLock(message) {
     if (message) $('lock-status').textContent = message;
     document.querySelectorAll('[data-wheel]').forEach((button, index) => {
         const symbol = game.ThreeStory.symbols[story.state.wheels[index]];
-        button.querySelector('small').textContent = `当前：${symbol}`;
-        button.setAttribute('aria-label', `${['左', '中', '右'][index]}轮，当前${symbol}，按动转过一格`);
+        button.querySelector('small').textContent = copyText('main.updatelock', symbol);
+        button.setAttribute('aria-label', copyText('main.updatelock.2', [copyText('main.updatelock.3'), copyText('main.updatelock.4'), copyText('main.updatelock.5')][index], symbol));
     });
 }
 function leaveInspection(restoreFocus = true) {
@@ -368,20 +386,20 @@ function rotateLock(index) {
     story.rotate(index); audio.latch(); scene.syncState(); updateLock();
 }
 function lock() {
-    if (story.state.opened) { open('门闩已松开', '三根红绳垂下来。门外透进雨后的天光。', [['回到门前', close]]); return; }
+    if (story.state.opened) { open(copyText('main.lock'), copyText('main.lock.2'), [[copyText('main.lock.3'), close]]); return; }
     if (reader.open) reader.close();
     releaseMouse();
     touches.clear(); updateTouch(); scene.beginLockInspection();
     $('lock-inspector').hidden = false; $('hud').classList.add('inspecting');
     updateStatus();
-    updateLock(story.state.lamp === 'lit' ? '贴近一照，闩底露出个铜丝圈。我小时候踮着脚，刚好够得着它。' : '每次转动一格。可以回查已读字迹，再压下门闩。');
+    updateLock(story.state.lamp === 'lit' ? copyText('main.lock.4') : copyText('main.lock.5'));
     evidenceJournal.sync();
     document.querySelector('[data-wheel]').focus();
 }
 function updateWater(message) {
     const [small, large] = story.state.buckets;
-    $('level-small').textContent=small+' / 3 升'; $('level-large').textContent=large+' / 5 升';
-    $('water-pour').textContent=scene.courtyard.selected?'倒入三升桶':'倒入五升桶';
+    $('level-small').textContent=small+copyText('main.updatewater'); $('level-large').textContent=large+copyText('main.updatewater.2');
+    $('water-pour').textContent=scene.courtyard.selected?copyText('main.updatewater.3'):copyText('main.updatewater.4');
     if (message) $('water-status').textContent = message;
     document.querySelectorAll('[data-bucket]').forEach(button => {
         button.setAttribute('aria-pressed', String(Number(button.dataset.bucket) === scene.courtyard.selected));
@@ -395,8 +413,8 @@ function water() {
     releaseMouse();
     touches.clear(); updateTouch(); scene.beginWaterInspection();
     $('water-inspector').hidden = false; $('hud').classList.add('inspecting');
-    updateWater(story.state.waterSolved ? '秤盘已经压平，桌下的抽屉打开了。退回桌前，可以低头查看家书。'
-        : '选一只桶再操作。上秤用五升桶。');
+    updateWater(story.state.waterSolved ? copyText('main.water')
+        : copyText('main.water.2'));
     evidenceJournal.sync();
     (story.state.waterSolved ? $('water-leave') : document.querySelector('[data-bucket]')).focus();
 }
@@ -404,15 +422,15 @@ function waterAction(action) {
     if (reader.open || scene.inspectionKind !== 'water' || story.state.waterSolved || scene.courtyard.weighing) return;
     if (/^bucket[01]$/.test(action)) {
         scene.courtyard.selected = Number(action.slice(-1));
-        updateWater(`已选${scene.courtyard.selected ? '五' : '三'}升桶。`); return;
+        updateWater(copyText('main.wateraction', scene.courtyard.selected ? copyText('main.wateraction.2') : copyText('main.wateraction.3'))); return;
     }
     const index = scene.courtyard.selected;
     let changed = false, message;
-    if (action === 'fill') { changed = story.fillBucket(index); message = changed ? '已从水缸添满选中的桶。' : '这个桶已经满了。'; }
-    else if (action === 'empty') { changed = story.emptyBucket(index); message = changed ? '水倒进了槽里，桶空了。' : '这个桶已经是空的。'; }
-    else if (action === 'pour') { const amount = story.pourBucket(index); changed = amount > 0; message = amount ? `向另一桶倒入 ${amount} 升水。` : '倒不进去：选中的桶是空的，或另一桶已经满了。'; }
+    if (action === 'fill') { changed = story.fillBucket(index); message = changed ? copyText('main.wateraction.4') : copyText('main.wateraction.5'); }
+    else if (action === 'empty') { changed = story.emptyBucket(index); message = changed ? copyText('main.wateraction.6') : copyText('main.wateraction.7'); }
+    else if (action === 'pour') { const amount = story.pourBucket(index); changed = amount > 0; message = amount ? copyText('main.wateraction.8', amount) : copyText('main.wateraction.9'); }
     else if (action === 'weigh') {
-        if (scene.courtyard.beginWeigh() && scene.courtyard.weighing) updateWater('称量中……');
+        if (scene.courtyard.beginWeigh() && scene.courtyard.weighing) updateWater(copyText('main.wateraction.10'));
         return;
     } else return;
     if (changed) audio.water(action);
@@ -421,89 +439,95 @@ function waterAction(action) {
 function busEnding() {
     const {records,heightStripTaken} = story.state;
     const paragraphs = [records.includes('medicine_letter')
-        ? '天刚蒙亮，村口卖早点的正在卸炉子。我借了个塑料袋，把信和复诊单套好。\n\n老板问要几个包子。我说两个，想了想，改成了一个。'
-        : '车开过第一个弯，我才想起厨房的抽屉还开着。我问司机明天还有没有这趟车。\n\n他说有，把第一班车的时间写在了我的票背面。'];
+        ? copyText('main.busending')
+        : copyText('main.busending.2')];
     if (heightStripTaken) paragraphs.push(records.includes('height_stitch')
-        ? '车一颠，布卷从外套口袋里滑出来。旁座替我接住，问：「裁衣服的尺？」我把黑线和红线指给她看：「这个是我。矮一点的那个，是我妈。」'
-        : '布卷从外套口袋里滑出来一截。我往里塞了塞，把口袋上的扣子扣好。');
-    if (records.includes('forwarding_slip')) paragraphs.push('到了县城，钥匙在口袋里硌了一下。我照底单上的号码给老周发消息：「您哪天值班？我把钥匙给您送回来。」\n\n「周三。别赶早，我上夜班。」我把号码存下来，名字填了个「周叔」。');
-    return [...paragraphs,'结局 · 归路'].join('\n\n');
+        ? copyText('main.busending.3')
+        : copyText('main.busending.4'));
+    if (records.includes('forwarding_slip')) paragraphs.push(copyText('main.busending.5'));
+    return [...paragraphs,copyText('main.busending.6')].join('\n\n');
 }
 function ending(choice, memoryPlace) {
     if (!story.depart(choice,memoryPlace)) return;
     audio.chime();
     const text = choice === 'wake'
-        ? '我捏了一下，又捏了一下。有人把晃在我眼皮上的灯挪开。「好，李明。我不照你了。车上还有人吗？」\n\n我张了两次嘴。「就我一个。」他朝车门外把这四个字重复了一遍。我这才听清，一直响的是雨点落在他雨衣上的声音。\n\n结局 · 破茧'
+        ? copyText('main.ending')
         : choice === 'remember'
-        ? '我把碗端稳。妈用筷子把最后几根面拨进我碗里，留了一根，自己尝尝软硬。「这回没煮过吧？」\n\n我摇头，嘴里还含着面。门外喊「李明」的那个人又等了一会儿。妈把醋往我手边推了推。\n\n结局 · 回煞'
+        ? copyText('main.ending.2')
         : choice === 'stay'
-        ? '米瓮底还有一小碗米。我淘了两遍，照她教的，把食指伸进锅里量水。\n\n等饭熟的时候，我把第二双筷子收回了抽屉。\n\n结局 · 余温'
+        ? (story.state.stoveLit ? copyText('main.ending.3') : copyText('main.ending.4'))+'\n\n'+(story.state.leakMuffled?copyText('main.ending.5'):copyText('main.ending.6'))+copyText('main.ending.7')
         : busEnding();
     let endingText=text;
     if(choice==='stay' && story.state.records.includes('clerk_holdall') && story.state.records.includes('clerk_cuff')) {
-        endingText='我淘了一碗米，坐在灶边等锅开。校服的左袖还摊在我腿上。水池边有块用薄了的肥皂，我接了半盆水，把那三颗扣子解开，只把袖口浸进去。\n\n搓到最后一颗扣子，米汤扑了出来。我一只手提着湿袖口，一只手赶紧去揭锅盖。\n\n结局 · 余温';
+        const supper = story.state.stoveLit
+            ? copyText('main.ending.8')
+            : copyText('main.ending.9');
+        const lastButton = story.state.stoveLit
+            ? copyText('main.ending.10')
+            : copyText('main.ending.11');
+        endingText=supper+copyText('main.ending.12')+lastButton+copyText('main.ending.7');
     }
     if(choice==='remember' && story.state.rememberPlace==='bridge') {
-        endingText='我踩下踏板。爸松了手，在后头跟了两步就跑不动了。我回过头来，妈才把相机举稳。\n\n「这回拍到没有？」她拿指甲拨了一下过片轮，笑我：「哪有人骑车还顾着看镜头的。」桥那头喊我名字的人又等了一会儿。我扶正车把，骑回去替她拿相机套。\n\n结局 · 回煞';
+        endingText=copyText('main.ending.13');
     }
-    open({ stay: '余温', leave: '归路', wake: '破茧', remember: '回煞' }[choice], endingText, [['留在现场回看', close], ['返回标题', title]], '回煞 · 你的选择');
+    open({ stay: copyText('main.ending.stay'), leave: copyText('courtyardmap.bus_notice.location'), wake: copyText('main.ending.wake'), remember: copyText('main.ending.remember') }[choice], endingText, [[copyText('main.ending.14'), close], [copyText('main.titlesettings.3'), title]], copyText('main.ending.15'));
 }
 function inspectVillage(item) {
     const phase = story.state.arrival;
     if (item.id === 'clerk') {
-        const after=phase==='letter'?'老周把眼镜往上一推。「你说你是李家的？信给我瞧瞧，村里的门牌去年都换过了。」':
-            phase==='ledger'?'周师傅翻开登记簿。「十四号我记得。新号在这页上，你自己对一下，省得拿错人家的钥匙。」':
-            phase==='keys'?'老周拧开圆珠笔的笔帽递过来。「你看好了？告诉我新门牌，我给你拿。」':
-            phase==='gate'?'老周把登记簿收回窗里。「木工下周二才来。你慢慢收拾，走的时候把门带上。」':
-            '「你爸修秤那间屋还在，」周师傅把搪瓷缸挪到炉边，「后来他在门口挡了个大衣柜。你小时候老往里钻。」';
-        const askAboutPost=['这封信是谁寄的？',()=>{
+        const after=phase==='letter'?copyText('main.inspectvillage'):
+            phase==='ledger'?copyText('main.inspectvillage.2'):
+            phase==='keys'?copyText('main.inspectvillage.3'):
+            phase==='gate'?copyText('main.inspectvillage.4'):
+            copyText('main.inspectvillage.5');
+        const askAboutPost=[copyText('main.inspectvillage.6'),()=>{
             const slip=game.WORLD_MAP.interactables.find(entry=>entry.id==='forwarding_slip');
-            open('柜子后面的信','老周把我的外封翻过来，看了一眼条码。\n\n「是我寄的。上礼拜这窗户漏雨，我们往外抬钥匙柜，你妈那个小信封从背后掉下来了。我没敢拆。」\n\n「您怎么知道我住哪儿？」\n\n「你寄回来的修屋回执上有。你等会儿，我给你找那张底单。」',[
-                ['核对寄件底单',()=>{story.record(slip.id);readRecord(slip,[['还给周师傅',()=>inspectVillage(item)],['告辞',close]]);}],
-                ['不用找了',close]]);
+            open(copyText('main.inspectvillage.7'),copyText('main.inspectvillage.8'),[
+                [copyText('main.inspectvillage.9'),()=>{story.record(slip.id);readRecord(slip,[[copyText('main.inspectvillage.10'),()=>inspectVillage(item)],[copyText('main.inspectvillage.11'),close]]);}],
+                [copyText('main.inspectvillage.12'),close]]);
         }];
         const discuss=(id)=>{
             const account=game.WORLD_MAP.interactables.find(entry=>entry.id===id);
             story.record(id);
-            readRecord(account,[['再问一句',()=>inspectVillage(item)],['告辞',close]]);
+            readRecord(account,[[copyText('main.inspectvillage.13'),()=>inspectVillage(item)],[copyText('main.inspectvillage.11'),close]]);
         };
         const questions=[];
-        if (phase==='keys') questions.push(['向周师傅领钥匙',()=>inspectVillage(game.WORLD_MAP.interactables.find(entry=>entry.id==='key_board'))]);
-        if(story.state.coffinOpen || story.state.records.includes('coffin')) questions.push(['正厅那口棺是谁的？',()=>discuss('clerk_holdall')]);
-        if(story.state.records.includes('uniform_cuff')) questions.push(['给周师傅看左袖',()=>discuss('clerk_cuff')]);
-        open('值夜的周师傅',after,phase==='letter'?[['拿出内袋里的信',pocketLetter],['告辞',close]]:[...questions,['翻看登记簿',()=>{
+        if (phase==='keys') questions.push([copyText('main.inspectvillage.14'),()=>inspectVillage(game.WORLD_MAP.interactables.find(entry=>entry.id==='key_board'))]);
+        if(story.state.coffinOpen || story.state.records.includes('coffin')) questions.push([copyText('main.inspectvillage.15'),()=>discuss('clerk_holdall')]);
+        if(story.state.records.includes('uniform_cuff')) questions.push([copyText('main.inspectvillage.16'),()=>discuss('clerk_cuff')]);
+        open(copyText('housemap.clerk.title'),after,phase==='letter'?[[copyText('main.inspectvillage.17'),pocketLetter],[copyText('main.inspectvillage.11'),close]]:[...questions,[copyText('main.inspectvillage.18'),()=>{
             const book=game.WORLD_MAP.interactables.find(i=>i.id==='duty_book');story.record(book.id);inspectVillage(book);
-        }],askAboutPost,['告辞',close]]);return true;
+        }],askAboutPost,[copyText('main.inspectvillage.11'),close]]);return true;
     }
     if (item.id === 'car_envelope') {pocketLetter();return true;}
     else if (item.id === 'duty_book') {
         story.advanceArrival('ledger','keys');
-        const actions = [['返回',close]];
-        if (story.state.arrival === 'keys') actions.unshift(['向周师傅领钥匙',()=>inspectVillage(game.WORLD_MAP.interactables.find(entry=>entry.id==='key_board'))]);
+        const actions = [[copyText('chapter-ui.household'),close]];
+        if (story.state.arrival === 'keys') actions.unshift([copyText('main.inspectvillage.14'),()=>inspectVillage(game.WORLD_MAP.interactables.find(entry=>entry.id==='key_board'))]);
         readRecord(presentRecord(item),actions); return true;
     }
     else if (item.id === 'key_board' && story.carried().includes('key')) {
-        open(item.title,'中间的挂钩空了，九号和十六号还挂着。六号钥匙在我身上。',[['返回',close]]); return true;
+        open(item.title,copyText('main.inspectvillage.19'),[[copyText('chapter-ui.household'),close]]); return true;
     }
     else if (item.id === 'key_board' && phase === 'keys') {
         const choose = number => {
             if (number === 6) {
                 story.record('key_board'); story.advanceArrival('keys','gate'); scene.syncState(); audio.latch();
-                open('拿到六号钥匙', '我在六号那一行签了名。老周转身摘了钥匙，递过来时还捏着铜牌，让我先拿稳。\n\n「锁有点涩。插到底，往回退一点就转得动。」', [['收好钥匙', close]]);
+                open(copyText('main.inspectvillage.20'), copyText('main.inspectvillage.21'), [[copyText('main.inspectvillage.22'), close]]);
             } else {
-                open('钥匙牌对不上', '老周的手停在挂钩上。「这户不姓李。你再看一眼十四号那行？」', [['重看登记簿',()=>inspectVillage(game.WORLD_MAP.interactables.find(entry=>entry.id==='duty_book'))],['再选一把', () => inspectVillage(item)], ['告辞', close]]);
+                open(copyText('main.inspectvillage.23'), copyText('main.inspectvillage.24'), [[copyText('main.inspectvillage.25'),()=>inspectVillage(game.WORLD_MAP.interactables.find(entry=>entry.id==='duty_book'))],[copyText('main.inspectvillage.26'), () => inspectVillage(item)], [copyText('main.inspectvillage.11'), close]]);
             }
         };
-        open(item.title, item.text + '\n\n老周把笔递给我：「你家现在是东街几号？」', [9,6,16].map(n => [`东街 ${n} 号`, () => choose(n)]));
+        open(item.title, item.text + copyText('main.inspectvillage.27'), [9,6,16].map(n => [copyText('main.inspectvillage.28', n), () => choose(n)]));
         return true;
     } else if (item.id === 'front_gate' && phase === 'gate') {
-        open(item.title, item.text + '\n\n门板靠下新画了道粉笔印。我春天签过字，下周二木工就来拆走廊。我想进去看看，妈钉的布带还在不在。', [['用六号钥匙开门', () => {
+        open(item.title, item.text + copyText('main.inspectvillage.29'), [[copyText('main.inspectvillage.30'), () => {
             story.advanceArrival('gate','home'); audio.latch(); close();
-        }], ['返回路上', close]]);
+        }], [copyText('main.inspectvillage.31'), close]]);
         return true;
     } else if (!['key_board','front_gate'].includes(item.id)) return false;
-    const note = item.id==='front_gate' ? (phase==='home'?'前门已经打开。':'门还锁着。') : '';
-    readRecord({...item, text: item.text + '\n\n' + note}, [['返回', close]]);
+    const note = item.id==='front_gate' ? (phase==='home'?copyText('main.inspectvillage.32'):copyText('main.inspectvillage.33')) : '';
+    readRecord({...item, text: item.text + '\n\n' + note}, [[copyText('chapter-ui.household'), close]]);
     return true;
 }
 function inspect(item) {
@@ -511,6 +535,12 @@ function inspect(item) {
     ['lock', 'water_station'].includes(item.id) ? audio.knock() : audio.paper();
     if (['car_envelope','clerk','duty_book','key_board','front_gate'].includes(item.id) && inspectVillage(item)) return;
     if (household({story,scene,open,close,audio,inspectUniform},item)) return;
+    if(item.id==='yard_well'){
+        wellShots.preload();
+        const investigate=()=>{close();scene.watch.begin();};
+        if(scene.watch.phase==='chase'){open(item.title,copyText('main.inspect'),[[copyText('main.inspect.2'),close]]);return;}
+        readRecord(item,[[story.state.wellEscaped?copyText('main.inspect.3'):copyText('main.inspect.4'),investigate],[copyText('main.inspect.5'),close]]);return;
+    }
     if (item.id === 'wall_marks') {
         const taken = story.state.heightStripTaken;
         const move = () => {
@@ -518,10 +548,10 @@ function inspect(item) {
             if (!taken) preloadHeightStitch();
             audio.paper(); scene.syncState(); close();
         };
-        if (taken) open('挂布带的两颗钉子', '布带取下来了。两颗钉子中间的木头颜色浅些。', [
-            ['把布带挂回去', move], ['继续带在身上', close]
+        if (taken) open(copyText('interaction.showprompt.3'), copyText('main.inspect.6'), [
+            [copyText('main.inspect.7'), move], [copyText('main.inspect.8'), close]
         ]);
-        else readRecord(item, [['从钉子上摘下，卷好带走', move], ['留在墙上', close]]);
+        else readRecord(story.state.leakMuffled ? item : {...item,text:item.text+copyText('main.inspect.text')}, [[copyText('main.inspect.9'), move], [copyText('main.inspect.10'), close]]);
         return;
     }
     if(item.id==='paper_mask' || item.id==='wiper_print'){
@@ -530,18 +560,18 @@ function inspect(item) {
             story.record(id);audio.paper();
             readRecord(game.WORLD_MAP.interactables.find(entry=>entry.id===id),actions);
         };
-        const leave=['返回',close], actions=[];
+        const leave=[copyText('chapter-ui.household'),close], actions=[];
         if(item.id==='paper_mask'){
             const flip=()=>{
                 const hang=()=>{
                     story.state.maskHung=true;scene.courtyard.syncMask();close();
                 };
-                show('mask_strap',[['翻回正面',()=>inspect(item)],...(!story.state.maskHung?[['挂到门边的木钉上',hang]]:[]),leave]);
+                show('mask_strap',[[copyText('main.lookatheightstrip.3'),()=>inspect(item)],...(!story.state.maskHung?[[copyText('main.inspect.11'),hang]]:[]),leave]);
             };
-            actions.push(['翻看背面',flip]);
+            actions.push([copyText('main.inspect.12'),flip]);
         }
         if(records.includes('wiper_print') && records.includes('paper_mask')){
-            actions.push(['比一比两处红印',()=>show('mask_transfer',[['再看一眼',()=>inspect(item)],leave])]);
+            actions.push([copyText('main.inspect.13'),()=>show('mask_transfer',[[copyText('main.inspect.14'),()=>inspect(item)],leave])]);
         }
         readRecord(item,[...actions,leave]);return;
     }
@@ -549,8 +579,8 @@ function inspect(item) {
     if (item.id === 'water_station') {
         if(!story.state.calibrated){
             const has=story.carried().includes('weight');
-            open('量水秤',has?'铜砣底下的圆榫和左盘的凹槽一样大。':'左盘空着，指针顶死在一边。秤脚的铜牌上刻着「李记修秤 · 西厢」。',
-                has?[['装上铜砣',()=>{story.state.calibrated=true;story.save();audio.latch();water();}],['返回',close]]:[['返回',close]]);
+            open(copyText('main.inspect.15'),has?copyText('main.inspect.16'):copyText('main.inspect.17'),
+                has?[[copyText('main.inspect.18'),()=>{story.state.calibrated=true;story.save();audio.latch();water();}],[copyText('chapter-ui.household'),close]]:[[copyText('chapter-ui.household'),close]]);
         }else water();
         return;
     }
@@ -566,55 +596,55 @@ function inspect(item) {
     }
     if (item.id === 'crash_phone') { phone(); return; }
     if (Object.hasOwn(game.DOCUMENTS, item.id)) { documentInspect(item.id); return; }
-    if (item.returnMemory) { open(item.title, item.text, [['继续观察', close], ['回到厨房', returnMemory]]); return; }
+    if (item.returnMemory) { open(item.title, item.text, [[copyText('memoryjournal.show'), close], [copyText('memoryjournal.show.3'), returnMemory]]); return; }
     if (item.finalChoice) {
         const bridge=story.state.records.includes('bridge_post');
-        const leave=['先不决定，继续观察',close];
+        const leave=[copyText('main.inspect.19'),close];
         const roadside=()=>{
-            const touch=story.state.records.includes('crash_belt')?'是刚才替我剪开安全带的声音。':'有人把两根手指放进我的手心。';
-            open('车门外的人',touch+'「李明，我在你右手边。听得见的话，捏我两下。」他停下来等着，我能摸到手套上的皱褶。',[
-                ['捏他的手两下，醒来',()=>ending('wake')],['再听母亲那边',()=>home(bridge)],leave]);
+            const touch=story.state.records.includes('crash_belt')?copyText('main.inspect.20'):copyText('main.inspect.21');
+            open(copyText('main.inspect.22'),touch+copyText('main.inspect.23'),[
+                [copyText('main.inspect.24'),()=>ending('wake')],[copyText('main.inspect.25'),()=>home(bridge)],leave]);
         };
-        const home=onBridge=>open(onBridge?'石桥上的母亲':'灶间的母亲',onBridge
-            ? '桥头的雨停了。妈眯着一只眼举起相机：「刚才那张怕是虚了，你再骑一趟。」爸弯着腰，手还扶在后座上。'
-            : '筷子磕在锅沿上。妈一手捞着面，一手朝我摊开：「碗呢？快端过来，面该坨了。」那只缺了口的碗就在我手边。',
-            [[onBridge?'踩下踏板，留在桥上':'端起碗，留在灶间',()=>ending('remember',onBridge?'bridge':'kitchen')],
-                ...(bridge?[[onBridge?'回想灶间':'回想石桥',()=>home(!onBridge)]]:[]),['再听车门外的人',roadside],leave]);
-        open(item.title,item.text,[['听车门外的人说完',roadside],['听母亲说完',()=>home(bridge)],leave]);return;
+        const home=onBridge=>open(onBridge?copyText('main.inspect.26'):copyText('main.inspect.27'),onBridge
+            ? copyText('main.inspect.28')
+            : copyText('main.inspect.29'),
+            [[onBridge?copyText('main.inspect.30'):copyText('main.inspect.31'),()=>ending('remember',onBridge?'bridge':'kitchen')],
+                ...(bridge?[[onBridge?copyText('main.inspect.32'):copyText('main.inspect.33'),()=>home(!onBridge)]]:[]),[copyText('main.inspect.34'),roadside],leave]);
+        open(item.title,item.text,[[copyText('main.inspect.35'),roadside],[copyText('main.inspect.36'),()=>home(bridge)],leave]);return;
     }
     if (item.deduction) {
-        readRecord(item, [['继续观察', close], ['整理这段记忆', () => memoryJournal.show(item.deduction)], ['回到厨房', returnMemory]]); return;
+        readRecord(item, [[copyText('memoryjournal.show'), close], [copyText('main.updateobjectreading.2'), () => memoryJournal.show(item.deduction)], [copyText('memoryjournal.show.3'), returnMemory]]); return;
     }
     if (item.id === 'medicine_letter') {
-        readRecord(item, [['带着信继续走', close], ['今晚留下，给自己煮碗饭', () => ending('stay')]]); return;
+        readRecord(item, [[copyText('main.inspect.37'), close], [story.state.stoveLit || story.state.gear.includes('matches') ? copyText('main.inspect.38') : copyText('main.inspect.39'), () => ending('stay')]]); return;
     }
     if (item.id === 'stop_signal') {
-        if (story.state.busCalled) {open(item.title, '牌子已经转好。接驳车停在前面的站牌旁。', [['返回',close]]); return;}
+        if (story.state.busCalled) {open(item.title, copyText('main.inspect.40'), [[copyText('chapter-ui.household'),close]]); return;}
         const turn = direction => {
             if (story.signalBus(direction)) {
-                scene.syncState(); audio.latch(); open('车来了', '司机闪了两下灯，在前面的站牌旁停下。', [['去站牌',close]]);
-            } else open('弯道那边没有回应', '牌子朝着老宅。回去看路口的接驳通知，确认来车方向。', [['再转一次',()=>inspect(item)],['返回',close]]);
+                scene.syncState(); audio.latch(); open(copyText('main.inspect.41'), copyText('main.inspect.42'), [[copyText('main.inspect.43'),close]]);
+            } else open(copyText('main.inspect.44'), copyText('main.inspect.45'), [[copyText('main.inspect.46'),()=>inspect(item)],[copyText('chapter-ui.household'),close]]);
         };
-        open(item.title,item.text,[['转向老宅',()=>turn('house')],['转向石桥',()=>turn('bridge')],['返回',close]]); return;
+        open(item.title,item.text,[[copyText('main.inspect.47'),()=>turn('house')],[copyText('main.inspect.48'),()=>turn('bridge')],[copyText('chapter-ui.household'),close]]); return;
     }
     if (item.id === 'road_exit') {
-        open(item.title, story.state.busCalled ? '车停稳了。司机拉开门，问你是不是去县城。' : '站牌旁还没有车。路口有张接驳通知，候车棚里有一根信号杆。',
-            story.state.busCalled ? [['再看看旧宅', close], ['坐车下山', () => ending('leave')]] : [['去候车棚',close]]); return;
+        open(item.title, story.state.busCalled ? copyText('main.inspect.49') : copyText('main.inspect.50'),
+            story.state.busCalled ? [[copyText('main.inspect.51'), close], [copyText('main.inspect.52'), () => ending('leave')]] : [[copyText('main.inspect.53'),close]]); return;
     }
     if (item.id === 'portrait') { portrait(); return; }
     if (item.id === 'altar' && !story.state.opened && story.state.lamp !== 'lit') {
-        const take = story.state.lamp === 'out' ? '用供烛重新点灯' : '端起守夜灯';
-        readRecord(item, [[take, () => { if (story.takeLamp()) audio.latch(); close(); }], ['留在供桌上', close]]);
+        const take = story.state.lamp === 'out' ? copyText('main.inspect.54') : copyText('main.inspect.55');
+        readRecord(item, [[take, () => { if (story.takeLamp()) audio.latch(); close(); }], [copyText('main.inspect.56'), close]]);
         return;
     }
     if (item.id === 'threshold') {
-        open(item.title, item.text, [['再看看旧宅', close], ['走过门槛', () => {
+        open(item.title, item.text, [[copyText('main.inspect.51'), close], [copyText('main.inspect.57'), () => {
             if (!story.finish()) return;
             close();
         }]]);
         return;
     }
-    readRecord(item, [['继续观察', close], ['打开手记', () => journal()]]);
+    readRecord(item, [[copyText('memoryjournal.show'), close], [copyText('main.readrecord'), () => journal()]]);
 }
 function title() {
     leaveInspection(false);
@@ -625,12 +655,12 @@ function title() {
     audio.pause(); updateStatus(); $('begin').focus();
 }
 function pause() {
-    open('暂停', story.headline() + '\n\n' + inputGuide, [
-        ['继续探索', close], ['回查手记', () => journal(!!scene.inspectionReturn)], ['查看地图', () => showMap()],
-        ...(story.state.memory ? [['回到厨房', returnMemory]] : []), ['返回标题', title]
-    ], '回煞 · 暂停');
+    open(copyText('main.pause'), story.headline() + '\n\n' + inputGuide, [
+        [copyText('main.showmap.exitlabel'), close], [copyText('memoryjournal.show.2'), () => journal(!!scene.inspectionReturn)], [copyText('main.pause.2'), () => showMap()],
+        ...(story.state.memory ? [[copyText('memoryjournal.show.3'), returnMemory]] : []), [copyText('main.titlesettings.3'), title]
+    ], copyText('main.pause.3'));
     settings.append($('reader-body'));
-    if (!story.saveAvailable) { const p = document.createElement('p'); p.textContent = '浏览器未允许保存。当前页面内可以继续，关闭页面后进度可能丢失。'; $('reader-body').append(p); }
+    if (!story.saveAvailable) { const p = document.createElement('p'); p.textContent = copyText('main.pause.4'); $('reader-body').append(p); }
 }
 $('reader-close').addEventListener('click', close);
 reader.addEventListener('close',()=>{ if(!reader.open) document.body.append(noticeHost); });
@@ -657,13 +687,14 @@ function leaveDrive() {
     story.state.position = scene.playerSnapshot();
     enterWorld(); story.advanceArrival('intro','letter');
     restoreMouse = !!window.matchMedia?.('(pointer:fine)').matches;
-    open('下车', inputGuide, [['开始探索', close]], '回煞 · 村口');
+    open(copyText('main.leavedrive'), inputGuide, [[copyText('main.leavedrive.2'), close]], copyText('main.leavedrive.3'));
 }
+$('skip-well').addEventListener('click',()=>scene.watch.release());
 $('skip-drive').addEventListener('click', leaveDrive);
 function startDrive() {
     $('title-screen').hidden = true; audio.start();
     mode = 'drive'; scene.showingFilm = true; audio.startEngine(); audio.update(scene.map.roadStart,true); $('drive').hidden = false; $('skip-drive').focus();
-    stopDrive = playDrive($('windscreen'), $('drive-caption'), leaveDrive, ()=>audio.knock());
+    stopDrive = playDrive($('windscreen'), $('drive-caption'), leaveDrive, ()=>{audio.stopEngine();audio.knock();}, $('drive-next'), ()=>audio.silenceRadio());
 }
 $('replay-drive').addEventListener('click', () => {replayOnly = true; startDrive();});
 $('begin').addEventListener('click', () => {
@@ -673,10 +704,10 @@ $('begin').addEventListener('click', () => {
     enterWorld();
 });
 $('restart').addEventListener('click', () => {
-    open('重新回家', '重新开始会清除观察、字轮、量水、记忆推理和结局进度。', [['保留进度', close], ['确认重新开始', () => {
-        story.reset(); scene.controls.teleport(scene.map.playerStart); audio.resetPosition();
+    open(copyText('main.text'), copyText('main.text.2'), [[copyText('main.text.3'), close], [copyText('main.text.4'), () => {
+        story.reset(); if(scene.watch){scene.watch.phase='quiet';scene.watch.root.visible=false;} scene.controls.teleport(scene.map.playerStart); audio.resetPosition();
         scene.syncState(true); evidenceJournal.sync(); close(); updateStatus();
-    }]], '开始新的归门');
+    }]], copyText('main.text.5'));
 });
 $('backpack').addEventListener('click',backpack);
 $('hints').addEventListener('click',()=>guidance());
@@ -700,9 +731,9 @@ $('lock-hint').addEventListener('click', () => guidance(0, true));
 $('lock-attempt').addEventListener('click', () => {
     if (reader.open || scene.inspectionKind !== 'lock') return;
     scene.syncState(true);
-    if (!story.unlock()) { audio.knock(); updateLock('门闩又落了回去。可以继续调整字轮，或回查字迹。'); return; }
+    if (!story.unlock()) { audio.knock(); updateLock(copyText('main.text.6')); return; }
     scene.syncState(); audio.latch(); leaveInspection();
-    $('toast').textContent = '门闩松开了。你可以继续观察，也可以穿过门去。'; $('toast').hidden = false;
+    $('toast').textContent = copyText('main.text.7'); $('toast').hidden = false;
     setTimeout(() => { $('toast').hidden = true; }, 5000);
 });
 document.querySelectorAll('[data-bucket]').forEach(button => button.addEventListener('click', () => waterAction(`bucket${button.dataset.bucket}`)));
@@ -714,7 +745,7 @@ $('portrait-leave').addEventListener('click', () => leaveInspection());
 $('portrait-records').addEventListener('click', () => journal(true));
 $('portrait-reveal').addEventListener('click', () => {
     if (scene.inspectionKind !== 'portrait' || reader.open || !story.revealPortrait()) return;
-    audio.paper(); scene.syncState(); updatePortrait('黑布被提起来了。照片背后的话还要翻过去才看得见。');
+    audio.paper(); scene.syncState(); updatePortrait(copyText('main.text.8'));
 });
 $('portrait-flip').addEventListener('click', () => {
     if (scene.inspectionKind !== 'portrait' || reader.open) return;
@@ -722,7 +753,7 @@ $('portrait-flip').addEventListener('click', () => {
 });
 $('portrait-read').addEventListener('click', () => {
     if (scene.inspectionKind !== 'portrait' || reader.open || !scene.portrait.backVisible || !story.readPortraitBack()) return;
-    audio.paper(); readRecord(game.PORTRAIT_BACK_RECORD, [['回到相框', portrait]]);
+    audio.paper(); readRecord(game.PORTRAIT_BACK_RECORD, [[copyText('main.inspectionlabel.portrait'), portrait]]);
 });
 document.querySelectorAll('[data-phone-page]').forEach(button => button.addEventListener('click', () => phonePage(button.dataset.phonePage)));
 $('phone-leave').addEventListener('click', () => leaveInspection());
@@ -753,6 +784,10 @@ evidenceJournal.mountInspector($('lock-inspector'));
 evidenceJournal.mountInspector($('water-inspector'));
 window.addEventListener('keydown', event => {
     if (event.defaultPrevented || event.isComposing || event.repeat) return;
+    if(scene?.watch?.phase==='film'){
+        if(event.code==='Escape'){event.preventDefault();scene.watch.release();}
+        return;
+    }
     if (mode === 'drive' && event.code === 'Escape') { event.preventDefault(); leaveDrive(); return; }
     if (mode !== 'game') return;
     if (event.code === 'KeyE' && (reader.open || scene.inspectionReturn) && !/INPUT|TEXTAREA|SELECT/.test(event.target?.tagName)) {
@@ -760,7 +795,7 @@ window.addEventListener('keydown', event => {
     }
     if ((event.code==='KeyB' || event.code==='KeyH') && !/INPUT|SELECT|TEXTAREA/.test(event.target?.tagName)) {
         event.preventDefault();
-        if(event.code==='KeyB') reader.open && $('reader-title').textContent==='背包' ? close() : backpack();
+        if(event.code==='KeyB') reader.open && $('reader-title').textContent===copyText('main.backpack.5') ? close() : backpack();
         else guidance(); return;
     }
     if (reader.open) return;
@@ -807,17 +842,26 @@ try {
         getPreferences: () => preferences.values,
         isReading: () => reader.open || document.hidden || mode !== 'game',
         onMechanismEvent: event => { if (event === 'door-release') audio.knock(); },
+        onKitchenDrip: (volume,pan) => {
+            if (!audio.sample('impactMetal_light_001',volume,pan)) audio.tone(1030,.13,volume*.23);
+        },
         onWatchEvent: (kind, pan) => {
             const panel = $('yard-watch');
-            const words = {yard:'院门边，有人正提着灯往这边照。右手厨房里亮着灶火。',still:'灯扫到脚边了。站住，等光过去。',warning:'纸鞋在擦地。别动，或者躲到廊檐下。',caught:'那双鞋在你脚边停下。再睁眼，你又站在刚跨过的门槛上。',safe:'我跨进灶间，背后的灯灭了。有件东西擦着门边的墙滑到了地上。'};
-            if (!kind && ['caught','safe'].includes(panel.dataset.cue)) return;
-            panel.hidden = !kind; panel.textContent = words[kind] || ''; panel.dataset.cue = kind;
-            if (kind === 'still' || kind === 'warning' || kind === 'caught') audio.watchStep(pan,kind!=='still');
-            if (kind === 'caught' || kind === 'safe') {
-                audio.resetPosition(); updateStatus();
-                const message = panel.textContent;
-                setTimeout(() => { if (panel.textContent === message) panel.hidden = true; }, 4200);
+            if(kind==='film'){
+                releaseMouse();$('well-closeup').hidden=true;$('well-film').hidden=false;$('skip-well').focus();audio.water('pour');return;
             }
+            if(kind==='crease'){audio.paper();return;}
+            if(kind==='land'){audio.knock();return;}
+            if(kind==='step'){if(!audio.sample('impactWood_light_000',.58,pan))audio.watchStep(pan,true);return;}
+            if(kind==='run'){
+                $('well-film').hidden=true;restoreMouse=!!window.matchMedia?.('(pointer:fine)').matches;resumeWorld();
+            }
+            const words={run:copyText('main.words.run'),caught:copyText('main.words.caught'),safe:copyText('main.words.safe')};
+            panel.hidden=false;panel.textContent=words[kind];panel.dataset.cue=kind;
+            if(kind==='caught')audio.knock();
+            if(kind==='safe'||kind==='caught')audio.resetPosition();
+            const message=panel.textContent;
+            setTimeout(()=>{if(panel.textContent===message)panel.hidden=true;},4200);
         },
         onScaleEvent: event => {
             if (event.phase === 'ready') {
@@ -829,15 +873,15 @@ try {
                 return;
             }
             event.success ? audio.release() : audio.knock();
-            updateWater(event.success ? '对准四升。桌下的抽屉开了。'
-                : `指针偏${event.amount < 4 ? '轻' : '重'}，当前 ${event.amount} 升。`);
+            updateWater(event.success ? copyText('main.onscaleevent')
+                : copyText('main.onscaleevent.2', event.amount < 4 ? copyText('main.onscaleevent.3') : copyText('main.onscaleevent.4'), event.amount));
         },
         onAssetError: name => { assetErrors.add(name); updateLoadStatus(); },
         onFrame: (position, paused) => {
             audio.update(position, paused, story.state.memory || 'house');
             if (!paused) {
                 story.visitPosition(position);
-                const headline=story.headline(position);
+                const headline=scene.watch?.phase==='chase'?copyText('main.headline.onframe'):story.headline(position);
                 if($('objective').textContent!==headline) $('objective').textContent=headline;
             }
             if (!paused && story.state.lamp === 'lit' && story.inDraft(position) && !story.state.shielded) {
@@ -847,6 +891,7 @@ try {
             if (scene.inspectionKind === 'document' && !reader.open) updateDocument();
             if (!paused && !story.state.memory && story.state.opened && position.z < -15.2 && story.enterCourtyard()) updateStatus();
         } });
+    scene.onWellFrame=t=>wellShots.draw(t);
     await scene.start();
     scene.controls.onTap = point => scene.interaction.activate(point, scene.renderer.domElement);
     applyPreferences();
@@ -908,6 +953,6 @@ try {
     saveTimer = setInterval(() => { if (mode === 'game' && !reader.open) save(); }, 5000);
 } catch (error) {
     scene?.dispose();
-    $('load-status').textContent = `旧宅未能载入。请通过 StartGame.bat 启动，并检查浏览器是否支持 WebGL。${error.message ? `（${error.message}）` : ''}`;
-    $('load-status').classList.add('fatal'); $('begin').textContent = '载入失败';
+    $('load-status').textContent = copyText('main.text.9', error.message ? `（${error.message}）` : '');
+    $('load-status').classList.add('fatal'); $('begin').textContent = copyText('main.text.10');
 }

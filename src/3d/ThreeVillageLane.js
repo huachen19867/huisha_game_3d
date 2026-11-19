@@ -1,4 +1,5 @@
 (function (global) {
+    const copyText=global.HuishaCopy;
     const { THREE, Huisha3D: game } = global;
 
     function buildCar(h) {
@@ -92,7 +93,7 @@
         for (let slot=0;slot<4;slot++) h.box('grille-louvre',[.66,.017,.037],[0,.57+slot*.04,-2.183],rubber,undefined,car);
         for (const side of [-1,1]) {
             bar('windscreen-wiper',[side*.67,1.034,-.814],[side*.11,1.08,-.77],.012,rubber);
-            h.label('wagon-registration','槐 A·7316',[.46,.13],[0,.54,side*2.215],[0,side>0?0:Math.PI,0],undefined,car,'#20394a','#c8cebd');
+            h.label('wagon-registration',copyText('villagelane.wagon-registration'),[.46,.13],[0,.54,side*2.215],[0,side>0?0:Math.PI,0],undefined,car,'#20394a','#c8cebd');
         }
         h.box('rear-bumper',[1.75,.11,.12],[0,.44,2.14],rubber,'car_envelope',car);
         const transfer=new THREE.MeshStandardMaterial({color:0x99463c,transparent:true,opacity:.82,roughness:.76,depthWrite:false});
@@ -210,13 +211,13 @@
             h.box('gate-hinge-strap',[.23,.046,.013],[-.89,y-1.42,.107],m.brass,'front_gate',h.frontDoor);
             h.cylinder('gate-hinge-pin',.019,.019,.125,[-.992,y-1.42,.108],m.brass,'front_gate',h.frontDoor);
         }
-        h.label('old-number','槐树巷\n十四号',[.57,.45],[1.41,1.78,4.56],[0,0,0],'front_gate',undefined,'#304745','#e2e2bc');
+        h.label('old-number',copyText('villagelane.old-number'),[.57,.45],[1.41,1.78,4.56],[0,0,0],'front_gate',undefined,'#304745','#e2e2bc');
         h.box('front-handle',[.08,.23,.06],[.45,-.15,.12],m.brass,'front_gate',h.frontDoor);
         h.cylinder('front-key-escutcheon',.04,.04,.012,[.45,-.33,.108],m.brass,'front_gate',h.frontDoor).rotation.x=Math.PI/2;
         h.box('front-keyway',[.009,.027,.004],[.45,-.335,.117],m.cloth,'front_gate',h.frontDoor);
         h.box('carpenter-chalk',[.16,.007,.003],[-.63,-.93,.103],m.paper,'front_gate',h.frontDoor).rotation.z=.07;
         h.box('landslide-barrier',[7.3,.82,.24],[0,.4,34.14],m.stone);
-        h.label('landslide-sign','前方塌方　封路',[2,.4],[0,.58,34],[0,Math.PI,0],undefined,undefined,'#593c31','#ffdfa5');
+        h.label('landslide-sign',copyText('villagelane.landslide-sign'),[2,.4],[0,.58,34],[0,Math.PI,0],undefined,undefined,'#593c31','#ffdfa5');
         for (const slope of [-1,1]) {
             h.box('gate-eave',[10.45,.18,1.07],[0,3.51,4.4+slope*.48],m.roof||m.darkWood).rotation.x=slope*.36;
             h.box('gate-fascia',[10.46,.12,.14],[0,3.32,4.4+slope*.96],m.darkWood);
@@ -238,13 +239,13 @@
         h.mesh('mug-handle',new THREE.TorusGeometry(.048,.011,7,16),m.paper,[3.22,1.13,21.81],'duty_book').rotation.y=Math.PI/2;
         game.buildClerk(h);
         h.box('duty-canopy',[2.4,.15,3.4],[3.52,2.79,21],m.roof||m.darkWood);
-        h.label('duty-sign','村口值班室',[1.64,.42],[2.66,2.55,21],[0,-Math.PI/2,0],'duty_book');
-        h.label('open-ledger','旧牌　新牌\n换牌登记',[.69,.46],[2.99,1.079,21.1],[-Math.PI/2,0,Math.PI/2],'duty_book');
+        h.label('duty-sign',copyText('housemap.clerk_holdall.location'),[1.64,.42],[2.66,2.55,21],[0,-Math.PI/2,0],'duty_book');
+        h.label('open-ledger',copyText('villagelane.open-ledger'),[.69,.46],[2.99,1.079,21.1],[-Math.PI/2,0,Math.PI/2],'duty_book');
         const cabinet=new THREE.Group();
         cabinet.position.set(3.48,1.57,21.82); cabinet.rotation.y=-Math.PI/2; h.scene.add(cabinet);
         for (const x of [-.42,.42]) h.box('key-stand-foot',[.052,.23,.13],[x,-.42,0],m.wood,'key_board',cabinet);
         h.box('key-board',[1.06,.65,.09],[0,0,0],m.darkWood,'key_board',cabinet);
-        h.label('key-sign','住 户 钥 匙',[.74,.13],[0,.21,.051],[0,0,0],'key_board',cabinet);
+        h.label('key-sign',copyText('villagelane.key-sign'),[.74,.13],[0,.21,.051],[0,0,0],'key_board',cabinet);
         for (let i=0;i<3;i++) {
             const x=(i-1)*.31, number=[9,6,16][i], key=new THREE.Group();
             key.position.set(x,.01,.094); cabinet.add(key);
@@ -257,7 +258,7 @@
         }
         h.box('lane-repair-post',[.08,1.65,.08],[-3.52,.825,11.5],m.wood);
         h.box('lane-repair-board',[.06,.41,.83],[-3.46,1.37,11.5],m.darkWood);
-        h.label('lane-repair-contact','旧宅修缮\n领钥匙请到值班室',[.78,.36],[-3.425,1.37,11.5],[0,Math.PI/2,0],undefined,undefined,'#aca998','#283c37');
+        h.label('lane-repair-contact',copyText('villagelane.lane-repair-contact'),[.78,.36],[-3.425,1.37,11.5],[0,Math.PI/2,0],undefined,undefined,'#aca998','#283c37');
         for (const [x,z] of [[2.94,21],[-3.26,11.5],[1.2,4.85]]) {
             const light = new THREE.PointLight(0xffca83,5,7,1.65);
             light.position.set(x-.26,2.14,z); h.scene.add(light);

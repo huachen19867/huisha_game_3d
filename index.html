@@ -7,6 +7,7 @@
     <link rel="icon" href="data:,">
     <link rel="modulepreload" href="vendor/three.module.mjs">
     <link rel="modulepreload" href="src/drive-intro.mjs">
+    <link rel="preload" as="image" href="assets/art/village-windscreen.webp">
     <link rel="stylesheet" href="src/style.css">
     <link rel="stylesheet" href="src/lock.css">
     <link rel="stylesheet" href="src/water.css">
@@ -21,89 +22,90 @@
     <title>回煞</title>
 </head>
 <body>
-    <main id="world" aria-label="旧宅三维场景"></main>
+    <main id="world" aria-label="旧宅三维场景" data-copy="aria:index.world.aria"></main>
     <div class="grain" aria-hidden="true"></div>
     <section id="title-screen" class="title-screen" aria-labelledby="game-name">
-        <div class="edition">中 式 民 俗 悬 疑 <span>归门 / 余温</span></div>
+        <div class="edition" data-copy="0:index.div">中 式 民 俗 悬 疑 <span data-copy="0:index.span">归门 / 余温</span></div>
         <div class="title-content">
-            <p class="eyebrow">七月十四 · 李家老宅</p>
-            <h1 id="game-name">回<span>煞</span></h1>
-            <p class="tagline">我妈去世那年，这盏灯就收起来了。</p>
+            <p class="eyebrow" data-copy="0:index.p">七月十四 · 李家老宅</p>
+            <h1 id="game-name" data-copy="0:index.game-name">回<span data-copy="0:index.span.2">煞</span></h1>
+            <p class="tagline" data-copy="0:index.p.2">我妈去世那年，这盏灯就收起来了。</p>
             <div class="title-actions">
-                <button id="begin" class="primary" disabled>正在准备旧宅…</button>
-                <button id="replay-drive" class="quiet" hidden>重看片头</button>
-                <button id="restart" class="quiet" hidden>重新回家</button>
-                <button id="title-settings" class="quiet" disabled>游玩设置</button>
+                <button id="begin" class="primary" disabled data-copy="0:index.begin">正在准备旧宅…</button>
+                <button id="replay-drive" class="quiet" hidden data-copy="0:index.replay-drive">重看片头</button>
+                <button id="restart" class="quiet" hidden data-copy="0:main.text">重新回家</button>
+                <button id="title-settings" class="quiet" disabled data-copy="0:main.titlesettings">游玩设置</button>
             </div>
-            <p id="load-status" class="muted" role="status">正在载入场景与器物</p>
+            <p id="load-status" class="muted" role="status" data-copy="0:index.load-status">正在载入场景与器物</p>
         </div>
-        <aside class="letter-card"><span class="seal">家书</span><p>明，十四回来吃饭。</p><p>走廊漏风，端灯记得拢着手。</p><small>里面的小信封写着「李明收」。<br>外面那层，投递章是昨天的。</small></aside>
-        <footer class="title-footer"><span>归门 · 余温</span><span>建议戴耳机游玩</span></footer>
+        <aside class="letter-card"><span class="seal" data-copy="0:index.span.3">家书</span><p data-copy="0:index.p.3">明，十四回来吃饭。</p><p data-copy="0:index.p.4">走廊漏风，端灯记得拢着手。</p><small data-copy="0:index.small 2:index.small.2">里面的小信封写着「李明收」。<br>外面那层，投递章是昨天的。</small></aside>
+        <footer class="title-footer"><span data-copy="0:index.span.4">归门 · 余温</span><span data-copy="0:index.span.5">建议戴耳机游玩</span></footer>
     </section>
-    <section id="drive" hidden aria-label="七月十四，雨夜进村">
+    <section id="drive" hidden aria-label="七月十四，雨夜进村" data-copy="aria:index.drive.aria">
         <canvas id="windscreen" aria-hidden="true"></canvas>
-        <div class="drive-heading"><span>七月十四　·　槐树巷</span><button id="skip-drive">跳过片头 <kbd>Esc</kbd></button></div>
-        <p id="drive-caption" aria-live="polite"></p>
+        <div class="drive-heading"><span data-copy="0:index.span.6">七月十四　·　槐树巷</span><button id="skip-drive" data-copy="0:index.skip-drive">跳过片头 <kbd>Esc</kbd></button></div>
+        <div class="drive-dialog"><p id="drive-caption" aria-live="polite"></p><button id="drive-next" data-copy="0:drive-intro.playdrive.5">继续</button></div>
     </section>
+    <section id="well-film" hidden aria-label="雨庭旧井过场" data-copy="aria:index.well-film.aria"><canvas id="well-closeup" aria-hidden="true" hidden></canvas><button id="skip-well" data-copy="0:index.skip-well">跳过过场 <kbd>Esc</kbd></button></section>
     <aside id="acquisitions" role="status" aria-live="polite" aria-relevant="additions"></aside>
-    <section id="hud" class="hud" hidden aria-label="探索界面">
-        <div class="hud-top"><div class="chapter"><span id="chapter-number">壹</span><p><span id="chapter-name">归 门</span><small id="objective"></small></p></div><nav><button id="backpack">背包 <kbd>B</kbd></button><button id="hints">查看提示 <kbd>H</kbd></button><button id="map">地图 <kbd>M</kbd></button><button id="journal">手记 <kbd>J</kbd></button><button id="pause">暂停 <kbd>Esc</kbd></button></nav></div>
+    <section id="hud" class="hud" hidden aria-label="探索界面" data-copy="aria:index.hud.aria">
+        <div class="hud-top"><div class="chapter"><span id="chapter-number" data-copy="0:main.updatestatus.12">壹</span><p><span id="chapter-name" data-copy="0:main.updatestatus.14">归 门</span><small id="objective"></small></p></div><nav><button id="backpack" data-copy="0:index.backpack">背包 <kbd>B</kbd></button><button id="hints" data-copy="0:index.hints">查看提示 <kbd>H</kbd></button><button id="map" data-copy="0:index.map">地图 <kbd>M</kbd></button><button id="journal" data-copy="0:index.journal">手记 <kbd>J</kbd></button><button id="pause" data-copy="0:index.pause">暂停 <kbd>Esc</kbd></button></nav></div>
         <div class="reticle" aria-hidden="true"></div>
         <span id="focus-marker" class="focus-marker" hidden aria-hidden="true"></span>
-        <button id="prompt" class="prompt" hidden>调查</button>
-        <button id="shield-flame" class="lamp-hand" aria-pressed="false" hidden>拢住灯火 <kbd>F</kbd></button>
-        <p class="help">双击 W 疾跑 <i>·</i> 空格跳跃 <i>·</i> E / 左键调查 <i>·</i> E 返回</p>
-        <div id="touch-pad" class="touch-pad" aria-label="移动方向"><button data-move="0,1" aria-label="向前">前</button><button data-move="-1,0" aria-label="向左">左</button><button data-move="0,-1" aria-label="向后">后</button><button data-move="1,0" aria-label="向右">右</button><button type="button" id="touch-jump">跳</button></div>
+        <button id="prompt" class="prompt" hidden data-copy="0:index.prompt">调查</button>
+        <button id="shield-flame" class="lamp-hand" aria-pressed="false" hidden data-copy="0:index.shield-flame">拢住灯火 <kbd>F</kbd></button>
+        <p class="help" data-copy="0:index.p.5 2:index.p.6 4:index.p.7 6:index.p.8">双击 W 疾跑 <i>·</i> 空格跳跃 <i>·</i> E / 左键调查 <i>·</i> E 返回</p>
+        <div id="touch-pad" class="touch-pad" aria-label="移动方向" data-copy="aria:index.touch-pad.aria"><button data-move="0,1" aria-label="向前" data-copy="aria:index.button.aria 0:index.button">前</button><button data-move="-1,0" aria-label="向左" data-copy="aria:index.button.aria.2 0:main.updatelock.3">左</button><button data-move="0,-1" aria-label="向后" data-copy="aria:index.button.aria.3 0:index.button.2">后</button><button data-move="1,0" aria-label="向右" data-copy="aria:index.button.aria.4 0:main.updatelock.5">右</button><button type="button" id="touch-jump" data-copy="0:index.touch-jump">跳</button></div>
         <p id="toast" class="toast" role="status" hidden></p>
         <p id="yard-watch" role="status" hidden></p>
     </section>
     <section id="lock-inspector" class="lock-inspector" hidden aria-labelledby="lock-title">
-        <div class="lock-heading"><h2 id="lock-title">归门字轮</h2><span>看向铜轮，按从左到右的顺序转动</span></div>
-        <div class="lock-turns" aria-label="转动实体字轮">
-            <button type="button" data-wheel="0">转动左轮 <kbd>1</kbd><small></small></button>
-            <button type="button" data-wheel="1">转动中轮 <kbd>2</kbd><small></small></button>
-            <button type="button" data-wheel="2">转动右轮 <kbd>3</kbd><small></small></button>
+        <div class="lock-heading"><h2 id="lock-title" data-copy="0:housemap.lock.title">归门字轮</h2><span data-copy="0:index.span.7">看向铜轮，按从左到右的顺序转动</span></div>
+        <div class="lock-turns" aria-label="转动实体字轮" data-copy="aria:index.div.aria">
+            <button type="button" data-wheel="0" data-copy="0:index.button.3">转动左轮 <kbd>1</kbd><small></small></button>
+            <button type="button" data-wheel="1" data-copy="0:index.button.4">转动中轮 <kbd>2</kbd><small></small></button>
+            <button type="button" data-wheel="2" data-copy="0:index.button.5">转动右轮 <kbd>3</kbd><small></small></button>
         </div>
-        <p id="lock-status" role="status">可以对照已读字迹，再尝试压下门闩。</p>
-        <div class="lock-actions"><button id="lock-hang" type="button" hidden>照着活扣，挑起门闩</button><button id="lock-attempt" type="button">压下门闩</button><button id="lock-records" type="button">回查手记 <kbd>J</kbd></button><button id="lock-hint" type="button">需要提示</button><button id="lock-leave" type="button">退回门前 <kbd>E</kbd></button></div>
+        <p id="lock-status" role="status" data-copy="0:index.lock-status">可以对照已读字迹，再尝试压下门闩。</p>
+        <div class="lock-actions"><button id="lock-hang" type="button" hidden data-copy="0:index.lock-hang">照着活扣，挑起门闩</button><button id="lock-attempt" type="button" data-copy="0:index.lock-attempt">压下门闩</button><button id="lock-records" type="button" data-copy="0:index.lock-records">回查手记 <kbd>J</kbd></button><button id="lock-hint" type="button" data-copy="0:index.lock-hint">需要提示</button><button id="lock-leave" type="button" data-copy="0:index.lock-leave">退回门前 <kbd>E</kbd></button></div>
     </section>
     <section id="water-inspector" class="lock-inspector water-inspector" hidden aria-labelledby="water-title">
-        <div class="water-heading"><h2 id="water-title">量水秤</h2><button id="water-leave" aria-label="退出量水秤">返回</button></div>
-        <p class="water-goal">目标：五升桶里留下四升水</p>
-        <div class="bucket-pair" aria-label="选择水桶">
-            <button type="button" data-bucket="0" aria-pressed="true"><strong>三升桶</strong><span id="level-small">0 / 3 升</span></button>
-            <button type="button" data-bucket="1" aria-pressed="false"><strong>五升桶</strong><span id="level-large">0 / 5 升</span></button>
+        <div class="water-heading"><h2 id="water-title" data-copy="0:main.inspect.15">量水秤</h2><button id="water-leave" aria-label="退出量水秤" data-copy="aria:index.water-leave.aria 0:chapter-ui.household">返回</button></div>
+        <p class="water-goal" data-copy="0:index.p.9">目标：五升桶里留下四升水</p>
+        <div class="bucket-pair" aria-label="选择水桶" data-copy="aria:index.div.aria.2">
+            <button type="button" data-bucket="0" aria-pressed="true"><strong data-copy="0:index.strong">三升桶</strong><span id="level-small" data-copy="0:index.level-small">0 / 3 升</span></button>
+            <button type="button" data-bucket="1" aria-pressed="false"><strong data-copy="0:index.strong.2">五升桶</strong><span id="level-large" data-copy="0:index.level-large">0 / 5 升</span></button>
         </div>
         <div class="water-controls">
-            <button id="water-fill">添满</button><button id="water-empty">倒空</button>
-            <button id="water-pour">倒入五升桶</button>
+            <button id="water-fill" data-copy="0:index.water-fill">添满</button><button id="water-empty" data-copy="0:index.water-empty">倒空</button>
+            <button id="water-pour" data-copy="0:main.updatewater.4">倒入五升桶</button>
         </div>
-        <button id="water-weigh">放上秤盘</button>
+        <button id="water-weigh" data-copy="0:index.water-weigh">放上秤盘</button>
         <p id="water-status" role="status"></p>
-        <div class="water-links"><button id="water-records">手记</button><button id="water-hint">查看提示</button></div>
+        <div class="water-links"><button id="water-records" data-copy="0:index.water-records">手记</button><button id="water-hint" data-copy="0:main.guidance">查看提示</button></div>
     </section>
     <section id="portrait-inspector" class="lock-inspector portrait-inspector" hidden aria-labelledby="portrait-title">
-        <div class="lock-heading"><h2 id="portrait-title">母亲的旧相框</h2><span>揭开黑布 · 拿近 · 翻到背面</span></div>
+        <div class="lock-heading"><h2 id="portrait-title" data-copy="0:interaction.showprompt.7">母亲的旧相框</h2><span data-copy="0:index.span.8">揭开黑布 · 拿近 · 翻到背面</span></div>
         <p id="portrait-status" role="status"></p>
-        <div class="portrait-actions"><button id="portrait-reveal" type="button">揭开黑布</button><button id="portrait-flip" type="button">翻到背面</button><button id="portrait-read" type="button" disabled>阅读背字</button></div>
-        <div class="lock-actions"><button id="portrait-records" type="button">回查手记 <kbd>J</kbd></button><button id="portrait-leave" type="button">放回原处 <kbd>E</kbd></button></div>
+        <div class="portrait-actions"><button id="portrait-reveal" type="button" data-copy="0:index.portrait-reveal">揭开黑布</button><button id="portrait-flip" type="button" data-copy="0:main.updatedocument.2">翻到背面</button><button id="portrait-read" type="button" disabled data-copy="0:index.portrait-read">阅读背字</button></div>
+        <div class="lock-actions"><button id="portrait-records" type="button" data-copy="0:index.lock-records">回查手记 <kbd>J</kbd></button><button id="portrait-leave" type="button" data-copy="0:index.portrait-leave">放回原处 <kbd>E</kbd></button></div>
     </section>
     <section id="phone-inspector" class="lock-inspector phone-inspector" hidden aria-labelledby="phone-title">
-        <div class="lock-heading"><h2 id="phone-title">雨夜的旧手机</h2><span>查看页面 · 核对日期 · 记下原文</span></div>
-        <div class="phone-actions"><button type="button" data-phone-page="calls" aria-pressed="false">通话记录 <kbd>1</kbd></button><button type="button" data-phone-page="recording" aria-pressed="false">本地录音资料 <kbd>2</kbd></button><button id="phone-read" type="button" disabled>阅读并记下当前页</button></div>
+        <div class="lock-heading"><h2 id="phone-title" data-copy="0:memorymap.crash.7">雨夜的旧手机</h2><span data-copy="0:index.span.9">查看页面 · 核对日期 · 记下原文</span></div>
+        <div class="phone-actions"><button type="button" data-phone-page="calls" aria-pressed="false" data-copy="0:index.button.6">通话记录 <kbd>1</kbd></button><button type="button" data-phone-page="recording" aria-pressed="false" data-copy="0:index.button.7">本地录音资料 <kbd>2</kbd></button><button id="phone-read" type="button" disabled data-copy="0:index.phone-read">阅读并记下当前页</button></div>
         <p id="phone-status" role="status"></p>
         <div id="phone-reading" class="inspection-reading" hidden></div>
-        <div class="lock-actions"><button id="phone-records" type="button">回查手记 <kbd>J</kbd></button><button id="phone-leave" type="button">放回原处 <kbd>E</kbd></button></div>
+        <div class="lock-actions"><button id="phone-records" type="button" data-copy="0:index.lock-records">回查手记 <kbd>J</kbd></button><button id="phone-leave" type="button" data-copy="0:index.portrait-leave">放回原处 <kbd>E</kbd></button></div>
     </section>
     <section id="document-inspector" class="lock-inspector document-inspector" hidden aria-labelledby="document-title">
-        <div class="lock-heading"><h2 id="document-title">旧纸张</h2><span>拿近 · 翻面 · 阅读原文</span></div>
+        <div class="lock-heading"><h2 id="document-title" data-copy="0:index.document-title">旧纸张</h2><span data-copy="0:index.span.10">拿近 · 翻面 · 阅读原文</span></div>
         <p id="document-status" role="status"></p>
-        <div class="document-actions"><button id="document-join" type="button" hidden>沿撕口合上两半</button><button id="document-flip" type="button">翻到背面</button><button id="document-read" type="button">阅读并记下这一面</button></div>
+        <div class="document-actions"><button id="document-join" type="button" hidden data-copy="0:index.document-join">沿撕口合上两半</button><button id="document-flip" type="button" data-copy="0:main.updatedocument.2">翻到背面</button><button id="document-read" type="button" data-copy="0:index.document-read">阅读并记下这一面</button></div>
         <div id="document-reading" class="inspection-reading" hidden></div>
-        <div class="lock-actions"><button id="document-records" type="button">回查手记 <kbd>J</kbd></button><button id="document-leave" type="button">放回原处 <kbd>E</kbd></button></div>
+        <div class="lock-actions"><button id="document-records" type="button" data-copy="0:index.lock-records">回查手记 <kbd>J</kbd></button><button id="document-leave" type="button" data-copy="0:index.portrait-leave">放回原处 <kbd>E</kbd></button></div>
     </section>
     <dialog id="reader" aria-labelledby="reader-title">
-        <div class="reader-heading"><p id="reader-eyebrow" class="eyebrow">旧宅 · 观察记录</p><button id="reader-close" class="close" aria-label="返回">返回 <kbd>E / Esc</kbd></button></div>
+        <div class="reader-heading"><p id="reader-eyebrow" class="eyebrow" data-copy="0:main.open">旧宅 · 观察记录</p><button id="reader-close" class="close" aria-label="返回" data-copy="aria:chapter-ui.household 0:index.reader-close">返回 <kbd>E / Esc</kbd></button></div>
         <h2 id="reader-title" tabindex="-1"></h2>
         <div id="reader-body"></div>
         <div id="reader-actions" class="reader-actions"></div>

@@ -1,4 +1,5 @@
 (function (global) {
+    const copyText=global.HuishaCopy;
     const game = global.Huisha3D;
     const THREE = global.THREE;
     class ThreeCourtyard {
@@ -22,7 +23,7 @@
             h.box('kitchen-right-wall', [0.2, 3.2, 7.4], [11, 1.5, -21.2], m.plaster);
             h.box('kitchen-roof', [5.3, 0.18, 7.7], [8.5, 3.15, -21.2], m.darkWood);
             h.box('kitchen-lintel', [0.28, 0.24, 4], [6, 2.8, -21.5], m.wood);
-            h.label('kitchen-sign', '灶　间', [1.0, 0.32], [5.87, 2.45, -21.4], [0, -Math.PI / 2, 0],undefined,h.scene,'#392d22','#ddbd8a');
+            h.label('kitchen-sign', copyText('courtyard.kitchen-sign'), [1.0, 0.32], [5.87, 2.45, -21.4], [0, -Math.PI / 2, 0],undefined,h.scene,'#392d22','#ddbd8a');
             this.buildMask();
             const wetStone = m.paving.clone(); wetStone.color.setHex(0x83887d); wetStone.roughness=.43;
             for (let i = 0; i < 6; i++) {
@@ -34,9 +35,7 @@
             this.buildWell();
             const water = new THREE.MeshStandardMaterial({ color: 0x41615e, roughness: 0.19, metalness: 0.18 });
             h.cylinder('well-water', 0.54, 0.54, 0.015, [-3, 0.18, -22], water, 'yard_well');
-            h.box('kitchen-stove', [1.25, 0.85, 1.1], [10, 0.4, -18.6], m.stone, 'kitchen_note');
-            h.cylinder('stove-pot', 0.31, 0.25, 0.2, [10, 0.91, -18.6], m.darkWood, 'kitchen_note');
-            h.label('calibration-note', '四升台秤\n左盘校准　右盘盛水', [0.72, 0.55], [10.45, 1.55, -17.62], [0, Math.PI, 0], 'kitchen_note');
+            this.kitchen=new game.ThreeKitchen(h);
             this.buildWater(water);
             const door = this.gateSpec = h.map.extraDoors.find(leaf=>leaf.id==='yard');
             this.gate = new THREE.Group(); this.gate.position.set(door.hingeX, 0, door.hingeZ); h.scene.add(this.gate);
@@ -47,25 +46,25 @@
             for (const side of [-1, 1]) h.box(`yard-bolt-receiver-${side}`, [0.14, 0.045, 0.17],
                 [door.hingeX + door.width + 0.16, 1.3 + side * 0.09, door.hingeZ + 0.15], m.brass, 'yard_gate');
             this.buildLinkage();
-            h.label('yard-gate-sign', '归　路', [1.1, 0.3], [1, 2, 0.1], [0, 0, 0], 'yard_gate', this.gate,'#382b23','#ccb189');
+            h.label('yard-gate-sign', copyText('courtyard.yard-gate-sign'), [1.1, 0.3], [1, 2, 0.1], [0, 0, 0], 'yard_gate', this.gate,'#382b23','#ccb189');
             h.box('road', [2.6, 0.16, 5], [0, -0.1, -30], m.paving, 'road_exit');
             for (const side of [-1, 1]) h.box(`road-edge-${side}`, [0.18, 0.76, 18.5], [side * 1.35, 0.36, -36.85], m.wood);
             h.box('bus-path',[2.7,.16,18.7],[0,-.1,-36.8],m.paving);
             h.box('road-barrier', [2.8,.96,.18], [0,.48,-46.09], m.wood, 'road_exit');
-            h.label('road-end-sign', '接驳车　上客处', [1.3,.32], [0,.75,-45.98], [0,0,0], 'road_exit');
+            h.label('road-end-sign', copyText('courtyard.road-end-sign'), [1.3,.32], [0,.75,-45.98], [0,0,0], 'road_exit');
             h.box('bus-notice-post',[.09,1.9,.09],[1.22,.95,-31.4],m.wood,'bus_notice');
-            h.label('bus-notice','塌方接驳\n来车方向：石桥',[.9,.6],[.99,1.55,-31.22],[0,-.32,0],'bus_notice');
+            h.label('bus-notice',copyText('courtyard.bus-notice'),[.9,.6],[.99,1.55,-31.22],[0,-.32,0],'bus_notice');
             h.box('shelter-roof',[2.82,.15,3.4],[0,2.65,-40.8],m.darkWood);
             for(const z of [-39.25,-42.35]) for(const x of [-1.32,1.32]) h.box('shelter-post',[.11,2.6,.11],[x,1.3,z],m.wood);
             h.box('signal-pole',[.1,1.71,.11],[-1.21,.86,-40.5],m.stone,'stop_signal');
             this.signalBoard=h.box('signal-board',[.63,.37,.06],[-.98,1.54,-40.5],m.brass,'stop_signal');
-            h.label('stop-name','石桥接驳站',[1.44,.33],[0,2.36,-39.12],[0,0,0],'stop_signal');
+            h.label('stop-name',copyText('courtyard.stop-name'),[1.44,.33],[0,2.36,-39.12],[0,0,0],'stop_signal');
             this.busLights=new THREE.Group(); h.scene.add(this.busLights);
             for(const x of [-.76,.76]) h.box('bus-headlamp',[.39,.19,.08],[x,1,-46.4],
                 new THREE.MeshBasicMaterial({color:0xffdf9e}),'road_exit',this.busLights);
             h.box('waiting-bus',[2.46,1.96,3.3],[0,1.04,-48.15],m.stone,'road_exit',this.busLights);
             h.box('bus-windscreen',[2.12,.79,.08],[0,1.59,-46.45],m.cloth,'road_exit',this.busLights);
-            h.label('bus-destination','县城接驳',[.88,.22],[0,2.08,-46.41],[0,0,0],'road_exit',this.busLights);
+            h.label('bus-destination',copyText('courtyard.bus-destination'),[.88,.22],[0,2.08,-46.41],[0,0,0],'road_exit',this.busLights);
 
             // These fill lights add no shadow maps; the existing candle remains the sole shadow caster.
             for (const [color, intensity, distance, position] of [
@@ -86,7 +85,7 @@
             const makeMaterial=(side)=>{
                 const material=new THREE.MeshStandardMaterial({color:0xe6d7b8,roughness:.94,alphaTest:.36,side:side==='front'?THREE.FrontSide:THREE.BackSide});
                 if(h.renderer?.isWebGLRenderer){
-                    material.map=new THREE.TextureLoader().load('assets/art/paper-mask-'+side+'.webp',undefined,undefined,()=>h.onAssetError?.('纸面具'));
+                    material.map=new THREE.TextureLoader().load('assets/art/paper-mask-'+side+'.webp',undefined,undefined,()=>h.onAssetError?.(copyText('courtyard.buildmask')));
                     material.map.colorSpace=THREE.SRGBColorSpace;
                     if(side==='back'){material.map.repeat.x=-1;material.map.offset.x=1;}
                     h.textures.push(material.map);
@@ -161,18 +160,7 @@
         }
         dressStove() {
             const h=this.house, m=h.materials;
-            const iron=new THREE.MeshStandardMaterial({color:0x32312b,roughness:.59,metalness:.36,side:THREE.DoubleSide});
-            const ember=new THREE.MeshBasicMaterial({color:0xea853d});
             const profile=(points)=>new THREE.LatheGeometry(points.map(p=>new THREE.Vector2(...p)),28);
-            h.mesh('stove-wok-lid',profile([[.025,.15],[.10,.147],[.22,.103],[.32,.031],[.334,0]]),iron,[10,1.013,-18.6],'kitchen_note');
-            h.mesh('wok-lid-grip',new THREE.TorusGeometry(.06,.012,8,22,Math.PI),m.wood,[10,1.161,-18.6],'kitchen_note');
-            h.box('stove-fire-mouth',[.60,.33,.018],[10,.37,-19.159],m.cloth,'kitchen_note');
-            for(let i=0;i<4;i++) {
-                const log=h.mesh('charred-wood',new THREE.CylinderGeometry(.041,.054,.38,8),m.darkWood,[9.78+i*.13,.233,-19.20],'kitchen_note');
-                log.rotation.x=Math.PI*.46;log.rotation.z=(i-1.5)*.10;
-                h.mesh('wood-ember',new THREE.SphereGeometry(.034,10,6),ember,[9.78+i*.13,.212,-19.38],'kitchen_note',undefined,false);
-            }
-            const glow=new THREE.PointLight(0xe58c49,2.2,3);glow.position.set(10,.46,-19.43);h.scene.add(glow);
             const lanternPaper=new THREE.MeshStandardMaterial({color:0xf0d4a0,emissive:0xffa650,emissiveIntensity:.7,roughness:.9});
             h.mesh('kitchen-entry-lantern',profile([[.10,0],[.18,.055],[.20,.20],[.18,.33],[.10,.39]]),lanternPaper,[5.69,1.98,-19.68]);
             for(const y of [1.98,2.37])h.cylinder('entry-lamp-hoop',.115,.115,.043,[5.69,y,-19.68],m.darkWood);
@@ -195,7 +183,7 @@
                 }
                 const handle = new THREE.TorusGeometry(radius * 0.88, 0.018, 6, 24, Math.PI);
                 h.mesh(`bucket-handle-${i}`, handle, m.brass, [0, height, 0], 'water_station', group);
-                h.label(`bucket-capacity-${i}`, i ? '五升' : '三升', [0.28, 0.16], [0, height * 0.55, radius + 0.012], [0, 0, 0], 'water_station', group);
+                h.label(`bucket-capacity-${i}`, i ? copyText('courtyard.buildwater') : copyText('courtyard.buildwater.2'), [0.28, 0.16], [0, height * 0.55, radius + 0.012], [0, 0, 0], 'water_station', group);
                 for (let mark = 1; mark <= (i ? 5 : 3); mark++) h.box(`bucket-mark-${i}-${mark}`, [0.07, 0.008, 0.012],
                     [radius * 0.5, mark / (i ? 5 : 3) * (height - 0.08) + 0.03, radius * 0.88], m.paper, 'water_station', group, false);
                 const level = h.cylinder(`bucket-water-${i}`, radius * 0.8, radius * 0.8, 1, [0, 0.03, 0], water, 'water_station', group);
@@ -206,14 +194,16 @@
             const tank = h.cylinder('kitchen-tank-water', 0.32, 0.32, 0.02, [10.3, 0.89, -23], water, 'water_station');
             this.target(tank, 'fill');
             this.target(h.scene.getObjectByName('kitchen-water-tank'), 'fill');
-            h.label('tank-sign', '添水', [0.38, 0.22], [10.3, 0.65, -22.64], [0, 0, 0], 'water_station');
+            h.label('tank-sign', copyText('courtyard.tank-sign'), [0.38, 0.22], [10.3, 0.65, -22.64], [0, 0, 0], 'water_station');
             const sink = h.box('water-sink', [0.6, 0.12, 0.65], [6.8, 0.32, -22.4], m.stone, 'water_station'); this.target(sink, 'empty');
             for (const side of [-1, 1]) this.target(h.box(`sink-rim-${side}`, [0.05, 0.14, 0.7], [6.8 + side * 0.3, 0.42, -22.4], m.stone, 'water_station'), 'empty');
-            h.label('sink-sign', '倒水', [0.38, 0.2], [6.8, 0.4, -22.02], [0, 0, 0], 'water_station');
+            h.label('sink-sign', copyText('courtyard.sink-sign'), [0.38, 0.2], [6.8, 0.4, -22.02], [0, 0, 0], 'water_station');
             this.scale = new THREE.Group(); this.scale.position.set(9.4, 1.02, -22.5); h.scene.add(this.scale);
             h.cylinder('scale-base', 0.27, 0.32, 0.08, [0, 0, 0], m.brass, 'water_station', this.scale);
             this.pan = h.cylinder('scale-pan', 0.31, 0.25, 0.06, [0, 0.16, 0], m.brass, 'water_station', this.scale);
-            h.label('scale-sign', '四升', [0.32, 0.18], [0, 0.06, 0.33], [0, 0, 0], 'water_station', this.scale);
+            h.box('calibration-plate',[.39,.13,.023],[9.45,.899,-22.218],m.brass,'kitchen_note');
+            h.label('scale-inscription',copyText('courtyard.scale-inscription'),[.32,.105],[9.45,.899,-22.204],[0,0,0],'kitchen_note',undefined,'#4d4839','#e4d4af');
+            for(const x of [9.272,9.628]) h.mesh('plate-rivet',new THREE.SphereGeometry(.009,8,6),m.brass,[x,.899,-22.204],'kitchen_note');
             h.box('scale-dial-support', [0.06, 0.42, 0.08], [-0.5, 0.14, 0], m.brass, 'water_station', this.scale);
             const dial = h.cylinder('scale-dial', 0.19, 0.19, 0.045, [-0.5, 0.39, 0], m.paper, 'water_station', this.scale);
             dial.rotation.x = Math.PI / 2;
@@ -227,13 +217,13 @@
             }
             this.needle = new THREE.Group(); this.needle.name = 'scale-needle'; this.needle.position.set(-0.5, 0.39, 0.045); this.scale.add(this.needle);
             h.box('scale-needle-hand', [0.016, 0.14, 0.012], [0, 0.06, 0], m.darkWood, 'water_station', this.needle, false);
-            h.label('scale-dial-key', '轻　四　重', [0.44, 0.1], [-0.5, 0.14, 0.055], [0, 0, 0], 'water_station', this.scale);
+            h.label('scale-dial-key', copyText('courtyard.scale-dial-key'), [0.44, 0.1], [-0.5, 0.14, 0.055], [0, 0, 0], 'water_station', this.scale);
             this.target(this.scale, 'weigh');
             this.drawer = new THREE.Group(); this.drawer.position.set(8.5, 0.66, -22.23); h.scene.add(this.drawer);
             h.box('drawer-front', [1.05, 0.22, 0.08], [0, 0, 0], m.wood, 'water_station', this.drawer);
             h.box('drawer-bottom', [1.05, 0.05, 0.6], [0, -0.09, -0.3], m.darkWood, 'water_station', this.drawer);
             h.box('drawer-handle', [0.19, 0.04, 0.06], [0, 0, 0.07], m.brass, 'water_station', this.drawer);
-            this.letter = h.label('unmailed-letter', '没有寄出的信', [0.73, 0.36], [0, -0.057, -0.33], [-Math.PI / 2, 0, 0], 'medicine_letter', this.drawer);
+            this.letter = h.label('unmailed-letter', copyText('courtyard.unmailed-letter'), [0.73, 0.36], [0, -0.057, -0.33], [-Math.PI / 2, 0, 0], 'medicine_letter', this.drawer);
             const letterRecord = h.map.interactables.find(item => item.id === 'medicine_letter');
             letterRecord.targetObject = this.letter;
             this.marker = h.mesh('bucket-selection', new THREE.TorusGeometry(0.31, 0.012, 6, 32),
@@ -304,8 +294,9 @@
             place('chinese_console_table', [2.75, 0.98, 1.05], [8.5, 0, -22.75], 0, 'water_station', true);
             place('chinese_cabinet', [1.45, 1.9, 0.7], [7.75, 0, -24.3], 0);
         }
-        sync(immediate) {
+        sync(immediate,delta=0) {
             this.syncMask();
+            this.kitchen.sync(immediate,delta);
             const s = this.house.story.state;
             this.busLights.visible = s.busCalled;
             this.signalBoard.rotation.y = s.busCalled ? -.64 : Math.PI / 2;
@@ -320,6 +311,7 @@
         }
         update(delta, immediate = false) {
             if (!immediate && this.house.isReading?.()) return;
+            if (!immediate) this.kitchen.updateDrip(delta);
             const s = this.house.story.state;
             const trial = this.weighing;
             if (trial) {

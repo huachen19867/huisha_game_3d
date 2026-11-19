@@ -1,4 +1,5 @@
 (function(global){
+    const copyText=global.HuishaCopy;
     const game=global.Huisha3D, THREE=global.THREE;
     game.buildClerk=function(h){
         const group=new THREE.Group(); group.position.set(3.37,0,20.38);group.rotation.y=-Math.PI/2;h.scene.add(group);
@@ -46,7 +47,7 @@
         }
         h.box('glasses-bridge',[.020,.004,.005],[0,.146,.099],h.materials.brass,'clerk',skull);
         h.clerkHead=skull;
-        h.label('clerk-badge','周 福 生',[.082,.029],[-.095,1.349,.141],[0,0,0],'clerk',group);
+        h.label('clerk-badge',copyText('clerk.clerk-badge'),[.082,.029],[-.095,1.349,.141],[0,0,0],'clerk',group);
         h.clerk=group;
         if(!h.renderer?.isWebGLRenderer) return;
         const base='assets/models/night-clerk/';

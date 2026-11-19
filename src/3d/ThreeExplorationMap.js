@@ -1,4 +1,5 @@
 (function (global) {
+    const copyText=global.HuishaCopy;
     const game = global.Huisha3D;
     class ThreeExplorationMap {
         constructor(options) { Object.assign(this, options); this.focusBySpace = {}; }
@@ -16,21 +17,21 @@
         }
         status(area, records) {
             const s = this.story.state, ids = records.map(record => record.id), tasks = [];
-            if (ids.includes('lock')) tasks.push([s.opened, s.opened ? '归门字轮已解开' : '归门字轮尚未解开']);
-            if (ids.includes('water_station')) tasks.push([s.waterSolved, s.waterSolved ? '量水秤已压平' : '量水秤尚未压平']);
-            if (ids.includes('yard_gate')) tasks.push([s.waterSolved, s.waterSolved ? '院门铜索已松开' : '院门被铜索扣着']);
+            if (ids.includes('lock')) tasks.push([s.opened, s.opened ? copyText('explorationmap.status') : copyText('explorationmap.status.2')]);
+            if (ids.includes('water_station')) tasks.push([s.waterSolved, s.waterSolved ? copyText('explorationmap.status.3') : copyText('explorationmap.status.4')]);
+            if (ids.includes('yard_gate')) tasks.push([s.waterSolved, s.waterSolved ? copyText('explorationmap.status.5') : copyText('explorationmap.status.6')]);
             if (ids.includes('portrait') || ids.includes('portrait_back')) tasks.push([s.portraitBackRead,
-                s.portraitBackRead ? '相框背字已读' : s.portrait ? '相框已揭布，可以继续翻看' : '相框仍蒙着黑布']);
-            if (area.space) tasks.push([s.deductions[area.space], s.deductions[area.space] ? '这段记忆已核对' : '这段记忆尚未核对']);
+                s.portraitBackRead ? copyText('explorationmap.status.7') : s.portrait ? copyText('explorationmap.status.8') : copyText('explorationmap.status.9')]);
+            if (area.space) tasks.push([s.deductions[area.space], s.deductions[area.space] ? copyText('explorationmap.status.10') : copyText('explorationmap.status.11')]);
             return { kind: tasks.some(([done]) => !done) ? 'pending' : tasks.length ? 'resolved' : 'visited',
-                text: tasks.length ? tasks.map(([, text]) => text).join(' · ') : '已走过这里' };
+                text: tasks.length ? tasks.map(([, text]) => text).join(' · ') : copyText('explorationmap.status.text') };
         }
         show(options) {
             this.options = options; const active = this.story.state.memory || 'house';
             if (options.resetScope || !this.scope) this.scope = active;
             if (options.resetScope) this.focusBySpace[active] = 'all';
-            this.open('探索地图', '只记下走过的地方和已经观察过的器物。颜色表示已知事项，不代表房间已经搜完。',
-                [[options.exitLabel, options.onExit]], '旧宅 · 随走随记');
+            this.open(copyText('explorationmap.show'), copyText('explorationmap.show.2'),
+                [[options.exitLabel, options.onExit]], copyText('explorationmap.show.3'));
             this.render(document.getElementById('reader-body'));
         }
         render(container) {
@@ -39,10 +40,10 @@
             const areas = ThreeExplorationMap.areas().filter(area => this.story.state.visitedAreas.includes(area.id) && ThreeExplorationMap.allowed(area, this.story.state));
             const spaces = [...new Set(areas.map(area => area.space || 'house'))];
             if (!spaces.includes(this.scope)) this.scope = spaces[0];
-            const nav = document.createElement('nav'); nav.className = 'map-spaces'; nav.setAttribute('aria-label', '已走过的空间');
+            const nav = document.createElement('nav'); nav.className = 'map-spaces'; nav.setAttribute('aria-label', copyText('explorationmap.render'));
             for (const space of spaces) {
                 const button = document.createElement('button'); button.type = 'button'; button.dataset.mapSpace = space;
-                button.textContent = space === 'house' ? '老宅与雨庭' : game.MEMORIES[space].title;
+                button.textContent = space === 'house' ? copyText('evidencejournal.append.7') : game.MEMORIES[space].title;
                 button.setAttribute('aria-pressed', String(this.scope === space));
                 button.addEventListener('click', () => {
                     this.scope = space; this.render(container);
@@ -53,10 +54,10 @@
             const visible = areas.filter(area => (area.space || 'house') === this.scope);
             const records = this.knownRecords().filter(record => visible.some(area => area.id === record.area));
             if (!visible.length) {
-                const empty = document.createElement('p'); empty.textContent = '还没有画下路线。走进一个房间后再看看。'; root.append(empty);
+                const empty = document.createElement('p'); empty.textContent = copyText('explorationmap.render.2'); root.append(empty);
             } else this.floor(root, visible, records);
             const legend = document.createElement('p'); legend.className = 'map-legend';
-            for (const [kind, text] of [['visited', '走过'], ['pending', '已知事项待处理'], ['resolved', '已知事项已处理']]) {
+            for (const [kind, text] of [['visited', copyText('explorationmap.render.3')], ['pending', copyText('explorationmap.render.4')], ['resolved', copyText('explorationmap.render.5')]]) {
                 const span = document.createElement('span'); span.className = `map-key ${kind}`; span.textContent = text; legend.append(span);
             }
             root.append(legend);
@@ -66,7 +67,7 @@
                 const known = records.filter(record => record.area === area.id), status = this.status(area, known);
                 const note = document.createElement('p'); note.className = `map-status ${status.kind}`; note.textContent = status.text;
                 section.append(heading, note);
-                if (!known.length) { const empty = document.createElement('p'); empty.className = 'map-empty'; empty.textContent = '还没有收录这里的原文。'; section.append(empty); }
+                if (!known.length) { const empty = document.createElement('p'); empty.className = 'map-empty'; empty.textContent = copyText('explorationmap.render.6'); section.append(empty); }
                 for (const record of known) {
                     const button = document.createElement('button'); button.type = 'button'; button.dataset.mapRecord = record.id;
                     button.textContent = record.title; button.addEventListener('click', () => this.onRead(record.id)); section.append(button);
@@ -82,7 +83,7 @@
             const span = Math.max(maxX - minX, maxZ - minZ), unit = span / 40;
             const fullBounds = `${minX} ${minZ} ${maxX - minX} ${maxZ - minZ}`;
             svg.setAttribute('viewBox', fullBounds); svg.setAttribute('role', 'img');
-            svg.setAttribute('aria-label', `${this.scope === 'house' ? '老宅' : game.MEMORIES[this.scope].title}已走路线；房间与器物记录见下方`);
+            svg.setAttribute('aria-label', copyText('explorationmap.floor', this.scope === 'house' ? copyText('explorationmap.floor.2') : game.MEMORIES[this.scope].title));
             const element = (name, attributes, parent = svg) => {
                 const node = document.createElementNS('http://www.w3.org/2000/svg', name);
                 for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, String(value)); parent.append(node); return node;
@@ -112,11 +113,11 @@
                     transform: `translate(${pose.x} ${pose.z}) rotate(${180 - yaw * 180 / Math.PI})` });
                 element('circle', { cx: 0, cy: 0, r: unit * 0.43 }, group);
                 element('path', { d: `M 0 ${-unit * 0.9} L ${unit * 0.35} ${-unit * 0.2} L ${-unit * 0.35} ${-unit * 0.2} Z` }, group);
-                const title = element('title', {}, group); title.textContent = current ? '你的位置与朝向' : '厨房的返回位置';
+                const title = element('title', {}, group); title.textContent = current ? copyText('explorationmap.floor.3') : copyText('explorationmap.floor.4');
             }
-            const label = document.createElement('label'); label.className = 'map-focus'; label.textContent = '查看范围';
-            const select = document.createElement('select'); select.setAttribute('aria-label', '地图查看范围'); select.dataset.mapFocus = '';
-            for (const [id, title] of [['all', '完整已走路线'], ...areas.map(area => [area.id, area.title])]) {
+            const label = document.createElement('label'); label.className = 'map-focus'; label.textContent = copyText('explorationmap.floor.5');
+            const select = document.createElement('select'); select.setAttribute('aria-label', copyText('explorationmap.floor.6')); select.dataset.mapFocus = '';
+            for (const [id, title] of [['all', copyText('explorationmap.floor.7')], ...areas.map(area => [area.id, area.title])]) {
                 const option = document.createElement('option'); option.value = id; option.textContent = title; select.append(option);
             }
             select.value = areas.some(area => area.id === this.focusBySpace[this.scope]) ? this.focusBySpace[this.scope] : 'all';

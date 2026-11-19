@@ -34,13 +34,21 @@
             if (this.muted || !this.gain || this.engine) return;
             const ctx = this.context, engine = ctx.createOscillator(), level = ctx.createGain();
             engine.type = 'triangle'; engine.frequency.setValueAtTime(69,ctx.currentTime);
-            engine.frequency.setValueAtTime(69,ctx.currentTime+11);
-            engine.frequency.linearRampToValueAtTime(39,ctx.currentTime+15);
             level.gain.value = .23; engine.connect(level); level.connect(this.gain);
             engine.onended = () => { engine.disconnect(); level.disconnect(); };
             engine.start(); this.engine = engine;
+            const radio=ctx.createBufferSource();radio.buffer=this.noise;radio.loop=true;
+            const tuning=ctx.createBiquadFilter();tuning.type='bandpass';tuning.frequency.value=1320;tuning.Q.value=7;
+            const radioGain=ctx.createGain();radioGain.gain.value=.16;
+            radio.connect(tuning);tuning.connect(radioGain);radioGain.connect(this.gain);
+            radio.onended=()=>{radio.disconnect();tuning.disconnect();radioGain.disconnect();};
+            radio.start();this.radio=radio;
+        }
+        silenceRadio() {
+            if(this.radio){this.radio.stop();this.radio=null;}
         }
         stopEngine() {
+            this.silenceRadio();
             if (this.engine) {this.engine.stop(); this.engine = null;}
         }
         loadSamples() {

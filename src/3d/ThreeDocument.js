@@ -1,4 +1,5 @@
 (function (global) {
+    const copyText=global.HuishaCopy;
     const game = global.Huisha3D, THREE = global.THREE;
     class ThreeDocument {
         constructor(house) { this.house = house; this.papers = new Map(); this.activeId = null; }
@@ -101,13 +102,13 @@
                 for(let i=0;i<29;i++) ctx.fillRect(182+(i*43)%422,423+(i*17)%67,3,5);
                 return;
             }
-            ctx.fillStyle='#38463a';ctx.font='34px serif';ctx.fillText('二〇一四届',62,94);
+            ctx.fillStyle='#38463a';ctx.font='34px serif';ctx.fillText(copyText('document.drawdraft'),62,94);
             ctx.fillStyle='#20251e';ctx.font='bold 58px serif';ctx.fillText(lines[0],58,208,647);
             ctx.fillRect(61,247,640,4);ctx.font='46px serif';ctx.fillText(lines[1],68,340);
             ctx.strokeStyle='#526052';ctx.lineWidth=3;ctx.strokeRect(62,401,636,388);
             ctx.fillStyle='#53604f';ctx.fillRect(62,499,636,2);ctx.font='43px serif';ctx.fillText(lines[2],85,472);
             ctx.fillStyle='#2a2922';ctx.font='62px "KaiTi",serif';ctx.fillText(lines[3],98,615,564);ctx.fillText(lines[4],98,728);
-            ctx.fillStyle='#304c75';ctx.font='45px "KaiTi",serif';ctx.fillText('县里的机修班也招人。',142,899,550);
+            ctx.fillStyle='#304c75';ctx.font='45px "KaiTi",serif';ctx.fillText(copyText('document.drawdraft.2'),142,899,550);
         }
         begin(id) {
             if (!this.papers.has(id)) return false;

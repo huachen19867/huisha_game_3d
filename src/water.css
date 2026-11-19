@@ -37,6 +37,6 @@ body:has(#water-inspector:not([hidden])) #acquisitions div:not(:last-child) { di
 }
 @media(max-width:680px){
     .hud .hud-top { flex-direction:column; align-items:stretch; padding:12px; }
-    .hud .hud-top nav { display:grid;grid-template-columns:repeat(5,1fr);gap:4px; }
-    .hud .hud-top nav button { padding:7px 2px;min-height:38px; }
+    .hud .hud-top nav { display:grid;grid-template-columns:repeat(5,minmax(0,1fr));width:100%;max-width:none;gap:4px; }
+    .hud .hud-top nav button { padding:7px 2px;min-height:44px; }
 }

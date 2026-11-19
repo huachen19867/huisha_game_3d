@@ -22,3 +22,12 @@
 @media(pointer:coarse){#yard-watch,.hud:has(.prompt:not([hidden])) #yard-watch{bottom:auto;top:24%;font-size:12px}}
 @media(pointer:coarse){.lamp-hand{bottom:107px;right:16px}}
 .mask-study{display:block;width:auto;height:clamp(125px,33vh,285px);max-width:100%;object-fit:contain;margin:0 auto 1rem}
+
+.drive-dialog{position:absolute;inset:auto 5% 5%;display:flex;align-items:center;justify-content:center;gap:10px}
+.drive-dialog #drive-caption{position:static;transform:none;width:auto;max-width:58ch}
+.drive-dialog button{flex-shrink:0;background:#111814e8}
+#well-film{position:fixed;inset:0;z-index:3;pointer-events:none;border-block:clamp(15px,5vh,56px) solid #060808}
+#well-closeup{width:100%;height:100%;display:block}
+#skip-well{position:absolute;right:3vw;top:8px;pointer-events:auto}
+body:has(#well-film:not([hidden])) :is(#hud,#acquisitions){visibility:hidden}
+@media(max-width:620px){.drive-dialog{flex-direction:column;align-items:flex-end}.drive-dialog #drive-caption{text-align:left}}

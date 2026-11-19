@@ -1,4 +1,5 @@
 (function (global) {
+    const copyText=global.HuishaCopy;
     const game = global.Huisha3D, THREE = global.THREE;
     class ThreePhone {
         constructor(house) { this.house = house; this.page = 'home'; }
@@ -30,11 +31,11 @@
         }
         draw() {
             const ctx = this.ctx; ctx.fillStyle = '#142125'; ctx.fillRect(0, 0, 768, 1280);
-            ctx.fillStyle = '#91aaa6'; ctx.font = '38px sans-serif'; ctx.textAlign = 'left'; ctx.fillText('本机资料', 52, 72);
+            ctx.fillStyle = '#91aaa6'; ctx.font = '38px sans-serif'; ctx.textAlign = 'left'; ctx.fillText(copyText('phone.draw'), 52, 72);
             ctx.fillStyle = '#e1e5d9'; ctx.font = '64px "Microsoft YaHei", sans-serif';
-            const definition = game.PHONE_PAGES[this.page]; ctx.fillText(definition?.title || '旧手机', 52, 188, 665);
+            const definition = game.PHONE_PAGES[this.page]; ctx.fillText(definition?.title || copyText('phone.draw.2'), 52, 188, 665);
             ctx.fillStyle = '#3a5357'; ctx.fillRect(52, 225, 664, 3);
-            const lines = definition?.lines || ['通话记录', '本地录音资料', '', '打开一页，查看日期与原文。'];
+            const lines = definition?.lines || [copyText('memorymap.calls.title'), copyText('memorymap.recording.title'), '', copyText('phone.draw.3')];
             lines.forEach((line, i) => {
                 ctx.fillStyle = i === 1 ? '#e5d4ab' : '#c6d2cc'; ctx.font = `${i === 1 ? 74 : 48}px "Microsoft YaHei", sans-serif`;
                 ctx.fillText(line, 52, 340 + i * 105, 664);
@@ -42,7 +43,7 @@
             for (const [i, page] of ['calls', 'recording'].entries()) {
                 ctx.fillStyle = this.page === page ? '#4c615a' : '#24383b'; ctx.fillRect(36 + i * 356, 1060, 340, 130);
                 ctx.fillStyle = '#e1e5d9'; ctx.font = '44px "Microsoft YaHei", sans-serif'; ctx.textAlign = 'center';
-                ctx.fillText(i ? '录音资料' : '通话记录', 206 + i * 356, 1140, 310); ctx.textAlign = 'left';
+                ctx.fillText(i ? copyText('phone.draw.4') : copyText('memorymap.calls.title'), 206 + i * 356, 1140, 310); ctx.textAlign = 'left';
             }
             ctx.strokeStyle='rgba(213,230,227,.58)';ctx.lineWidth=2;
             for(const line of [[[768,107],[740,131],[715,134],[689,191],[665,215]],[[740,131],[699,116],[682,93]],[[715,134],[722,180],[708,208]]]){

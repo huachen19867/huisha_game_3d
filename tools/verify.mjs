@@ -1,3 +1,4 @@
+import { parseStoryCopy } from '../src/story-copy.mjs';
 import assert from 'node:assert/strict';
 import { readFile, access, readdir } from 'node:fs/promises';
 import vm from 'node:vm';
@@ -18,12 +19,13 @@ const eventTarget = {
 const canvasContext = { fillRect() {}, strokeRect() {}, fillText() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {} };
 const document = { ...eventTarget, createElement() { return { getContext() { return canvasContext; } }; }, hidden: false };
 const window = { ...eventTarget, THREE, Huisha3D: {} };
+window.HuishaCopy=parseStoryCopy(await text('STORY.md'));
 const context = vm.createContext({ window, document, console });
-for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeWestRoom', 'ThreeStoreys', 'ThreeClerk', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeAudio', 'ThreeControls', 'ThreeInteraction', 'ThreeWindowWall', 'ThreeCourtyard', 'ThreePhone', 'ThreeDocument', 'ThreeMemoryScenes', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeVillageLane', 'ThreeHouseScene']) {
+for (const name of ['ThreeHouseMap', 'ThreeCourtyardMap', 'ThreeMemoryMap', 'ThreeWestRoom', 'ThreeStoreys', 'ThreeClerk', 'ThreeExplorationMap', 'ThreeStory', 'ThreePreferences', 'ThreeAudio', 'ThreeControls', 'ThreeInteraction', 'ThreeWindowWall', 'ThreeKitchen', 'ThreeCourtyard', 'ThreePhone', 'ThreeDocument', 'ThreeMemoryScenes', 'ThreePortrait', 'ThreeDoorMechanism', 'ThreeVillageLane', 'ThreeHouseScene']) {
     vm.runInContext(await text(`src/3d/${name}.js`), context, { filename: `${name}.js` });
 }
 const game = window.Huisha3D;
-vm.runInContext(await text('src/3d/ThreeYardWatch.js'), context);
+vm.runInContext(await text('src/3d/ThreeWellChase.js'), context);
 game.mergeGeometries = mergeGeometries;
 let mapWrites = 0; const mapStorage = new Map(), mapAdapter = { getItem: key => mapStorage.get(key), setItem: (key, value) => { mapStorage.set(key, value); mapWrites++; } };
 {
@@ -32,6 +34,13 @@ let mapWrites = 0; const mapStorage = new Map(), mapAdapter = { getItem: key => 
     const migrated=new game.ThreeStory(oldSlot);
     migrated.save();
     assert.ok(new game.ThreeStory(oldSlot).state.photoFiled,'a migrated accident photo survives the next reload');
+}
+for (const vigil of [0, 1]) {
+    const oldKitchen = new game.ThreeStory({getItem: () => JSON.stringify({
+        version:1, chapterEdition:2, arrival:'home', opened:true, records:['rice_bowl'], vigil
+    }), setItem() {}});
+    assert.equal(oldKitchen.state.riceStage,'served');
+    assert.equal(oldKitchen.takeGear('rice'),vigil === 0,'already offered rice stays on the altar');
 }
 const mapStory = new game.ThreeStory(mapAdapter);
 assert.equal(mapStory.visitPosition(game.WORLD_MAP.playerStart), true); assert.deepEqual([...mapStory.state.visitedAreas], ['hall']);
@@ -192,7 +201,7 @@ game.GLTFLoader = class { async loadAsync(url) { return parsedModels.get(url.spl
 const house = new game.ThreeHouseScene({ story });
 house.loadClinicFinishes = () => {}; // Texture decoding is exercised in the browser.
 house.scene = new THREE.Scene();
-house.materials = Object.fromEntries(['wall', 'floor', 'wood', 'darkWood', 'brass', 'red', 'cloth', 'paper', 'portrait', 'stone', 'wax', 'ash', 'plaster', 'paving'].map(key => [key, new THREE.MeshStandardMaterial()]));
+house.materials = Object.fromEntries(['wall', 'floor', 'wood', 'darkWood', 'brass', 'red', 'cloth', 'paper', 'portrait', 'stone', 'wax', 'ash', 'plaster', 'brick', 'paving'].map(key => [key, new THREE.MeshStandardMaterial()]));
 house.createArchitecture(); house.createProps(); await house.loadModels();
 {
     const progress = new Map();
@@ -212,22 +221,22 @@ house.createArchitecture(); house.createProps(); await house.loadModels();
     Object.assign(rig,{camera,story:lampStory,isPaused:()=>false,onWatchEvent:cue=>cues.push(cue),
         controls:{snapshot:()=>({x:camera.position.x,z:camera.position.z,yaw:Math.PI,pitch:0}),
             teleport:p=>camera.position.set(p.x,1.6,p.z)}});
-    const watch = new game.ThreeYardWatch(rig);
-    camera.position.set(0,1.6,-20);watch.update(.05);
-    for(let i=0;i<70&&!cues.includes('caught');i++){
-        const angle=.14+.82*Math.sin((watch.time+.05)*.78);
-        camera.position.set(-.9+6*Math.sin(angle),1.6,-26.55+6*Math.cos(angle));
-        watch.update(.05);
-    }
-    assert.ok(cues.includes('warning')&&cues.includes('caught'));
-    assert.equal(camera.position.z,-14.75);
-    camera.position.set(0,1.6,-20);
-    for(let i=0;i<110;i++) watch.update(.05);
-    assert.equal(watch.alarm,0,'standing still is safe under the moving lantern');
-    camera.position.set(6.4,1.6,-21.3);watch.update(.05);
-    assert.ok(cues.includes('safe') && new game.ThreeStory(storage).state.crossedYard);
-    watch.root.removeFromParent();
-    console.log('Wake lamp, courtyard warning, return to threshold, stillness and persistent kitchen refuge passed.');
+    rig.controls.clear=()=>{};
+    rig.controls.canOccupy=(x,z)=>!rig.map.obstacles.some(o=>o.id==='well' && x>=o.xMin-.15 && x<=o.xMax+.15 && z>=o.zMin-.15 && z<=o.zMax+.15);
+    const well=new game.ThreeWellChase(rig);
+    camera.position.set(-2.9,1.6,-20.65);well.update(.05);
+    assert.equal(well.root.visible,false);
+    well.begin();
+    for(let i=0;i<173;i++)well.update(.05);
+    assert.equal(well.phase,'chase');
+    assert.ok(Math.abs(camera.position.z+20.65)<.01,'film returns to the actual well interaction position');
+    for(let i=0;i<180 && well.phase==='chase';i++)well.update(.05);
+    assert.ok(cues.includes('caught'));
+    camera.position.set(-3,1.6,-20.6);well.begin();well.release();
+    camera.position.set(6.4,1.6,-21.3);well.update(.05);
+    assert.ok(cues.includes('safe') && new game.ThreeStory(storage).state.wellEscaped);
+    well.root.removeFromParent();
+    console.log('Well cutscene, skip, physical pursuit, return to threshold and saved escape passed.');
 }
 house.outsideLight = { intensity: 0 }; house.syncState(true); house.scene.updateMatrixWorld(true);
 assert.equal(house.scene.getObjectByName('chinese_armchair').isGroup, true);
@@ -610,6 +619,7 @@ assert.ok(roadPoints.some(point => point.z < -30.5), 'operating the scale opens 
 for (const item of game.WORLD_MAP.interactables.filter(item => !item.space && item.requiresWater)) verifyReachable(item, roadPoints);
 assert.equal(story.state.departure, null, 'reading clues and reaching the road do not choose an ending');
 assert.equal(story.depart('stay'), true); assert.equal(new game.ThreeStory(adapter).state.departure, 'stay');
+assert.equal(story.state.stoveLit,story.state.gear.includes('matches'));
 assert.equal(story.depart('leave'), false); assert.equal(story.signalBus('house'), false);
 assert.equal(story.signalBus('bridge'),true); assert.equal(new game.ThreeStory(adapter).state.busCalled,true);
 assert.equal(story.depart('leave'), true); assert.equal(new game.ThreeStory(adapter).state.departure, 'leave');
@@ -870,6 +880,15 @@ assert.ok([...listeners.values()].every(set => set.size === 0), 'controls must r
 console.log('Space: every clue reachable with actual ray occlusion, correct strafe, collision substeps, reading pause and end route passed.');
 
 const html = await text('index.html');
+const copySources=['src/main.mjs','src/chapter-ui.mjs','src/drive-intro.mjs',
+    ...(await readdir(path.join(root,'src/3d'))).filter(n=>n.endsWith('.js')).map(n=>'src/3d/'+n)];
+for(const file of copySources){
+    for(const match of (await text(file)).matchAll(/copyText\('([\w.-]+)'/g))window.HuishaCopy(match[1]);
+}
+for(const match of html.matchAll(/data-copy="([^"]+)"/g)){
+    for(const binding of match[1].split(' '))window.HuishaCopy(binding.split(':')[1]);
+}
+
 for (const url of html.matchAll(/(?:src|href)="([^"#]+)"/g)) {
     if (!url[1].startsWith('data:')) await access(path.join(root, url[1]));
 }

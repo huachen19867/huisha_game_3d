@@ -1,4 +1,5 @@
 (function (global) {
+    const copyText=global.HuishaCopy;
     const game = global.Huisha3D, THREE = global.THREE;
     class ThreePortrait {
         constructor(house) { this.house = house; this.angle = 0; this.tilt = 0; this.lift = 0; }
@@ -14,7 +15,7 @@
                     [side * 0.49, end * 0.64, 0.068], m.brass, 'portrait', this.root, false);
             }
             h.mesh('portrait-photo', new THREE.PlaneGeometry(0.99, 1.19), m.portrait, [0, 0, 0.043], 'portrait', this.root, false);
-            this.back = h.label('portrait-back-inscription', '留一盏灯\n是怕你看不见路\n不是要你留下', [0.96, 0.76], [0, 0, -0.071],
+            this.back = h.label('portrait-back-inscription', copyText('portrait.portrait-back-inscription'), [0.96, 0.76], [0, 0, -0.071],
                 [0, Math.PI, 0], 'portrait', this.root, '#71503c', '#dfcba4');
             this.back.material = new THREE.MeshStandardMaterial({ map: this.back.material.map, roughness: 0.94, side: THREE.DoubleSide });
             const cloth = new THREE.PlaneGeometry(1.14, 1.38, 18, 24), vertices = cloth.attributes.position;

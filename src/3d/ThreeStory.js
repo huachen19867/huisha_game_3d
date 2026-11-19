@@ -1,10 +1,11 @@
 (function (global) {
+    const copyText=global.HuishaCopy;
     const game = global.Huisha3D || (global.Huisha3D = {});
     const SAVE_KEY = 'huisha.3d.homecoming.v1';
-    const symbols = ['雨', '门', '人', '灯'];
+    const symbols = [copyText('story.symbols'), copyText('story.symbols.2'), copyText('story.symbols.3'), copyText('story.symbols.4')];
     const freshState = () => ({ arrival: 'intro', chapterEdition: 2, basketDown:false, cellarOpen:false, filterClear:false, sumpDrained:false, oldCoffinLatch:false, gear: [], wardrobeOpen: false, chestOpen: false, calibrated: false, vigil: 0, coffinOpen: false, photoFiled:false, busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
-        courtyard: false, crossedYard: false, maskHung:false, formJoined:false, buckets: [0, 0], waterSolved: false, departure: null, rememberPlace:null, position: null, lamp: 'altar', shielded: false,
-        memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, fareTinOpen: false, heightStripTaken: false, reasoningRevision: 2, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
+        courtyard: false, crossedYard: false, wellEscaped:false, maskHung:false, formJoined:false, buckets: [0, 0], waterSolved: false, departure: null, rememberPlace:null, position: null, lamp: 'altar', shielded: false,
+        memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, fareTinOpen: false, heightStripTaken: false, riceStage:'covered', porkOnRice:false, leakMuffled:false, stoveLit:false, reasoningRevision: 2, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
     class ThreeStory {
         constructor(storage) {
@@ -48,6 +49,13 @@
                     this.state.sumpDrained = this.state.filterClear && saved.sumpDrained===true;
                     this.state.calibrated = this.state.waterSolved || (this.state.opened && saved.calibrated === true);
                     this.state.vigil = legacy ? 3 : Number.isInteger(saved.vigil) ? Math.max(0, Math.min(3, saved.vigil)) : 0;
+                    const sawOldMeal = !Object.hasOwn(saved,'riceStage') && this.state.records.includes('rice_bowl');
+                    if (this.state.opened) {
+                        if (this.state.gear.includes('rice') || this.state.vigil > 0 || sawOldMeal) this.state.riceStage = 'served';
+                        else if (['empty','served'].includes(saved.riceStage)) this.state.riceStage = saved.riceStage;
+                        this.state.porkOnRice = this.state.riceStage==='served' && saved.porkOnRice===true;
+                        this.state.leakMuffled = saved.leakMuffled === true && this.state.records.includes('leak_basin');
+                    }
                     this.state.coffinOpen = legacy || (this.state.vigil === 3 && saved.coffinOpen === true);
                     // Earlier saves awarded the coat, photograph and album access together.
                     const hadPhoto=this.state.coffinOpen && !Object.hasOwn(saved,'photoFiled');
@@ -93,6 +101,8 @@
                     }
                     if (this.state.waterSolved && (['leave', 'stay'].includes(saved.departure)
                         || (this.truthSolved() && ['wake', 'remember'].includes(saved.departure)))) this.state.departure = saved.departure;
+                    this.state.stoveLit = this.state.waterSolved && (saved.stoveLit === true ||
+                        (!Object.hasOwn(saved,'stoveLit') && this.state.departure === 'stay'));
                     if(this.state.departure==='remember' && (saved.rememberPlace==='kitchen' ||
                         (saved.rememberPlace==='bridge' && this.state.records.includes('bridge_post')))) this.state.rememberPlace=saved.rememberPlace;
                     const p = saved.position;
@@ -101,6 +111,7 @@
                         game.ThreeExplorationMap.allowed(game.ThreeExplorationMap.areas().find(area => area.id === id), this.state)))];
                     for (const id of this.state.records) this.markArea(this.recordArea(id));
                     this.state.crossedYard = this.state.opened && (saved.crossedYard === true || this.state.waterSolved || this.state.visitedAreas.includes('kitchen'));
+                    this.state.wellEscaped=this.state.opened && saved.wellEscaped===true;
                     this.state.maskHung = this.state.crossedYard && this.state.records.includes('mask_strap') && saved.maskHung===true;
                 }
             } catch (_) { this.saveAvailable = false; }
@@ -163,7 +174,7 @@
             this.save();
         }
         unlock() {
-            if (this.state.wheels.map(value => symbols[value]).join('') !== '灯人门') return false;
+            if (!this.state.wheels.every((value,index)=>value===[3,2,1][index])) return false;
             this.state.lamp = 'altar'; this.state.shielded = false;
             this.state.opened = true;
             this.save();
@@ -213,6 +224,7 @@
         carried() {
             const s=this.state, ids=[];
             if(s.arrival !== 'intro') ids.push('envelope');
+            if(s.arrival !== 'intro' && (s.riceStage!=='served' || s.gear.includes('rice') || s.vigil>0)) ids.push('lunchbox');
             if(s.arrival === 'gate' || (s.arrival === 'home' && s.records.includes('key_board'))) ids.push('key');
             if(['lit','out'].includes(s.lamp)) ids.push('lamp');
             if(s.records.includes('medicine_letter')) ids.push('familyLetter');
@@ -228,7 +240,7 @@
         takeGear(id) {
             const s=this.state;
             if(!s.opened || s.memory || s.gear.includes(id)) return false;
-            if(!({weight:s.wardrobeOpen,matches:s.wardrobeOpen,rice:true,paper:s.basketDown,cellarKey:s.chestOpen,coffinKey:s.sumpDrained})[id]) return false;
+            if(!({weight:s.wardrobeOpen,matches:s.wardrobeOpen,rice:s.riceStage==='served' && s.vigil===0,paper:s.basketDown,cellarKey:s.chestOpen,coffinKey:s.sumpDrained})[id]) return false;
             s.gear.push(id); this.save(); return true;
         }
         offer(id) {
@@ -252,6 +264,7 @@
             if (choice === 'leave' && !this.state.busCalled) return false;
             if(choice==='remember' && place==='bridge' && !this.state.records.includes('bridge_post')) return false;
             this.state.rememberPlace=choice==='remember' ? (place==='bridge'?'bridge':'kitchen') : null;
+            if (choice === 'stay' && this.state.gear.includes('matches')) this.state.stoveLit = true;
             this.state.departure = choice; this.save(); return true;
         }
         enterMemory(id, pose) {
@@ -281,46 +294,46 @@
         conclusionFor(id){
             const base=game.MEMORY_CASES[id].conclusion;
             if (id === 'hospital' && this.state.records.includes('hospital_fare'))
-                return base + '\n\n看到那两摞车钱，我才想起在窗口是妈自己问的：「能给我留个九点的号吗？」';
+                return base + copyText('story.conclusionfor');
             if(id!=='school' || !this.hasDocumentFace('school_draft','front')) return base;
-            return base+'\n\n草表上爸的蓝字挤在格子外面。「第一志愿」里是我填的铁道车辆。七月寄到家里的录取通知上，也是这四个字。';
+            return base+copyText('story.conclusionfor.2');
         }
         deduce(id) {
             const definition = typeof id === 'string' && Object.hasOwn(game.MEMORY_CASES || {}, id) ? game.MEMORY_CASES[id] : null, draft = this.state.drafts[id];
-            if (!definition || !draft) return { success: false, message: '先选出两份记录，再试着解释它们。' };
+            if (!definition || !draft) return { success: false, message: copyText('story.deduce.message') };
             if (this.state.deductions[id]) return { success: true, message: this.conclusionFor(id) };
             const evidence = draft.evidence;
-            if (!evidence[0] || !evidence[1] || evidence[0] === evidence[1]) return { success: false, message: '需要两份不同的已读记录。草稿仍保留着。' };
-            const mismatch = { success: false, message: '这两份记录与判断还不能相互支持。留意日期、签字和原文；可以保留草稿，回去再看。' };
+            if (!evidence[0] || !evidence[1] || evidence[0] === evidence[1]) return { success: false, message: copyText('story.deduce.message.2') };
+            const mismatch = { success: false, message: copyText('story.deduce.message.3') };
             if (!this.state.waterSolved || !evidence.every(record => this.state.records.includes(record))) return mismatch;
             const timeline = draft.timeline || [];
             if (timeline.some(event => definition.facts.find(fact => fact.id === event)?.dated === false)) {
-                return { success: false, message: '时间线里有缺少明确日期的片段，暂时不能据此确定先后。可以先把它放回旁边。草稿还在。' };
+                return { success: false, message: copyText('story.deduce.message.4') };
             }
             if (!definition.records.every(record => evidence.includes(record))) return mismatch;
             const missingFaces = this.missingDocumentFaces(definition);
             if (missingFaces.length) {
-                return { success: false, message: `「${game.DOCUMENTS[missingFaces[0].record].title}」还有没有读过的一面。翻看并核对日期、签字与原话；草稿仍保留着。` };
+                return { success: false, message: copyText('story.deduce.message.5', game.DOCUMENTS[missingFaces[0].record].title) };
             }
             if (definition.facts.some(fact => fact.phonePage && !this.knowsFact(fact))) {
-                return { success: false, message: '手机还有没有记下的页面。把通话记录与本地录音资料分别阅读，再回到这份草稿。' };
+                return { success: false, message: copyText('story.deduce.message.6') };
             }
-            if (!timeline.length) return { success: false, message: '先把能确定时间的原文片段放上时间线，按从早到晚排列。选好解释后还要主动提交。' };
+            if (!timeline.length) return { success: false, message: copyText('story.deduce.message.7') };
             if (timeline.length !== definition.timelineOrder.length || !definition.timelineOrder.every((event, index) => event === timeline[index])) {
-                return { success: false, message: '时间线的先后还对不上。回看原文里的年份、日期和时刻。'
-                    + (id === 'crash' ? '文件保存的旧语音与今夜拨出的电话也要分开。' : '') + '草稿仍保留着。' };
+                return { success: false, message: copyText('story.deduce.message.8')
+                    + (id === 'crash' ? copyText('story.deduce.message.9') : '') + copyText('story.deduce.message.10') };
             }
-            if (draft.interpretation !== definition.answer) return { success: false, message: '时间已经排好，但当前判断与两份原文还不能相互支持。留意日期、签字和原话，不把猜想当成已经发生的事实。' };
+            if (draft.interpretation !== definition.answer) return { success: false, message: copyText('story.deduce.message.11') };
             this.state.deductions[id] = true; this.save(); return { success: true, message: this.conclusionFor(id) };
         }
         truthSolved() { return ['school', 'hospital', 'crash'].every(id => this.state.deductions[id]); }
         arrivalTask() {
             return {
-                intro: '开车回村，查清是谁寄了这封信。',
-                letter: '按 B 打开背包，查看随身来信上的旧门牌。',
-                ledger: '去路边亮灯的值班室，找周师傅问钥匙。他手边有换牌登记簿。',
-                keys: '在值班窗口报出李家的新门牌，找周师傅领钥匙。',
-                gate: '路尽头挂着「十四号」的就是家门。横木可以跳过，也可以绕过去。'
+                intro: copyText('story.arrivaltask.intro'),
+                letter: copyText('story.arrivaltask.letter'),
+                ledger: copyText('story.arrivaltask.ledger'),
+                keys: copyText('story.arrivaltask.keys'),
+                gate: copyText('story.arrivaltask.gate')
             }[this.state.arrival];
         }
         advanceArrival(from, to) {
@@ -331,124 +344,126 @@
         }
         headline(pose) {
             const s=this.state;
-            if(this.arrivalTask()) return {intro:'回村',letter:'找到老宅',ledger:'找值班员',keys:'取备用钥匙',gate:'打开家门'}[s.arrival];
+            if(this.arrivalTask()) return {intro:copyText('story.headline.intro'),letter:copyText('story.headline.letter'),ledger:copyText('story.headline.ledger'),keys:copyText('story.headline.keys'),gate:copyText('story.headline.gate')}[s.arrival];
             if(s.departure) return this.objective();
             if (s.memory) {
-                if (s.memory === 'crash' && this.truthSolved()) return '决定要不要回应车外的人';
-                if (s.deductions[s.memory]) return '已核对 · 可继续调查或回厨房';
-                return {school:'查清父亲什么时候签了回执', hospital:'查清母亲何时开始看病', crash:'查清今晚石桥上发生的事'}[s.memory];
+                if (s.memory === 'crash' && this.truthSolved()) return copyText('story.headline');
+                if (s.deductions[s.memory]) return copyText('story.headline.2');
+                return {school:copyText('story.headline.school'), hospital:copyText('story.headline.hospital'), crash:copyText('story.headline.crash')}[s.memory];
             }
             const area=game.ThreeExplorationMap.areaAt(pose,'house',s)?.id;
-            if(area==='attic'||area==='attic_steps') return s.gear.includes('paper')?'纸元宝已收好':'取回晾篮里的纸元宝';
-            if(area==='cellar'||area==='cellar_steps') return s.gear.includes('coffinKey')?'回正厅查看棺锁':s.sumpDrained?'找回水槽里的钥匙':'排走储水间的积水';
-            if(area==='workshop' && !s.gear.includes('weight')) return '找回修秤用的铜砣';
-            if(area==='west_room' && !s.wardrobeOpen) return '找出修理间的入口';
-            if(s.waterSolved && s.coffinOpen && !s.photoFiled) return s.records.includes('bend_photo')?'把旧照放回相册，或下山':'查查旧校服，或下山';
-            if(s.waterSolved) return s.coffinOpen ? '查清雨夜的事，或下山' : '查清棺里放着什么，或下山';
-            if(s.courtyard) return !s.calibrated ? '找回灶间的秤砣' : '打开量水桌的抽屉';
-            if (!s.opened && s.lamp === 'altar' && s.records.includes('key_board') && !s.records.includes('wall_marks')) return '找回量身高的布带';
-            return s.opened ? '穿过雨庭' : '打开老宅后门';
+            if(area==='attic'||area==='attic_steps') return s.gear.includes('paper')?copyText('story.headline.3'):copyText('story.headline.4');
+            if(area==='cellar'||area==='cellar_steps') return s.gear.includes('coffinKey')?copyText('story.headline.5'):s.sumpDrained?copyText('story.headline.6'):copyText('story.headline.7');
+            if(area==='workshop' && !s.gear.includes('weight')) return copyText('story.headline.8');
+            if(area==='west_room' && !s.wardrobeOpen) return copyText('story.headline.9');
+            if(s.waterSolved && s.coffinOpen && !s.photoFiled) return s.records.includes('bend_photo')?copyText('story.headline.10'):copyText('story.headline.11');
+            if(s.waterSolved) return s.coffinOpen ? copyText('story.headline.12') : copyText('story.headline.13');
+            if(area==='yard' && !s.records.includes('yard_well')) return copyText('story.headline.14');
+            if(s.courtyard) return !s.calibrated ? copyText('story.headline.15') : copyText('story.headline.16');
+            if (!s.opened && s.lamp === 'altar' && s.records.includes('key_board') && !s.records.includes('wall_marks')) return copyText('story.headline.17');
+            if (!s.opened && s.lamp === 'altar' && s.records.includes('wall_marks')) return copyText('story.headline.18');
+            return s.opened ? copyText('story.headline.19') : copyText('story.headline.20');
         }
         objective() {
             if (this.arrivalTask()) return this.arrivalTask();
-            if(this.state.departure==='remember' && this.state.rememberPlace) return this.state.rememberPlace==='bridge'?'回煞 · 你留在石桥上，陪母亲拍完了那张照片':'回煞 · 你留在灶间，接过了母亲煮的面';
-            if (this.state.memory && ['wake', 'remember'].includes(this.state.departure)) return '已经作出去向选择 · 可以继续回看，或从暂停回到厨房';
+            if(this.state.departure==='remember' && this.state.rememberPlace) return this.state.rememberPlace==='bridge'?copyText('story.objective'):copyText('story.objective.2');
+            if (this.state.memory && ['wake', 'remember'].includes(this.state.departure)) return copyText('story.objective.3');
             if (this.state.memory) {
-                if (this.state.memory === 'crash' && this.truthSolved()) return '救护灯另一边还有人在叫你 · 靠近灯，主动决定去向';
-                return this.state.deductions[this.state.memory] ? '这段记忆已核对 · 可以继续观察，或从门边 / 暂停回到厨房'
+                if (this.state.memory === 'crash' && this.truthSolved()) return copyText('story.objective.4');
+                return this.state.deductions[this.state.memory] ? copyText('story.objective.5')
                     : this.memoryTask(this.state.memory);
             }
-            if (this.state.departure) return { leave: '归路 · 你已走出旧宅，可以继续回看', stay: '余温 · 今晚留下是你的选择，可以继续回看',
-                wake: '破茧 · 你回应了救护灯，可以继续回看', remember: '回煞 · 你选择留在记忆，可以继续回看' }[this.state.departure];
+            if (this.state.departure) return { leave: copyText('story.objective.leave'), stay: copyText('story.objective.stay'),
+                wake: copyText('story.objective.wake'), remember: copyText('story.objective.remember') }[this.state.departure];
             if(this.state.waterSolved && this.state.coffinOpen && !this.state.photoFiled && !this.state.busCalled) {
-                if(this.state.records.includes('bend_photo')) return '把石桥旧照带到厨房，放进相册最后一页的空相角。';
-                return this.state.records.includes('uniform_collar')?'按 B 打开背包，看看旧校服较沉的右边内袋。':'正厅的棺盖已经开了。查看棺里的衣领。';
+                if(this.state.records.includes('bend_photo')) return copyText('story.objective.6');
+                return this.state.records.includes('uniform_collar')?copyText('story.objective.7'):copyText('story.objective.8');
             }
             if(this.state.waterSolved && !this.state.coffinOpen && !this.state.records.includes('bus_notice') && !this.state.busCalled)
-                return this.state.vigil === 3 ? (this.state.oldCoffinLatch || this.state.gear.includes('coffinKey') ? '回正厅查看松动的棺盖。' : '西厢樟木箱保管着地下室的钥匙。穿过修理间，去地下储水间找棺锁钥匙。') : '正厅供桌还空着。到厨房取饭，西厢修理间取火柴、阁楼取纸元宝；守完夜再看棺木。厨房相册里也能先查学校、医院。';
-            if (this.state.waterSolved && this.state.busCalled) return '接驳车停在山路尽头。去站牌旁上车，或回厨房翻相册。';
-            if (this.state.waterSolved && this.state.records.includes('bus_notice')) return '沿护栏走到候车棚。按接驳通知，把反光牌转向来车方向。';
+                return this.state.vigil === 3 ? (this.state.oldCoffinLatch || this.state.gear.includes('coffinKey') ? copyText('story.objective.9') : copyText('story.objective.10')) : copyText('story.objective.11');
+            if (this.state.waterSolved && this.state.busCalled) return copyText('story.objective.12');
+            if (this.state.waterSolved && this.state.records.includes('bus_notice')) return copyText('story.objective.13');
             if (this.state.waterSolved) return this.state.records.includes('medicine_letter')
-                ? '要查车祸，翻厨房柜边的相册，里面有三段记忆。要下山，出院门看路口的接驳通知。' : '量水秤压平了 · 查看打开的抽屉，院门也已松开';
-            if(this.state.courtyard && !this.state.calibrated) return this.state.gear.includes('weight') ? '带铜砣回厨房，装在量水秤上。' : '雨庭西侧是父母的卧房。衣柜脚下有滑轨，柜后是修秤的地方。';
-            if (this.state.courtyard) return this.state.crossedYard ? '去厨房量水桌，用三升、五升桶量出四升水，再把五升桶放上秤。' : '走到右边有灶火的厨房。院里的灯扫过来时，先停步。';
-            if (this.state.ending || this.state.opened) return '后门已开。穿过走廊进雨庭，往右手亮灯的厨房走。';
-            if (this.state.lamp === 'out') return '灯芯灭了。回供桌借烛火，或用门上的字轮开门。';
-            if (this.state.lamp === 'lit') return '端灯走到走廊尽头。经过左手破窗时按 F 护火，到门前调查门闩。';
-            if (this.state.records.includes('lock')) return '查看门边架上的全家福，把照片里的灯、人和门与字轮对照。';
-            return '进正厅，绕过棺木，去左侧供桌端灯。走廊尽头的后门锁着。';
+                ? copyText('story.objective.14') : copyText('story.objective.15');
+            if(this.state.courtyard && !this.state.calibrated) return this.state.gear.includes('weight') ? copyText('story.objective.16') : copyText('story.objective.17');
+            if (this.state.courtyard) return this.state.crossedYard ? copyText('story.objective.18') : copyText('story.objective.19');
+            if (this.state.ending || this.state.opened) return copyText('story.objective.20');
+            if (this.state.lamp === 'out') return copyText('story.objective.21');
+            if (this.state.lamp === 'lit') return copyText('story.objective.22');
+            if (this.state.records.includes('lock')) return copyText('story.objective.23');
+            return copyText('story.objective.24');
         }
         memoryTask(id) {
             const routes = {
-                school: [['school_notice','去左侧课桌看录取通知'],['school_receipt','去右侧课桌看家长回执']],
-                hospital: [['hospital_record','去右前方桌上看初诊病历'],['hospital_plan','去左侧轮椅旁看复诊安排']],
-                crash: [['crash_phone','在左侧石头上拿起手机'],['crash_report','到前方右侧查看救护交接单']]
+                school: [['school_notice',copyText('story.memorytask.school')],['school_receipt',copyText('story.memorytask.school.2')]],
+                hospital: [['hospital_record',copyText('story.memorytask.hospital')],['hospital_plan',copyText('story.memorytask.hospital.2')]],
+                crash: [['crash_phone',copyText('story.memorytask.crash')],['crash_report',copyText('story.memorytask.crash.2')]]
             };
             for (const [record, direction] of routes[id]) {
                 if (record === 'crash_phone') {
-                    if (this.state.phoneViews.length < 2) return direction + '，分别记下通话记录和录音资料。';
+                    if (this.state.phoneViews.length < 2) return direction + copyText('story.memorytask');
                 } else if (game.DOCUMENTS[record]) {
                     const needed = game.MEMORY_CASES[id].requiredFaces[record];
                     if (needed.some(face => !this.hasDocumentFace(record, face)))
-                        return direction + (needed.length === 1 ? '，点「阅读」记下日期。' : '，翻面并分别点「阅读」。');
-                } else if (!this.state.records.includes(record)) return direction + '，记下时间。';
+                        return direction + (needed.length === 1 ? copyText('story.memorytask.2') : copyText('story.memorytask.3'));
+                } else if (!this.state.records.includes(record)) return direction + copyText('story.memorytask.4');
             }
-            return '按 J 打开手记，点「整理」：选两份记录，按日期排序，再提交判断。';
+            return copyText('story.memorytask.5');
         }
         guidance(stage = 0, pose) {
             const s=this.state,area=game.ThreeExplorationMap.areaAt(pose,s.memory||'house',s)?.id;
             if(!s.memory && s.opened) {
                 const has=id=>s.gear.includes(id);
                 const nearby={
-                    attic:has('paper')?'纸元宝已收好。从楼梯回卧房，去正厅守夜。':s.basketDown?'晾篮放下来了，靠近取走纸元宝。':'看梁下的晾篮。顺着绳子找到墙钉，把篮子放低。',
-                    cellar:has('coffinKey')?'铜钥匙已经拿到，沿楼梯回去。':s.sumpDrained?'瓷槽的水退了。靠近槽沿，看看底部露出来的钥匙。':s.filterClear?'滤网通了，到对面压动抽水泵。':'先沿吸水管找到瓷槽，清掉堵在滤网上的东西。',
-                    workshop:!has('weight')?'工作台上有一枚灶间铜砣。带它回厨房修秤。':!has('matches')?'工作台另一头的铁盒里有火柴。':!s.cellarOpen?(has('cellarKey')?'用带水桶牌的钥匙打开修理间里的铁门。':'铁门通地下室，钥匙在父母卧房的樟木箱里。'):null,
-                    west_room:!s.wardrobeOpen?'看大衣柜脚下的滑轨，推开它就能进修理间。':!s.chestOpen?'床头有银婚合照。用结婚那年的四位数字开樟木箱。':!has('cellarKey')?'从樟木箱里取出带木牌的地下室钥匙。':!has('paper')?'从卧房门上的「阁楼」牌子往上走。':null
+                    attic:has('paper')?copyText('story.guidance.attic'):s.basketDown?copyText('story.guidance.attic.2'):copyText('story.guidance.attic.3'),
+                    cellar:has('coffinKey')?copyText('story.guidance.cellar'):s.sumpDrained?copyText('story.guidance.cellar.2'):s.filterClear?copyText('story.guidance.cellar.3'):copyText('story.guidance.cellar.4'),
+                    workshop:!has('weight')?copyText('story.guidance.workshop'):!has('matches')?copyText('story.guidance.workshop.2'):!s.cellarOpen?(has('cellarKey')?copyText('story.guidance.workshop.3'):copyText('story.guidance.workshop.4')):null,
+                    west_room:!s.wardrobeOpen?copyText('story.guidance.west_room'):!s.chestOpen?copyText('story.guidance.west_room.2'):!has('cellarKey')?copyText('story.guidance.west_room.3'):!has('paper')?copyText('story.guidance.west_room.4'):null
                 };
                 if(nearby[area]) return {text:nearby[area]};
             }
             if (this.arrivalTask()) return { text: this.arrivalTask() };
             if (this.state.memory) return this.memoryGuidance(stage);
             if (this.state.waterSolved && !this.state.photoFiled || this.state.courtyard && !this.state.calibrated) return { text: this.objective() };
-            if (this.state.waterSolved) return { text: '打开桌下抽屉看家书。想查当晚的事就翻厨房柜边的相册。要下山就出院门看通知，到候车棚把反光牌转向来车，再去尽头上车。' };
+            if (this.state.waterSolved) return { text: copyText('story.guidance.text') };
             if (this.state.courtyard) return this.waterGuidance(stage);
-            if (this.state.opened) return { text: '门闩已经松开。沿走廊走到门外的石路，再走入雨庭。右手边的厨房还亮着一盏灯。' };
+            if (this.state.opened) return { text: copyText('story.guidance.text.2') };
             if (this.state.lamp === 'out' || this.state.lamp === 'lit') return { text: this.objective() };
             const read = id => this.state.records.includes(id);
             if (stage <= 0) {
                 let text;
-                if (read('key_board') && !read('wall_marks')) text = '从正厅绕过棺木，往里走。量身高的布带挂在走廊右手边的木墙上。';
-                else if (!read('letter')) text = '入口右手边的小木架上有一张全家福。看看是谁站在中间，两侧各有什么。';
-                else if (!read('lock')) text = '沿地上的红绳去走廊尽头，把门上三个字轮和照片对照。';
-                else text = '看全家福里从左到右的排列，再回来转轮。也可以从供桌端灯照门闩。';
-                return { text, next: '对照已读字迹' };
+                if (read('key_board') && !read('wall_marks')) text = copyText('story.guidance');
+                else if (!read('letter')) text = copyText('story.guidance.2');
+                else if (!read('lock')) text = copyText('story.guidance.3');
+                else text = copyText('story.guidance.4');
+                return { text, next: copyText('story.guidance.next') };
             }
             if (stage === 1) {
                 const evidence = [];
-                if (read('letter')) evidence.push('全家福左边是灯，中间是人，右边是门。');
-                if (!evidence.length) evidence.push('先看门边架上的全家福。');
-                return { text: evidence.join('\n\n') + '\n\n转轮之后还要主动压下门闩；读完字迹不会自动开门。', next: '直接查看字轮答案' };
+                if (read('letter')) evidence.push(copyText('story.guidance.5'));
+                if (!evidence.length) evidence.push(copyText('story.guidance.6'));
+                return { text: evidence.join('\n\n') + copyText('story.guidance.text.3'), next: copyText('story.guidance.next.2') };
             }
-            return { text: '从左到右调成「灯 · 人 · 门」，再压下门闩。\n\n每轮依次经过雨、门、人、灯。如果三轮都还停在雨字，左轮转三格，中轮转两格，右轮转一格。' };
+            return { text: copyText('story.guidance.text.4') };
         }
         waterGuidance(stage) {
             if (stage <= 0) return { text: this.state.records.includes('kitchen_note')
-                ? '靠近厨房靠里的量水桌，看看桶身刻度和写着四升的秤盘。添满、倒空、两桶互倒都可以反复尝试。'
-                : '先去右手边的厨房。灶旁墙上留着一张校秤纸，桌上的提桶和秤盘也有刻度。', next: '想一想量水办法' };
-            if (stage === 1) return { text: '三升和五升的差是两升。先把五升桶倒进空的三升桶，就能在大桶里留下两升。\n\n试着把这两升留在小桶里：下一次添满大桶时，小桶还差多少才满？', next: '直接查看量水做法' };
-            return { text: '从两桶空着开始：\n\n添满五升桶 → 倒入三升桶，余二升。\n倒空三升桶 → 把余下二升倒入小桶。\n再添满五升桶 → 倒入小桶，补上它缺的一升。\n\n五升桶里现在恰好四升。把它放上秤盘。' };
+                ? copyText('story.waterguidance.text')
+                : copyText('story.waterguidance.text.2'), next: copyText('story.waterguidance.next') };
+            if (stage === 1) return { text: copyText('story.waterguidance.text.3'), next: copyText('story.waterguidance.next.2') };
+            return { text: copyText('story.waterguidance.text.4') };
         }
         memoryGuidance(stage) {
             const id = this.state.memory, definition = game.MEMORY_CASES[id];
-            if (id === 'crash' && this.truthSolved()) return { text: '三段记忆已经核对。继续走向路尽头的红蓝救护灯，靠近后主动决定是否回应。也可以先回厨房。' };
-            if (this.state.deductions[id]) return { text: this.conclusionFor(id) + '\n\n可以继续观察，或从门边、暂停菜单回到厨房。' };
-            if (stage === 0) return { text: { school: '近处左侧课桌留着录取通知，远处右侧课桌有家长回执。拿近并翻看正反面，再用“整理记忆”核对。',
-                hospital: '右前方桌上有初诊病历，左侧轮椅旁有复诊安排。核对日期、签字和背面的安排。想知道母亲怎么去县城，可以看看墙钟下的候诊椅。',
-                crash: '来路左侧石块上有手机，前方右侧放着救护交接单。拿近手机，分别查看通话记录和本地录音资料，留意日期。' }[id], next: '再想一想原文' };
-            if (stage === 1) return { text: '选两份不同的已读原文，把有明确日期的片段从早到晚放上时间线，再选择解释。没有具体日期的描述或猜想，可以先留在旁边。选好后仍需主动提交。', next: '直接查看这段推理做法' };
+            if (id === 'crash' && this.truthSolved()) return { text: copyText('story.memoryguidance.text') };
+            if (this.state.deductions[id]) return { text: this.conclusionFor(id) + copyText('story.memoryguidance.text.2') };
+            if (stage === 0) return { text: { school: copyText('story.memoryguidance.school'),
+                hospital: copyText('story.memoryguidance.hospital'),
+                crash: copyText('story.memoryguidance.crash') }[id], next: copyText('story.memoryguidance.next') };
+            if (stage === 1) return { text: copyText('story.memoryguidance.text.3'), next: copyText('story.memoryguidance.next.2') };
             const titles = definition.records.map(record => game.WORLD_MAP.interactables.find(item => item.id === record).title);
             const sequence = definition.timelineOrder.map(event => { const fact = definition.facts.find(fact => fact.id === event); return `${fact.title}：${fact.quote}`; });
-            return { text: `对照「${titles[0]}」和「${titles[1]}」，从早到晚排列：\n\n${sequence.join('\n\n')}\n\n再选择解释：\n\n${definition.choices[definition.answer]}\n\n没有观察过的记录仍须回到场景中调查，提示不会替你加入手记、排列时间线或完成推理。` };
+            return { text: copyText('story.memoryguidance.text.4', titles[0], titles[1], sequence.join('\n\n'), definition.choices[definition.answer]) };
         }
         save(position) {
             if (position) this.state.position = position;

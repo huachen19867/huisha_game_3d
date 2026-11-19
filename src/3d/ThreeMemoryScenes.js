@@ -1,4 +1,5 @@
 (function (global) {
+    const copyText=global.HuishaCopy;
     const game = global.Huisha3D, THREE = global.THREE;
     class ThreeMemoryScenes {
         constructor(house) { this.house = house; this.rooms = {}; }
@@ -18,19 +19,19 @@
                     h.box(`${id}-front-${side}`, [4.2, 3.3, 0.18], [side * 3.15, 1.55, 4.85], m.plaster, undefined, root);
                 }
                 h.box(`${id}-return-door`, [1.9, 2.75, 0.12], [0, 1.35, 4.5], m.wood, `${id}_return`, root);
-                h.label(`${id}-return-sign`, '回到厨房', [1.15, 0.32], [0, 1.7, 4.42], [0, Math.PI, 0], `${id}_return`, root);
+                h.label(`${id}-return-sign`, copyText('memoryjournal.show.3'), [1.15, 0.32], [0, 1.7, 4.42], [0, Math.PI, 0], `${id}_return`, root);
                 const light = new THREE.PointLight(id === 'school' ? 0xffd09a : 0xc9e3eb, 21, 12, 1.6);
                 light.position.set(0, 2.7, 0); root.add(light);
             }
             this.school(); this.hospital(); this.crash();
             h.box('memory-album-cover', [0.68, 0.45, 0.06], [7.75, 1.25, -23.93], m.darkWood, 'memory_album');
-            h.label('memory-album-label', '相 册\n录取 · 复诊 · 归途', [0.61, 0.39], [7.75, 1.25, -23.892], [0, 0, 0], 'memory_album');
+            h.label('memory-album-label', copyText('memoryscenes.memory-album-label'), [0.61, 0.39], [7.75, 1.25, -23.892], [0, 0, 0], 'memory_album');
         }
         school() {
             const h = this.house, m = h.materials, root = this.rooms.school;
             const chalk = new THREE.MeshStandardMaterial({ color: 0x253933, roughness: 1 });
             h.box('school-blackboard', [5.6, 1.45, 0.08], [0, 1.9, -4.7], chalk, 'school_rules', root);
-            h.label('school-board-writing', '毕业班　志愿填报\n交表前核对院校、专业代码。草表自己留。', [3.6, 0.82], [0, 1.95, -4.65], [0, 0, 0], 'school_rules', root, '#253933', '#c9cdb8');
+            h.label('school-board-writing', copyText('memoryscenes.school-board-writing'), [3.6, 0.82], [0, 1.95, -4.65], [0, 0, 0], 'school_rules', root, '#253933', '#c9cdb8');
             h.box('chalk-tray',[5.65,.055,.15],[0,1.17,-4.64],m.wood,'school_rules',root);
             h.box('board-eraser',[.16,.047,.065],[.72,1.219,-4.615],m.darkWood,'school_rules',root);
             h.documents = new game.ThreeDocument(h); h.documents.build(root);
@@ -85,7 +86,7 @@
             for(const offset of [-.033,0,.033]) h.box('clinic-intercom-slot',[.071,.006,.008],[2.35,1.64+offset,-4.594],m.cloth,undefined,root);
             h.box('clinic-window-rail',[.036,.85,.045],[2.88,1.56,-4.61],steel,undefined,root);
             h.box('clinic-window-sill',[2.8,.055,.25],[2.7,1.1,-4.6],enamel,undefined,root);
-            h.label('clinic-window-sign','挂号　·　复诊',[1.2,.28],[2.7,2.24,-4.70],[0,0,0],undefined,root,'#d6ded4','#285449');
+            h.label('clinic-window-sign',copyText('memoryscenes.clinic-window-sign'),[1.2,.28],[2.7,2.24,-4.70],[0,0,0],undefined,root,'#d6ded4','#285449');
             h.box('clinic-strip-housing',[1.46,.055,.18],[1.2,3.12,-3.0],steel,undefined,root);
             h.box('clinic-strip-diffuser',[1.38,.025,.15],[1.2,3.08,-3.0],new THREE.MeshBasicMaterial({color:0xe3eee8}),undefined,root);
             const fill = new THREE.SpotLight(0xf1f1d9,18,8,1.1,.58,2);
@@ -146,7 +147,7 @@
             h.cylinder('tin-lid-inside',.107,.107,.002,[0,-.006,.106],steel,item,this.tinLid);
             const edging = new THREE.TorusGeometry(.103,.0017,6,48);
             h.mesh('tin-gold-edging',edging,h.materials.brass,[0,.007,.106],item,this.tinLid).rotation.x=Math.PI/2;
-            h.label('tin-lid-print','什 锦 糖',[.142,.058],[0,.0075,.106],[-Math.PI/2,0,0],item,this.tinLid,'#8e3528','#eed49c');
+            h.label('tin-lid-print',copyText('memoryscenes.tin-lid-print'),[.142,.058],[0,.0075,.106],[-Math.PI/2,0,0],item,this.tinLid,'#8e3528','#eed49c');
         }
         crash() {
             const h = this.house, m = h.materials, root = this.rooms.crash;
@@ -211,7 +212,7 @@
             h.box('bag-zip',[.006,.007,.39],[-1.502,.651,1.2],m.paper,'crash_phone',root,false);
             h.phone = new game.ThreePhone(h); h.phone.build(root);
             h.box('emergency-case', [0.8, 1, 0.65], [1.7, 0.5, -4.5], m.red, 'crash_report', root);
-            h.label('handover-sheet', '院前救护记录\n21:18　李 明', [0.53, 0.41], [1.7, 1.014, -4.5], [-Math.PI / 2, 0, 0], 'crash_report', root,'#c9c6ae','#294344');
+            h.label('handover-sheet', copyText('memoryscenes.handover-sheet'), [0.53, 0.41], [1.7, 1.014, -4.5], [-Math.PI / 2, 0, 0], 'crash_report', root,'#c9c6ae','#294344');
             h.box('clipboard-clip',[.18,.022,.047],[1.7,1.027,-4.69],m.stone,'crash_report',root);
             const bed=new THREE.PlaneGeometry(.62,1.81,12,20);
             bed.rotateX(-Math.PI/2);
@@ -238,7 +239,7 @@
                 h.cylinder(`rescue-lens-${side}`, 0.13, 0.13, 0.14, [side * 0.9, 1.2, -7], lens, 'rescue_light', root);
                 const light = new THREE.PointLight(side === -1 ? 0xe0573e : 0x7baec9, 5, 8, 1.6); light.position.set(side * 0.9, 1.4, -7); root.add(light);
             }
-            h.label('crash-return-sign', '回到厨房', [1.1, 0.32], [0, 1.4, 7.2], [0, Math.PI, 0], 'crash_return', root);
+            h.label('crash-return-sign', copyText('memoryjournal.show.3'), [1.1, 0.32], [0, 1.4, 7.2], [0, Math.PI, 0], 'crash_return', root);
             const returnLight = new THREE.PointLight(0xc1d4de, 12, 13, 1.6); returnLight.position.set(0, 3, 3); root.add(returnLight);
             const workLight=new THREE.PointLight(0xffedd4,12,9,1.7);workLight.position.set(-.5,2.65,-2);root.add(workLight);
         }

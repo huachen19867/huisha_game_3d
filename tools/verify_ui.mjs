@@ -17,6 +17,10 @@ async function boot(saved, preferences) {
     virtualConsole.on('jsdomError', error => errors.push(error));
     const dom = new JSDOM(html, { url: 'http://127.0.0.1:8133/', runScripts: 'outside-only', pretendToBeVisual: true, virtualConsole });
     const { window } = dom, document = window.document, context = dom.getInternalVMContext();
+    window.fetch=async url=>{
+        assert.equal(url,'STORY.md');
+        return {ok:true,text:()=>readFile(path.join(root,'STORY.md'),'utf8')};
+    };
     // jsdom does not implement native dialog modality, default Escape behavior or layout.
     window.HTMLDialogElement.prototype.showModal = function () { this.open = true; };
     window.HTMLDialogElement.prototype.close = function () { this.open = false; this.dispatchEvent(new window.Event('close')); };
@@ -57,7 +61,7 @@ async function boot(saved, preferences) {
                         scene = this; this.scene = new THREE.Scene(); this.camera = new THREE.PerspectiveCamera(66, 16 / 9, 0.06, 60);
                         const canvas = document.createElement('canvas'); this.root.append(canvas);
                         this.renderer = { domElement: canvas, toneMappingExposure: 1.28, dispose() {} };
-                        this.materials = Object.fromEntries(['wood', 'darkWood', 'brass', 'portrait', 'paper', 'cloth', 'red', 'stone', 'plaster', 'paving', 'floor'].map(name => [name, new THREE.MeshStandardMaterial()]));
+                        this.materials = Object.fromEntries(['wood', 'darkWood', 'brass', 'portrait', 'paper', 'cloth', 'red', 'stone', 'plaster', 'brick', 'paving', 'floor'].map(name => [name, new THREE.MeshStandardMaterial()]));
                         this.portrait = new game.ThreePortrait(this); this.portrait.build();
                         this.door = new THREE.Group(); this.door.position.set(this.map.door.hingeX, 0, this.map.door.hingeZ); this.scene.add(this.door);
                         this.outsideLight = { intensity: 4 }; this.doorMechanism = new game.ThreeDoorMechanism(this); this.doorMechanism.build();
@@ -296,7 +300,18 @@ try {
     ui.$('map').click(); assert.match(ui.document.querySelector('[data-map-area-notes="corridor"]').textContent, /已解开/);
     assert.equal(ui.document.querySelector('[data-map-area="path"]'), null, 'unlocking alone does not draw a room that has not been entered'); ui.click('继续探索');
     ui.inspect('wardrobe'); ui.click('沿滑轨推向床尾'); ui.inspect('brass_weight'); ui.click('拿走铜秤砣');
-    ui.inspect('matchbox');ui.click('拿走火柴盒');ui.inspect('rice_bowl');ui.click('拿走一碗白饭');
+    ui.inspect('matchbox');ui.click('拿走火柴盒');
+    ui.inspect('leak_basin');ui.click('把抹布垫进盆底');
+    assert.equal(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).state.leakMuffled,true);
+    ui.inspect('rice_bowl');assert.equal(ui.scene.story.state.riceStage,'empty');
+    assert.ok(!ui.scene.story.state.records.includes('rice_bowl'));
+    ui.inspect('rice_bowl');ui.click('先留着空碗');assert.ok(!ui.scene.story.takeGear('rice'));
+    ui.inspect('rice_bowl');ui.click('从饭盒里盛半碗白饭');
+    assert.equal(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).state.riceStage,'served');
+    assert.ok(!ui.scene.story.carried().includes('rice'));
+    assert.ok(!ui.scene.story.carried().includes('lunchbox'));
+    ui.inspect('rice_bowl');ui.click('收好饭盒，端走供饭');
+    assert.ok(ui.scene.story.carried().includes('lunchbox'));
     ui.inspect('wedding_photo');ui.key('KeyE');ui.inspect('wedding_chest');ui.document.querySelector('[inputmode=numeric]').value='1986';ui.click('拨开锁扣');ui.click('拿走地下室钥匙');
     ui.inspect('attic_winch');ui.click('松开绳结，放下晾篮');ui.click('拿走纸元宝');
     ui.inspect('cellar_door');ui.click('打开地下室');ui.inspect('sump_pump');ui.click('压动手柄');assert.equal(ui.scene.story.state.sumpDrained,false);ui.key('KeyE');
@@ -530,8 +545,9 @@ try {
     assert.match(ui.$('reader-body').textContent,/矮一点的那个，是我妈/);
     ui.click('留在现场回看');ui.inspect('clerk');ui.click('这封信是谁寄的？');ui.click('核对寄件底单');ui.click('告辞');
     ui.inspect('road_exit');ui.click('坐车下山');assert.match(ui.$('reader-body').textContent,/周叔/);
-    ui.inspect('medicine_letter'); ui.click('今晚留下，给自己煮碗饭'); assert.equal(ui.scene.story.state.departure, 'stay');
+    ui.inspect('medicine_letter'); ui.click('今晚留下，把晚饭热一热'); assert.equal(ui.scene.story.state.departure, 'stay');
     assert.match(ui.$('reader-body').textContent,/最后一颗扣子/);
+    assert.equal(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).state.stoveLit,true);
     ui.click('返回标题'); ui.$('restart').click(); ui.click('保留进度'); assert.equal(ui.scene.story.state.waterSolved, true);
     ui.$('restart').click(); ui.click('确认重新开始');
     assert.equal(ui.scene.story.state.memory, null); assert.equal(ui.scene.story.state.opened, false); assert.equal(ui.scene.story.state.departure, null);

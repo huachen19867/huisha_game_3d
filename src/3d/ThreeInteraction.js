@@ -1,4 +1,5 @@
 (function (global) {
+    const copyText=global.HuishaCopy;
     const game = global.Huisha3D || (global.Huisha3D = {});
     const THREE = global.THREE;
     class ThreeInteraction {
@@ -78,18 +79,22 @@
             if (this.current) {
                 let title = this.current.title, observed = this.story.state.records.includes(this.current.id);
                 if (this.current.id === 'hospital_fare')
-                    title = this.story.state.fareTinOpen ? '看盒里的两摞零钱' : '掀开候诊椅上的糖盒';
-                if (this.current.id === 'wall_marks' && this.story.state.heightStripTaken) title = '挂布带的两颗钉子';
+                    title = this.story.state.fareTinOpen ? copyText('interaction.showprompt') : copyText('interaction.showprompt.2');
+                if (this.current.id === 'wall_marks' && this.story.state.heightStripTaken) title = copyText('interaction.showprompt.3');
+                if (this.current.id === 'rice_bowl') {
+                    const s=this.story.state;
+                    title = s.gear.includes('rice') || s.vigil>0 ? copyText('interaction.showprompt.4') : {covered:copyText('interaction.showprompt.covered'),empty:copyText('interaction.showprompt.empty'),served:copyText('interaction.showprompt.served')}[s.riceStage];
+                }
                 if (this.current.id === 'coffin' && this.story.state.coffinOpen) {
                     observed = this.story.state.records.includes('uniform_collar');
-                    title = observed ? '棺底的黄布兜' : '布兜里的蓝外套';
+                    title = observed ? copyText('interaction.showprompt.5') : copyText('interaction.showprompt.6');
                 }
-                if (this.current.id === 'portrait' && this.story.state.portrait) title = '母亲的旧相框';
+                if (this.current.id === 'portrait' && this.story.state.portrait) title = copyText('interaction.showprompt.7');
                 if (this.current.id === 'altar' && !this.story.state.opened) {
-                    if (this.story.state.lamp === 'altar') title = '供桌上的守夜灯';
-                    if (this.story.state.lamp === 'out') title = '供桌上的烛火';
+                    if (this.story.state.lamp === 'altar') title = copyText('interaction.showprompt.8');
+                    if (this.story.state.lamp === 'out') title = copyText('interaction.showprompt.9');
                 }
-                const label = `E / 点击 · ${title}${observed ? ' · 已观察' : ''}`;
+                const label = copyText('interaction.showprompt.10', title, observed ? copyText('interaction.showprompt.11') : '');
                 if (this.prompt.textContent !== label) this.prompt.textContent = label;
             }
             this.updateMarker();

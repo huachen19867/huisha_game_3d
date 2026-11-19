@@ -1,12 +1,13 @@
 (function(global){
+    const copyText=global.HuishaCopy;
     const {THREE,Huisha3D:game}=global, world=game.WORLD_MAP;
     const flights=[
-        {id:'attic',x:-10.2,level:2.52,title:'阁楼',requires:'opened'},
-        {id:'cellar',x:-15.2,level:-2.4,title:'地下储水间',requires:'cellarOpen'}
+        {id:'attic',x:-10.2,level:2.52,title:copyText('storeys.attic.title'),requires:'opened'},
+        {id:'cellar',x:-15.2,level:-2.4,title:copyText('storeys.cellar.title'),requires:'cellarOpen'}
     ];
     const bottom=-15, landing=-9.5, end=-4.8, half=1.85, stairHalf=.76, steps=15;
     for(const f of flights){
-        world.walkable.push({id:f.id+'_steps',title:f.title+'楼梯',xMin:f.x-stairHalf,xMax:f.x+stairHalf,zMin:bottom-.12,zMax:landing+.12,requiresState:f.requires},
+        world.walkable.push({id:f.id+'_steps',title:f.title+copyText('storeys.title'),xMin:f.x-stairHalf,xMax:f.x+stairHalf,zMin:bottom-.12,zMax:landing+.12,requiresState:f.requires},
             {id:f.id,title:f.title,xMin:f.x-half,xMax:f.x+half,zMin:landing,zMax:end,requiresState:f.requires});
     }
     // Camera, saved poses and interaction rays share the elevation of the visible treads.
@@ -16,13 +17,13 @@
         return flight ? flight.level*Math.min(steps,1+Math.floor((z-bottom)/(landing-bottom)*steps))/steps : 0;
     };
     const addSite=(id,title,area,x,y,z,text,requiresState)=>{
-        world.interactables.push({id,title,area,location:{attic:'阁楼',cellar:'地下储水间',workshop:'修理间'}[area],position:{x,y,z},text,radius:2.15,requiresOpen:true,requiresState});
+        world.interactables.push({id,title,area,location:{attic:copyText('storeys.attic.title'),cellar:copyText('storeys.cellar.title'),workshop:copyText('storeys.addsite.workshop')}[area],position:{x,y,z},text,radius:2.15,requiresOpen:true,requiresState});
     };
-    addSite('cellar_door','地下室的铁门','workshop',-15.2,1.21,-15.15,'铁门通往储水间。锁眼边刻着一只小水桶。','wardrobeOpen');
-    addSite('attic_winch','梁上的晾篮','attic',-11.62,3.57,-6.75,'楼板返潮，母亲把扎好的纸元宝吊到了梁上。绳子在墙钉上绕了两圈。','opened');
-    addSite('sump_grate','排水沟的滤网','cellar',-16.46,-1.97,-5.51,'树叶和旧棉纱糊住滤网。泵的吸水管就接在下面。','cellarOpen');
-    addSite('sump_pump','手压抽水泵','cellar',-13.83,-1.45,-6.87,'井水漫进了地窖，淹过水槽。接头通向墙外的排水管，手柄还能动。','cellarOpen');
-    addSite('cellar_keyring','水槽里的铜钥匙','cellar',-16.32,-1.92,-6.53,'水退下去，白瓷槽底露出一把钥匙。齿柄上冲着和棺锁相同的梅花记号。','sumpDrained');
+    addSite('cellar_door',copyText('storeys.text'),'workshop',-15.2,1.21,-15.15,copyText('storeys.text.2'),'wardrobeOpen');
+    addSite('attic_winch',copyText('storeys.text.3'),'attic',-11.62,3.57,-6.75,copyText('storeys.text.4'),'opened');
+    addSite('sump_grate',copyText('storeys.text.5'),'cellar',-16.46,-1.97,-5.51,copyText('storeys.text.6'),'cellarOpen');
+    addSite('sump_pump',copyText('storeys.text.7'),'cellar',-13.83,-1.45,-6.87,copyText('storeys.text.8'),'cellarOpen');
+    addSite('cellar_keyring',copyText('storeys.text.9'),'cellar',-16.32,-1.92,-6.53,copyText('storeys.text.10'),'sumpDrained');
     world.obstacles.push({id:'cellar-rack',xMin:-15.48,xMax:-14.30,zMin:-5.38,zMax:-4.85,requiresState:'cellarOpen'},{id:'attic-crates',xMin:-11.02,xMax:-9.49,zMin:-5.55,zMax:-4.92,requiresState:'opened'},{id:'sump-trough',xMin:-16.98,xMax:-16.19,zMin:-7.18,zMax:-5.17,requiresState:'cellarOpen'});
     game.buildStoreys=h=>{
         const m=h.materials, brick=m.brick||m.stone;
