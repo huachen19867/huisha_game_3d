@@ -316,9 +316,71 @@
 <!-- endcopy -->
 
 <!-- copy:courtyardmap.yard_well.text -->
-辘轳没转，提绳自己紧了一下。井沿上粘着四条黄纸，湿漉漉的。我刚伸手，最边上那一条就折了下去。
+桶在井壁上磕了两下。提梁歪在石沿底下，摇把拧不动。得先拽一下绳，把桶从石头底下提出来。
 
-小时候我把皮球踢进井里，爸只许我站在灶间门口等。他把球捞上来，两只袖子一直湿到胳膊肘。
+绳上粘着四条湿黄纸。我刚伸手，头一条就折了下去。
+<!-- endcopy -->
+
+<!-- copy:well.grip.title -->
+辘轳上的旧球皮
+<!-- endcopy -->
+
+<!-- copy:well.grip.closed -->
+摇把上的红胶皮
+<!-- endcopy -->
+
+<!-- copy:well.grip.inspect -->
+一截红胶皮包着铁摇把，两头用麻线缠紧了。我摸到一个鼓包。旁边翘着个边，指甲刚好能伸进去。
+<!-- endcopy -->
+
+<!-- copy:well.grip.turn -->
+把松起的胶皮翻过来
+<!-- endcopy -->
+
+<!-- copy:well.grip.tuck -->
+把胶皮掖回麻线底下
+<!-- endcopy -->
+
+<!-- copy:well.grip.tucked -->
+我顺着胶皮抹了一下，铁摇把硌手的地方刚好被它包住。
+<!-- endcopy -->
+
+<!-- copy:well.grip.memory -->
+胶皮里侧有个黑气嘴，旁边还贴着一块歪补丁。是我那只总往左滚的皮球。
+
+那年球掉进井里，爸把我撵到灶门口站着。他捞了半天，回来时湿袖子贴在胳膊上。球已经瘪了。我拍了一下，球砸在脚背上，爸和我同时弯腰去捡，脑袋磕在了一起。
+<!-- endcopy -->
+
+<!-- copy:well.grip.loose -->
+铁摇把能转了。湿绳还在往下滑，桶底隔一会儿就碰一下石头。井栏上架着两根搁桶的木条，间距正好。
+<!-- endcopy -->
+
+<!-- copy:well.grip.park -->
+摇起木桶，搁到木条上
+<!-- endcopy -->
+
+<!-- copy:well.grip.parked -->
+桶底压实了两根木条。我松开摇把等了一会儿，井里再没传来那两下响。
+<!-- endcopy -->
+
+<!-- copy:well.grip.after -->
+提梁已经从石沿下脱出来了。绳上的黄纸也没了。桶在水面上方来回晃，井架右边的摇把够得着。
+<!-- endcopy -->
+
+<!-- copy:well.grip.replay -->
+把桶放回井里，再拉一次绳
+<!-- endcopy -->
+
+<!-- copy:well.grip.photoInside -->
+翻开的胶皮内侧，黑气嘴旁边粘着一块歪补丁。
+<!-- endcopy -->
+
+<!-- copy:well.grip.photoOutside -->
+红胶皮包住了摇把，麻线绑在两头。
+<!-- endcopy -->
+
+<!-- copy:well.grip.hint -->
+要收好井桶，到井架右侧握住包着红胶皮的摇把。
 <!-- endcopy -->
 
 <!-- copy:courtyardmap.kitchen_note.title -->
@@ -2592,7 +2654,7 @@ WASD 或方向键移动，鼠标转头。连按两次 W 并按住第二下疾跑
 <!-- endcopy -->
 
 <!-- copy:main.words.safe -->
-脚步停在了门外。
+我停下来。身后跟着的脚步断了。院子那头，井桶又轻轻磕了一声。
 <!-- endcopy -->
 
 <!-- copy:main.onscaleevent -->

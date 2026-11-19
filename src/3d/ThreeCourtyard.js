@@ -122,12 +122,90 @@
             h.mesh('well-masonry',wall,m.wellStone||m.paving,[-3,.019,-22],'yard_well');
             for(const x of [-3.62,-2.38])h.box('well-windlass-upright',[.115,1.31,.14],[x,1.06,-22.15],m.darkWood,'yard_well');
             const drum=h.cylinder('well-windlass',.105,.105,1.51,[-3,1.61,-22.15],m.wood,'yard_well');drum.rotation.z=Math.PI/2;
-            h.box('well-crank',[.052,.23,.052],[-2.25,1.51,-22.15],m.brass,'yard_well');
+            this.wellCrank=new THREE.Group();this.wellCrank.position.set(-2.25,1.61,-22.15);h.scene.add(this.wellCrank);
+            const iron=new THREE.MeshStandardMaterial({color:0x684c39,roughness:.88,metalness:.38});
+            h.box('well-crank',[.052,.23,.052],[0,-.105,0],iron,'well_grip',this.wellCrank);
+            h.cylinder('crank-axle',.038,.038,.32,[.14,-.211,0],iron,'well_grip',this.wellCrank).rotation.z=Math.PI/2;
+            const grip=h.cylinder('rubber-wrapped-grip',.042,.045,.29,[.135,-.211,0],
+                new THREE.MeshStandardMaterial({color:0x974939,roughness:.85}),'well_grip',this.wellCrank);
+            grip.rotation.z=-Math.PI/2;
+            this.gripSite=h.map.interactables.find(item=>item.id==='well_grip');
+            for(const x of [.025,.037,.24,.253]){
+                const tie=h.mesh('twine-around-grip',new THREE.TorusGeometry(.045,.003,6,24),m.wood,[x,-.211,0],'well_grip',this.wellCrank);
+                tie.rotation.y=Math.PI/2;
+            }
+            this.rubberFlap=new THREE.Group();this.rubberFlap.position.set(.137,-.190,.035);this.wellCrank.add(this.rubberFlap);
+            const tab=h.box('loose-rubber-edge',[.145,.067,.007],[0,-.033,0],grip.material,'well_grip',this.rubberFlap);
+            const glue=new THREE.MeshStandardMaterial({color:0x353430,roughness:.92});
+            const patch=h.mesh('ball-inner-patch',new THREE.CircleGeometry(.026,17),glue,[.024,0,-.004],'well_grip',tab);
+            patch.rotation.y=Math.PI;patch.scale.x=1.35;
+            const valve=h.cylinder('ball-valve',.007,.012,.012,[-.032,0,-.011],glue,'well_grip',tab);
+            valve.rotation.x=Math.PI/2;
+            for(const z of [-21.86,-21.65])h.box('well-bucket-rest',[.60,.055,.078],[-2.48,.881,z],m.darkWood,'yard_well');
+            this.wellPail=new THREE.Group();h.scene.add(this.wellPail);
+            this.pailLift=0;this.wellBeat=0;
             const rope=new THREE.MeshStandardMaterial({color:0x8b7151,roughness:1});
             for(let i=0;i<7;i++){
                 const turn=h.mesh('hemp-winding',new THREE.TorusGeometry(.109,.014,6,20),rope,[-3.15+i*.026,1.61,-22.15],'yard_well');turn.rotation.y=Math.PI/2;
             }
-            h.cylinder('bucket-rope',.014,.014,.63,[-3,1.29,-22.045],rope,'yard_well');
+            this.pailRope=h.cylinder('bucket-rope',.014,.014,1,[-3,1.29,-22.045],rope,'yard_well');
+            this.ropeAnchor=new THREE.Vector3(-3,1.61,-22.045);
+            this.ropeEnd=new THREE.Vector3();this.ropeUp=new THREE.Vector3(0,1,0);
+            const wetPaper=new THREE.MeshStandardMaterial({color:0xb29555,roughness:.64,side:THREE.DoubleSide});
+            this.ropePaper=Array.from({length:4},(_,i)=>{
+                const geometry=new THREE.PlaneGeometry(.033+i*.002,.123-i*.007,3,8);
+                geometry.translate(0,-.055,0);
+                const v=geometry.attributes.position;
+                for(let j=0;j<v.count;j++){
+                    const t=Math.max(0,-v.getY(j)/.12);
+                    v.setXYZ(j,v.getX(j)+.014*t*t,v.getY(j)+.004*Math.sin(j*2.9)*t,.012*Math.sin(t*4+i)*t);
+                }
+                geometry.computeVertexNormals();
+                const strip=h.mesh('paper-on-well-rope',geometry,wetPaper,[0,0,0],'yard_well',undefined,false);
+                strip.rotation.y=i*1.17;strip.rotation.z=.12+i*.17;
+                return strip;
+            });
+        }
+        syncWell(immediate,delta){
+            const h=this.house,s=h.story.state,phase=h.watch?.phase;
+            const near=h.controls && !s.memory && s.opened && h.camera.position.distanceToSquared(this.ropeAnchor)<105;
+            const folded=s.wellGripOpen;
+            const target=Number(s.bucketParked);
+            if(!immediate && !near && this.pailLift===target && this.gripWasOpen===folded && phase!=='film')return;
+            this.gripWasOpen=folded;
+            this.rubberFlap.rotation.x=folded?-2.64:-.22;
+            const live=near && !h.isPaused?.() && phase!=='chase' && phase!=='film';
+            if(immediate || h.reducedMotion?.matches)this.pailLift=target;
+            else if(!h.isPaused?.())this.pailLift+=THREE.MathUtils.clamp(target-this.pailLift,-delta*.85,delta*.85);
+            const lift=this.pailLift, sweep=THREE.MathUtils.smoothstep(lift,.55,.89);
+            const last=this.wellBeat;
+            if(live && !s.bucketParked)this.wellBeat=(last+delta)%3.2;
+            const beat=this.wellBeat;
+            const tap=Math.max(0,1-Math.abs(beat-.54)*3.4, .83-Math.abs(beat-1.18)*3.1);
+            const tug=phase==='film'?THREE.MathUtils.smoothstep(h.watch.time,0,.7)*(1-THREE.MathUtils.smoothstep(h.watch.time,.78,1.25)):0;
+            const x=-2.75+.085*tap*(1-lift)*(1-tug);
+            this.wellPail.position.set(THREE.MathUtils.lerp(x,-2.48,sweep),
+                .37+.66*THREE.MathUtils.smoothstep(lift,0,.55)-.1215*THREE.MathUtils.smoothstep(lift,.89,1)+.29*tug,
+                THREE.MathUtils.lerp(-22.01,-21.755,sweep));
+            this.wellPail.rotation.z=(.09+.10*tap)*(1-lift)*(1-tug);
+            this.wellCrank.rotation.x=-Math.PI*2*THREE.MathUtils.smoothstep(lift,0,.65);
+            this.gripSite.position.y=1.61-.211*Math.cos(this.wellCrank.rotation.x);
+            this.gripSite.position.z=-22.15-.211*Math.sin(this.wellCrank.rotation.x);
+            this.ropeEnd.set(0,.60,0).applyQuaternion(this.wellPail.quaternion).add(this.wellPail.position);
+            this.ropePaper.forEach((strip,i)=>{
+                strip.visible=!s.wellEscaped;
+                if(!strip.visible)return;
+                strip.position.copy(this.ropeAnchor).lerp(this.ropeEnd,.35+i*.14);
+                strip.rotation.x=i===0 && s.records.includes('yard_well') ? .17 : 1.08-i*.23;
+            });
+            this.pailRope.position.copy(this.ropeAnchor).lerp(this.ropeEnd,.5);
+            this.ropeEnd.sub(this.ropeAnchor);this.pailRope.scale.y=this.ropeEnd.length();
+            this.pailRope.quaternion.setFromUnitVectors(this.ropeUp,this.ropeEnd.normalize());
+            if(live && !target && ((last<.54 && beat>=.54)||(last<1.18 && beat>=1.18))){
+                const dx=x-h.camera.position.x,dz=-22.01-h.camera.position.z,d=Math.hypot(dx,dz);
+                const right=h.camera.matrixWorld.elements;
+                h.onWellKnock?.(.42*(1-Math.min(1,d/10))*(beat<1?1:.68),(dx*right[0]+dz*right[2])/Math.max(1,d));
+            }
         }
         dressEaves() {
             const h=this.house, m=h.materials;
@@ -290,12 +368,13 @@
         }
         placeFurniture(place) {
             place('wooden_lantern_01',[.29,.44,.29],[9.83,2.34,-23.47],.25);
-            place('wooden_bucket_01',[.48,.60,.48],[-3,.389,-22.045],.09,'yard_well');
+            this.wellPail.add(place('wooden_bucket_01',[.48,.60,.48],[0,0,0],.09,'yard_well'));
             place('chinese_console_table', [2.75, 0.98, 1.05], [8.5, 0, -22.75], 0, 'water_station', true);
             place('chinese_cabinet', [1.45, 1.9, 0.7], [7.75, 0, -24.3], 0);
         }
         sync(immediate,delta=0) {
             this.syncMask();
+            this.syncWell(immediate,delta);
             this.kitchen.sync(immediate,delta);
             const s = this.house.story.state;
             this.busLights.visible = s.busCalled;

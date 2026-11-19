@@ -40,3 +40,11 @@ body:has(#water-inspector:not([hidden])) #acquisitions div:not(:last-child) { di
     .hud .hud-top nav { display:grid;grid-template-columns:repeat(5,minmax(0,1fr));width:100%;max-width:none;gap:4px; }
     .hud .hud-top nav button { padding:7px 2px;min-height:44px; }
 }
+
+.well-grip-photo {
+    width:min(100%,480px,62dvh);
+    aspect-ratio:2;
+    margin:0 auto 14px;
+    background:url('../assets/art/well-crank.webp') center top / 100% 200% no-repeat;
+}
+.well-grip-photo[data-inside="true"] { background-position:center bottom; }

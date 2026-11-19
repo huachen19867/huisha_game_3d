@@ -301,6 +301,15 @@ try {
     assert.equal(ui.document.querySelector('[data-map-area="path"]'), null, 'unlocking alone does not draw a room that has not been entered'); ui.click('继续探索');
     ui.inspect('wardrobe'); ui.click('沿滑轨推向床尾'); ui.inspect('brass_weight'); ui.click('拿走铜秤砣');
     ui.inspect('matchbox');ui.click('拿走火柴盒');
+    ui.inspect('well_grip');
+    assert.ok(!ui.scene.story.state.records.includes('well_grip'));
+    ui.click('把松起的胶皮翻过来');
+    assert.equal(ui.document.querySelector('.well-grip-photo').dataset.inside,'true');
+    assert.equal(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).state.wellGripOpen,true);
+    ui.click('把胶皮掖回麻线底下');
+    const rewrapped=new ui.window.Huisha3D.ThreeStory(ui.window.localStorage);
+    assert.equal(rewrapped.state.wellGripOpen,false);assert.ok(rewrapped.state.records.includes('well_grip'));
+    ui.key('KeyE');
     ui.inspect('leak_basin');ui.click('把抹布垫进盆底');
     assert.equal(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).state.leakMuffled,true);
     ui.inspect('rice_bowl');assert.equal(ui.scene.story.state.riceStage,'empty');

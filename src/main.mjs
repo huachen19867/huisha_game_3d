@@ -230,6 +230,7 @@ function readRecord(item, actions) {
     const choices = [...actions];
     if (!choices.some(([label]) => label === copyText('main.readrecord'))) choices.push([copyText('main.readrecord'), () => journal(!!scene?.inspectionReturn)]);
     open(item.title, item.text, choices);
+    if(item.id==='well_grip')showGripPhoto(true);
     const photographs={letter:'family-new-year',wedding_photo:'silver-wedding',bend_photo:'bridge-bicycle',height_stitch:'height-stitch'};
     if(photographs[item.id]){
         $('reader-body').prepend(recordPhoto(photographs[item.id],item.title));
@@ -530,16 +531,49 @@ function inspectVillage(item) {
     readRecord({...item, text: item.text + '\n\n' + note}, [[copyText('chapter-ui.household'), close]]);
     return true;
 }
+function showGripPhoto(inside){
+    const photo=document.createElement('div');
+    photo.className='well-grip-photo';photo.dataset.inside=String(inside);
+    photo.setAttribute('role','img');
+    photo.setAttribute('aria-label',copyText(inside?'well.grip.photoInside':'well.grip.photoOutside'));
+    $('reader-body').prepend(photo);
+}
+function inspectWellGrip(item,firstLook=false){
+    const s=story.state,known=s.records.includes(item.id);
+    const actions=[];
+    actions.push([s.wellGripOpen?copyText('well.grip.tuck'):copyText('well.grip.turn'),()=>{
+        s.wellGripOpen=!s.wellGripOpen;
+        if(!known)story.record(item.id);else story.save();
+        scene.syncState();audio.paper();inspectWellGrip(item,!known);
+    }]);
+    if(s.wellEscaped && !s.bucketParked)actions.push([copyText('well.grip.park'),()=>{
+        s.bucketParked=true;story.save();audio.latch();close();
+    }]);
+    actions.push([copyText('chapter-ui.household'),close]);
+    const bucket=s.bucketParked ? copyText('well.grip.parked') : s.wellEscaped ? copyText('well.grip.loose') : '';
+    let description=copyText('well.grip.inspect');
+    if(known)description=s.wellGripOpen?copyText('well.grip.photoInside'):copyText('well.grip.tucked');
+    open(known?item.title:copyText('well.grip.closed'),[firstLook?item.text:description,bucket].filter(Boolean).join('\n\n'),actions);
+    showGripPhoto(s.wellGripOpen);
+}
 function inspect(item) {
     item = presentRecord(item);
     ['lock', 'water_station'].includes(item.id) ? audio.knock() : audio.paper();
     if (['car_envelope','clerk','duty_book','key_board','front_gate'].includes(item.id) && inspectVillage(item)) return;
     if (household({story,scene,open,close,audio,inspectUniform},item)) return;
+    if(item.id==='well_grip' || item.id==='yard_well'){
+        if(scene.watch?.phase==='chase'){
+            open(item.title,copyText('main.inspect'),[[copyText('main.inspect.2'),close]]);return;
+        }
+    }
+    if(item.id==='well_grip'){inspectWellGrip(item);return;}
     if(item.id==='yard_well'){
         wellShots.preload();
         const investigate=()=>{close();scene.watch.begin();};
-        if(scene.watch.phase==='chase'){open(item.title,copyText('main.inspect'),[[copyText('main.inspect.2'),close]]);return;}
-        readRecord(item,[[story.state.wellEscaped?copyText('main.inspect.3'):copyText('main.inspect.4'),investigate],[copyText('main.inspect.5'),close]]);return;
+        const s=story.state;
+        const text=s.bucketParked?copyText('well.grip.parked'):s.wellEscaped?copyText('well.grip.after'):item.text;
+        const pull=s.bucketParked?copyText('well.grip.replay'):s.wellEscaped?copyText('main.inspect.3'):copyText('main.inspect.4');
+        readRecord({...item,text},[[pull,investigate],[copyText('main.inspect.5'),close]]);return;
     }
     if (item.id === 'wall_marks') {
         const taken = story.state.heightStripTaken;
@@ -842,6 +876,9 @@ try {
         getPreferences: () => preferences.values,
         isReading: () => reader.open || document.hidden || mode !== 'game',
         onMechanismEvent: event => { if (event === 'door-release') audio.knock(); },
+        onWellKnock:(volume,pan)=>{
+            if(volume>0 && !audio.sample('impactWood_light_000',volume,pan))audio.tone(184,.11,volume*.21);
+        },
         onKitchenDrip: (volume,pan) => {
             if (!audio.sample('impactMetal_light_001',volume,pan)) audio.tone(1030,.13,volume*.23);
         },

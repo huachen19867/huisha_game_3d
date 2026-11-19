@@ -4,7 +4,7 @@
     const SAVE_KEY = 'huisha.3d.homecoming.v1';
     const symbols = [copyText('story.symbols'), copyText('story.symbols.2'), copyText('story.symbols.3'), copyText('story.symbols.4')];
     const freshState = () => ({ arrival: 'intro', chapterEdition: 2, basketDown:false, cellarOpen:false, filterClear:false, sumpDrained:false, oldCoffinLatch:false, gear: [], wardrobeOpen: false, chestOpen: false, calibrated: false, vigil: 0, coffinOpen: false, photoFiled:false, busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
-        courtyard: false, crossedYard: false, wellEscaped:false, maskHung:false, formJoined:false, buckets: [0, 0], waterSolved: false, departure: null, rememberPlace:null, position: null, lamp: 'altar', shielded: false,
+        courtyard: false, crossedYard: false, wellEscaped:false, bucketParked:false, wellGripOpen:false, maskHung:false, formJoined:false, buckets: [0, 0], waterSolved: false, departure: null, rememberPlace:null, position: null, lamp: 'altar', shielded: false,
         memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, fareTinOpen: false, heightStripTaken: false, riceStage:'covered', porkOnRice:false, leakMuffled:false, stoveLit:false, reasoningRevision: 2, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
     class ThreeStory {
@@ -112,6 +112,8 @@
                     for (const id of this.state.records) this.markArea(this.recordArea(id));
                     this.state.crossedYard = this.state.opened && (saved.crossedYard === true || this.state.waterSolved || this.state.visitedAreas.includes('kitchen'));
                     this.state.wellEscaped=this.state.opened && saved.wellEscaped===true;
+                    this.state.wellGripOpen=this.state.opened && this.state.records.includes('well_grip') && saved.wellGripOpen===true;
+                    this.state.bucketParked=this.state.wellEscaped && saved.bucketParked===true;
                     this.state.maskHung = this.state.crossedYard && this.state.records.includes('mask_strap') && saved.maskHung===true;
                 }
             } catch (_) { this.saveAvailable = false; }
@@ -415,6 +417,7 @@
             if(!s.memory && s.opened) {
                 const has=id=>s.gear.includes(id);
                 const nearby={
+                    yard:s.wellEscaped && !s.bucketParked ? copyText('well.grip.hint') : null,
                     attic:has('paper')?copyText('story.guidance.attic'):s.basketDown?copyText('story.guidance.attic.2'):copyText('story.guidance.attic.3'),
                     cellar:has('coffinKey')?copyText('story.guidance.cellar'):s.sumpDrained?copyText('story.guidance.cellar.2'):s.filterClear?copyText('story.guidance.cellar.3'):copyText('story.guidance.cellar.4'),
                     workshop:!has('weight')?copyText('story.guidance.workshop'):!has('matches')?copyText('story.guidance.workshop.2'):!s.cellarOpen?(has('cellarKey')?copyText('story.guidance.workshop.3'):copyText('story.guidance.workshop.4')):null,
