@@ -1,8 +1,8 @@
 (function (global) {
     const game = global.Huisha3D;
     const KEY = 'huisha.3d.preferences.v1';
-    const defaults = { brightness: 1.28, mouseSensitivity: 1, touchSensitivity: 1, invertY: false, pointerLock: true, muted: false, volume: 1 };
-    const bounds = { brightness: [0.8, 1.8], mouseSensitivity: [0.25, 3], touchSensitivity: [0.25, 3], volume: [0, 1] };
+    const defaults = { brightness: 1.28, mouseSensitivity: 1, touchSensitivity: 1, invertY: false, pointerLock: true, muted: false, volume: 1, rainMix: .43, musicMix: .72 };
+    const bounds = { brightness: [0.8, 1.8], mouseSensitivity: [0.25, 3], touchSensitivity: [0.25, 3], volume: [0, 1], rainMix: [0, 1], musicMix: [0, 1] };
     class ThreePreferences {
         constructor(storage) {
             this.values = { ...defaults }; this.saveAvailable = true;

@@ -4,9 +4,16 @@
         ...['wood', 'concrete'].flatMap(surface => [0, 1, 2].map(index => `footstep_${surface}_00${index}`)),
         'impactMetal_light_000', 'impactMetal_light_001', 'impactWood_light_000'
     ];
+    // Beats, MIDI notes and dynamics. Empty bars let the last string decay into the room.
+    const scores={
+        road:{beat:.69,length:32,notes:[[0,50,.62],[1.5,57,.42],[3,62,.68],[5,64,.37],[7,57,.53],[12,55,.56],[13.5,62,.42],[16,60,.64],[19,57,.46],[23,50,.62]]},
+        home:{beat:.82,length:40,notes:[[0,38,.58],[.08,62,.66],[2,65,.54],[3.5,67,.40],[6,60,.49],[8,57,.55],[13,43,.4],[14,55,.48],[17,60,.5],[20,62,.60],[23.5,57,.3],[28,50,.52]]},
+        memory:{beat:.78,length:32,notes:[[0,43,.44],[.12,67,.45],[2,69,.36],[5,62,.55],[8,64,.41],[11,60,.48],[16,38,.42],[18,57,.47],[20,60,.49],[23,62,.61]]},
+        chase:{beat:.32,length:16,notes:[[0,38,.72],[1.5,38,.48],[3,41,.65],[4,38,.50],[6,48,.6],[7.5,39,.6],[9,38,.78],[11,45,.52],[12,41,.61],[14.5,37,.57]]}
+    };
     class ThreeAudio {
         constructor() {
-            this.muted = false; this.volume = 1; this.distance = 0; this.steps = 0; this.turns = 0; this.samples = new Map();
+            this.muted = false; this.volume = 1; this.musicMix=.72;this.rainMix=.43; this.distance = 0; this.steps = 0; this.turns = 0; this.samples = new Map();
             this.indoor = { surface: 'wood', rain: 0.04, cutoff: 650 };
         }
         start() {
@@ -23,15 +30,70 @@
                     this.noise = buffer;
                     const rain = this.context.createBufferSource(); rain.buffer = buffer; rain.loop = true;
                     const filter = this.context.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 800;
-                    const volume = this.context.createGain(); volume.gain.value = 0.08;
+                    const volume = this.context.createGain(); volume.gain.value = 0;
                     rain.connect(filter); filter.connect(volume); volume.connect(this.gain); rain.start(); this.rain = rain;
                     this.rainFilter = filter; this.rainGain = volume; this.applySoundscape(true); this.loadSamples();
+                    this.musicBus=this.context.createGain();this.musicBus.gain.value=.78*this.musicMix;this.musicBus.connect(this.gain);
+                    this.loadInstruments();
+                    this.musicClock=global.setInterval(()=>this.scheduleMusic(),100);
                 }
                 this.context.resume()?.catch?.(() => {});
             } catch (_) { /* Sound is optional; exploration remains available. */ }
         }
+        async loadInstruments() {
+            this.musicAbort=new AbortController();
+            await Promise.allSettled(['harp-d4','bass-d1'].map(async id=>{
+                const response=await global.fetch('assets/audio/vsco/'+id+'.wav',{signal:this.musicAbort.signal});
+                if(!response.ok)return;
+                const sample=await this.context.decodeAudioData(await response.arrayBuffer());
+                if(!this.disposed)this.samples.set(id,sample);
+            }));
+        }
+        setScore(name) {
+            if(name===this.scoreName)return;
+            this.scoreName=name;this.musicIndex=0;this.musicBar=(this.context?.currentTime||0)+.18;
+            if(!this.musicBus)return;
+            // Fade the previous room, including notes already scheduled during the lookahead.
+            const old=this.musicBus,now=this.context.currentTime;
+            old.gain.setTargetAtTime(.0001,now,.10);
+            global.setTimeout(()=>old.disconnect(),850);
+            this.musicBus=this.context.createGain();this.musicBus.gain.value=.78*this.musicMix;this.musicBus.connect(this.gain);
+        }
+        scheduleMusic() {
+            const ctx=this.context,score=scores[this.scoreName];
+            if(!score || !this.musicBus || this.muted || ctx?.state!=='running')return;
+            const now=ctx.currentTime;
+            if(this.musicBar+score.length*score.beat<now){this.musicBar=now;this.musicIndex=0;}
+            while(true){
+                const [beat,note,strength]=score.notes[this.musicIndex];
+                const at=this.musicBar+beat*score.beat;
+                if(at>now+.24)return;
+                if(at>=now-.10)this.playNote(note,strength,Math.max(now,at));
+                if(++this.musicIndex===score.notes.length){this.musicIndex=0;this.musicBar+=score.length*score.beat;}
+            }
+        }
+        playNote(note,strength,at) {
+            const ctx=this.context,bass=note<49,buffer=this.samples.get(bass?'bass-d1':'harp-d4');
+            const voice=buffer?ctx.createBufferSource():ctx.createOscillator(),level=ctx.createGain();
+            const duration=this.scoreName==='chase'?.54:bass?2.5:3.8;
+            if(buffer){voice.buffer=buffer;voice.playbackRate.value=2**((note-(bass?26:62))/12);}
+            else {voice.type='triangle';voice.frequency.value=440*2**((note-69)/12);}
+            level.gain.setValueAtTime(.0001,at);
+            level.gain.exponentialRampToValueAtTime(strength*(buffer ? .85 : .36),at+.015);
+            level.gain.exponentialRampToValueAtTime(.0001,at+duration);
+            voice.connect(level);level.connect(this.musicBus);voice.onended=()=>{voice.disconnect();level.disconnect();};
+            voice.start(at);voice.stop(at+duration+.02);
+        }
+        brake() {
+            this.noiseBurst(.48,.6,1900,'bandpass');this.tone(480,.32,.18);
+        }
+        swingDoor(closing) {
+            this.noiseBurst(.39,.23,closing?610:880,'bandpass');
+            if(closing)this.knock();else this.latch();
+        }
         startEngine() {
             if (this.muted || !this.gain || this.engine) return;
+            this.setScore('road');
             const ctx = this.context, engine = ctx.createOscillator(), level = ctx.createGain();
             engine.type = 'triangle'; engine.frequency.setValueAtTime(69,ctx.currentTime);
             level.gain.value = .23; engine.connect(level); level.connect(this.gain);
@@ -45,6 +107,7 @@
             radio.start();this.radio=radio;
         }
         silenceRadio() {
+            if(this.scoreName==='road')this.setScore(null);
             if(this.radio){this.radio.stop();this.radio=null;}
         }
         stopEngine() {
@@ -112,7 +175,7 @@
         applySoundscape(force = false) {
             const sound = this.currentSoundscape || this.indoor;
             if (!this.rainGain || (!force && sound === this.appliedSoundscape)) return;
-            this.rainGain.gain.setTargetAtTime(sound.rain, this.context.currentTime, 0.35);
+            this.rainGain.gain.setTargetAtTime(sound.rain*this.rainMix, this.context.currentTime, 0.35);
             this.rainFilter.frequency.setTargetAtTime(sound.cutoff, this.context.currentTime, 0.35);
             this.appliedSoundscape = sound;
         }
@@ -134,6 +197,13 @@
         }
         pause() { this.context?.suspend()?.catch?.(() => {}); }
         resetPosition() { this.last = null; this.distance = 0; }
+        setMix(music,rain) {
+            if(this.musicMix!==music){
+                this.musicMix=music;
+                this.musicBus?.gain.setTargetAtTime(.78*music,this.context.currentTime,.06);
+            }
+            if(this.rainMix!==rain){this.rainMix=rain;this.applySoundscape(true);}
+        }
         setVolume(value) {
             if (!Number.isFinite(value)) return;
             this.volume = Math.max(0, Math.min(1, value));
@@ -144,7 +214,7 @@
             if (value) this.pause(); else if (changed && resume) this.start();
         }
         toggle() { this.setMuted(!this.muted); }
-        dispose() { this.stopEngine(); this.disposed = true; this.sampleAbort?.abort(); this.samples.clear(); this.rain?.stop(); this.context?.close()?.catch?.(() => {}); }
+        dispose() { global.clearInterval?.(this.musicClock);this.musicAbort?.abort();this.stopEngine(); this.disposed = true; this.sampleAbort?.abort(); this.samples.clear(); this.rain?.stop(); this.context?.close()?.catch?.(() => {}); }
     }
     global.Huisha3D.ThreeAudio = ThreeAudio;
 })(window);

@@ -95,7 +95,12 @@
                     if (this.story.state.lamp === 'altar') title = copyText('interaction.showprompt.8');
                     if (this.story.state.lamp === 'out') title = copyText('interaction.showprompt.9');
                 }
-                const label = copyText('interaction.showprompt.10', title, observed ? copyText('interaction.showprompt.11') : '');
+                const swing=this.story.canSwingDoor?.(this.current.id);
+                if(swing){
+                    title=copyText(this.story.state.closedDoors.includes(this.current.id)?'door.open':'door.shut')+' · '+title;
+                    observed=false;
+                }
+                const label = swing?copyText('door.prompt',title):copyText('interaction.showprompt.10', title, observed ? copyText('interaction.showprompt.11') : '');
                 if (this.prompt.textContent !== label) this.prompt.textContent = label;
             }
             this.updateMarker();

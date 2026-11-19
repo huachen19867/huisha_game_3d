@@ -24,7 +24,8 @@
 .mask-study{display:block;width:auto;height:clamp(125px,33vh,285px);max-width:100%;object-fit:contain;margin:0 auto 1rem}
 
 .drive-dialog{position:absolute;inset:auto 5% 5%;display:flex;align-items:center;justify-content:center;gap:10px}
-.drive-dialog #drive-caption{position:static;transform:none;width:auto;max-width:58ch}
+.drive-dialog #drive-caption[data-shock]{color:#f04a3c;font-weight:800;letter-spacing:.15em}
+.drive-dialog #drive-caption{white-space:pre-line;position:static;transform:none;width:auto;max-width:58ch}
 .drive-dialog button{flex-shrink:0;background:#111814e8}
 #well-film{position:fixed;inset:0;z-index:3;pointer-events:none;border-block:clamp(15px,5vh,56px) solid #060808}
 #well-closeup{width:100%;height:100%;display:block}

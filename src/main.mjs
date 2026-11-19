@@ -84,6 +84,7 @@ function save() {
 function applyPreferences() {
     if (scene?.renderer) scene.renderer.toneMappingExposure = preferences.values.brightness;
     audio.setVolume(preferences.values.volume);
+    audio.setMix(preferences.values.musicMix,preferences.values.rainMix);
     audio.setMuted(preferences.values.muted, mode === 'game' && !document.hidden);
     if (!preferences.values.pointerLock && document.pointerLockElement) document.exitPointerLock();
 }
@@ -492,11 +493,12 @@ function inspectVillage(item) {
             story.record(id);
             readRecord(account,[[copyText('main.inspectvillage.13'),()=>inspectVillage(item)],[copyText('main.inspectvillage.11'),close]]);
         };
-        const questions=[];
+        const askRoad=[copyText('clerk.askRoad'),()=>open(item.title,copyText('clerk.road'),[[copyText('main.inspectvillage.13'),()=>inspectVillage(item)],[copyText('main.inspectvillage.11'),close]])];
+        const questions=[askRoad];
         if (phase==='keys') questions.push([copyText('main.inspectvillage.14'),()=>inspectVillage(game.WORLD_MAP.interactables.find(entry=>entry.id==='key_board'))]);
         if(story.state.coffinOpen || story.state.records.includes('coffin')) questions.push([copyText('main.inspectvillage.15'),()=>discuss('clerk_holdall')]);
         if(story.state.records.includes('uniform_cuff')) questions.push([copyText('main.inspectvillage.16'),()=>discuss('clerk_cuff')]);
-        open(copyText('housemap.clerk.title'),after,phase==='letter'?[[copyText('main.inspectvillage.17'),pocketLetter],[copyText('main.inspectvillage.11'),close]]:[...questions,[copyText('main.inspectvillage.18'),()=>{
+        open(copyText('housemap.clerk.title'),after,phase==='letter'?[[copyText('main.inspectvillage.17'),pocketLetter],askRoad,[copyText('main.inspectvillage.11'),close]]:[...questions,[copyText('main.inspectvillage.18'),()=>{
             const book=game.WORLD_MAP.interactables.find(i=>i.id==='duty_book');story.record(book.id);inspectVillage(book);
         }],askAboutPost,[copyText('main.inspectvillage.11'),close]]);return true;
     }
@@ -557,6 +559,10 @@ function inspectWellGrip(item,firstLook=false){
     showGripPhoto(s.wellGripOpen);
 }
 function inspect(item) {
+    if(story.toggleDoor(item.id)){
+        audio.swingDoor(story.state.closedDoors.includes(item.id));
+        save();return;
+    }
     item = presentRecord(item);
     ['lock', 'water_station'].includes(item.id) ? audio.knock() : audio.paper();
     if (['car_envelope','clerk','duty_book','key_board','front_gate'].includes(item.id) && inspectVillage(item)) return;
@@ -728,7 +734,7 @@ $('skip-drive').addEventListener('click', leaveDrive);
 function startDrive() {
     $('title-screen').hidden = true; audio.start();
     mode = 'drive'; scene.showingFilm = true; audio.startEngine(); audio.update(scene.map.roadStart,true); $('drive').hidden = false; $('skip-drive').focus();
-    stopDrive = playDrive($('windscreen'), $('drive-caption'), leaveDrive, ()=>{audio.stopEngine();audio.knock();}, $('drive-next'), ()=>audio.silenceRadio());
+    stopDrive = playDrive($('windscreen'), $('drive-caption'), leaveDrive, ()=>{audio.stopEngine();audio.knock();audio.tone(53,.6,.65);}, $('drive-next'), ()=>audio.silenceRadio(),()=>audio.brake());
 }
 $('replay-drive').addEventListener('click', () => {replayOnly = true; startDrive();});
 $('begin').addEventListener('click', () => {
@@ -872,6 +878,7 @@ window.addEventListener('pagehide', event => {
 });
 window.addEventListener('pageshow', event => { if (event.persisted && mode === 'game') audio.start(); });
 try {
+    if(story.state.opened)wellShots.preload();
     scene = new game.ThreeHouseScene({ root: $('world'), prompt: $('prompt'), focusMarker: $('focus-marker'), story, isPaused, onInspect: inspect,
         getPreferences: () => preferences.values,
         isReading: () => reader.open || document.hidden || mode !== 'game',
@@ -915,6 +922,11 @@ try {
         },
         onAssetError: name => { assetErrors.add(name); updateLoadStatus(); },
         onFrame: (position, paused) => {
+            if(mode==='game'){
+                const phase=scene.watch?.phase;
+                const music=phase==='film'?null:phase==='chase'?'chase':story.state.memory?'memory':position.z>4.5?'road':'home';
+                audio.setScore(music);
+            }
             audio.update(position, paused, story.state.memory || 'house');
             if (!paused) {
                 story.visitPosition(position);
@@ -926,7 +938,7 @@ try {
             }
             if (scene.inspectionKind === 'portrait' && !reader.open) updatePortrait();
             if (scene.inspectionKind === 'document' && !reader.open) updateDocument();
-            if (!paused && !story.state.memory && story.state.opened && position.z < -15.2 && story.enterCourtyard()) updateStatus();
+            if (!paused && !story.state.memory && story.state.opened && position.z < -15.2 && story.enterCourtyard()){wellShots.preload();updateStatus();}
         } });
     scene.onWellFrame=t=>wellShots.draw(t);
     await scene.start();

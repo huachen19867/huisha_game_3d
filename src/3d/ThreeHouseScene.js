@@ -553,14 +553,34 @@
             this.flashlight = new THREE.SpotLight(0xffedd1, 5, 9, 0.5, 0.75, 1.4);
             this.flashTarget = new THREE.Object3D(); this.scene.add(this.flashlight, this.flashTarget); this.flashlight.target = this.flashTarget;
         }
+        swingLeaf(id,leaf,spec,unlocked,delta,immediate=false) {
+            const target=unlocked && !this.story.state.closedDoors.includes(id)?spec.openAngle:0;
+            const from=leaf.rotation.y;
+            if(immediate || from!==target){
+                const distance=target-from;
+                const step=immediate || this.reducedMotion?.matches ? Math.abs(distance) : Math.min(Math.abs(distance),2.4*delta);
+                const parts=Math.ceil(step/.065);
+                for(let n=1;n<=parts;n++){
+                    const angle=n===parts && step===Math.abs(distance)?target:from+Math.sign(distance)*step*n/parts;
+                    if(!immediate && this.controls?.blocksLeaf(this.camera.position.x,this.camera.position.z,spec,angle))break;
+                    leaf.rotation.y=angle;
+                }
+            }
+            const site=leaf.userData.handleSite??=this.map.interactables.find(item=>item.id===id);
+            const x=spec.handleX,z=spec.handleZ;
+            const a=leaf.rotation.y;
+            site.position.x=spec.hingeX+x*Math.cos(a)+z*Math.sin(a);
+            site.position.z=spec.hingeZ-x*Math.sin(a)+z*Math.cos(a);
+        }
         doorAngle(id) {
+            if (id === 'cellar') return this.cellarDoor.rotation.y;
             if (id === 'front') return this.frontHinge.rotation.y;
             return id === 'yard' ? this.courtyard.gate.rotation.y : this.door.rotation.y;
         }
         syncState(immediate = false, delta = 0) {
             const s = this.story.state;
             this.documents?.syncTear();
-            game.syncStoreys(this,s,this.storeysReady ? delta : undefined);this.storeysReady=true;
+            game.syncStoreys(this,s,this.storeysReady && !immediate ? delta : undefined);this.storeysReady=true;
             this.wardrobe.position.z = s.wardrobeOpen ? -16.01 : -18;
             this.wardrobeSite.position.z = this.wardrobe.position.z;
             this.westLid.rotation.x = s.chestOpen ? -1.05 : 0;
@@ -573,13 +593,7 @@
             this.coffinPadlock.visible=!s.coffinOpen;
             this.coffinLid.rotation.x = s.coffinOpen ? -1.37 : 0;
             this.uniform.visible = s.coffinOpen && !s.records.includes('uniform_collar');
-            const target = s.arrival === 'home' ? this.frontDoorSpec.openAngle : 0;
-            if (immediate) this.frontHinge.rotation.y = target;
-            else if (target !== this.frontHinge.rotation.y) {
-                const current = this.frontHinge.rotation.y, step = delta*2.4;
-                const angle = this.reducedMotion?.matches ? target : current + THREE.MathUtils.clamp(target-current,-step,step);
-                if (!this.controls?.blocksLeaf(this.camera.position.x,this.camera.position.z,this.frontDoorSpec,angle)) this.frontHinge.rotation.y = angle;
-            }
+            this.swingLeaf('front_gate',this.frontHinge,this.frontDoorSpec,s.arrival==='home',delta,immediate);
             this.heightStrip.visible = !s.heightStripTaken;
             this.houseKey.visible = s.arrival !== 'gate' && !(s.arrival === 'home' && s.records.includes('key_board'));
             this.portrait.sync(immediate);
@@ -589,7 +603,7 @@
                 this.wheelSymbols[i] = s.wheels[i];
                 if (immediate) wheel.rotation.x = this.wheelTargets[i];
             });
-            if (immediate) this.door.rotation.y = s.opened ? this.map.door.openAngle : 0;
+            if(immediate)this.swingLeaf('lock',this.door,this.map.door,s.opened,0,true);
             this.doorMechanism.sync(immediate);
             this.courtyard?.sync(immediate,delta);
             this.memories?.sync(delta);
@@ -705,9 +719,7 @@
         moveDoor(delta) {
             if (this.isPaused()) return;
             this.doorMechanism.update(delta);
-            const target = this.story.state.opened && this.doorMechanism.ready ? this.map.door.openAngle : 0;
-            const remaining = target - this.door.rotation.y;
-            this.door.rotation.y += this.reducedMotion?.matches || Math.abs(remaining) < 0.001 ? remaining : remaining * Math.min(1, delta * 4);
+            this.swingLeaf('lock',this.door,this.map.door,this.story.state.opened && this.doorMechanism.ready,delta);
             this.doorMechanism.updateLight();
             this.courtyard?.moveGate(delta);
         }

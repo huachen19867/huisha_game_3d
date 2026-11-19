@@ -1,5 +1,5 @@
 // As in the 2D dialogue, advancing the text starts the next beat.
-export function playDrive(canvas, subtitle, finish, impact, next, radioCut) {
+export function playDrive(canvas, subtitle, finish, impact, next, radioCut, brake) {
     const copyText=window.HuishaCopy;
     const ctx=canvas.getContext('2d');
     const still=new window.Image(), face=new window.Image();
@@ -7,24 +7,27 @@ export function playDrive(canvas, subtitle, finish, impact, next, radioCut) {
     face.src='assets/art/windscreen-face.webp';
     const captions=[
         copyText('drive-intro.playdrive'),
-        copyText('drive-intro.playdrive.2'),
+        ...copyText('drive-intro.playdrive.2').split(/\n\s*\n/),
         copyText('drive-intro.playdrive.3'),
         copyText('drive-intro.playdrive.4')
     ];
+    const blackCaption=copyText('drive.black');
+    const revealPage=captions.length-1;
     const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    let page=0, since=0, time=0, request, last, struck=false;
+    let page=0, since=0, time=0, request, last, struck=false, braking=false;
     const caption=()=>{
+        delete subtitle.dataset.shock;
         subtitle.textContent=captions[page] || '';
         subtitle.hidden=!subtitle.textContent;
         next.hidden=false;
-        next.textContent=page===3?copyText('main.leavedrive'):copyText('drive-intro.playdrive.5');
+        next.textContent=page===revealPage?copyText('main.leavedrive'):copyText('drive-intro.playdrive.5');
     };
     const advance=()=>{
         if(next.hidden) return;
-        if(page===3){finish();return;}
+        if(page===revealPage){finish();return;}
         page++; since=0;
-        if(page===2)radioCut?.();
-        if(page===3){next.hidden=true;subtitle.hidden=true;}
+        if(page===revealPage-1)radioCut?.();
+        if(page===revealPage){next.hidden=true;subtitle.hidden=true;}
         else caption();
     };
     next.addEventListener('click',advance); caption(); next.focus();
@@ -36,7 +39,7 @@ export function playDrive(canvas, subtitle, finish, impact, next, radioCut) {
         ctx.setTransform(sx,0,0,sx,ox,oy);
         if(still.naturalWidth)ctx.drawImage(still,0,0,1672,941);
         else {ctx.fillStyle='#10181b';ctx.fillRect(0,0,1672,941);}
-        const hit=page===3;
+        const hit=page===revealPage;
         ctx.save();
         ctx.beginPath();ctx.moveTo(92,0);ctx.lineTo(1672,0);ctx.lineTo(1672,630);ctx.lineTo(179,674);ctx.closePath();ctx.clip();
         const sweep=(1-Math.cos(time*Math.PI/.6))*.5;
@@ -71,9 +74,18 @@ export function playDrive(canvas, subtitle, finish, impact, next, radioCut) {
         const dt=last===undefined||document.hidden?0:Math.min(.12,(now-last)/1000);
         last=now; time+=dt;
         // On a slow connection hold the reveal until its image is ready (or failed).
-        if(page!==3 || (face.complete && still.complete)) since+=dt;
-        if(page===3 && !struck && since>=1.34){struck=true;impact?.();}
-        if(page===3 && since>=3.75 && next.hidden)caption();
+        if(page!==revealPage || (face.complete && still.complete)) since+=dt;
+        if(page===revealPage && next.hidden){
+            if(since>=.67 && subtitle.hidden && !braking){
+                subtitle.textContent=copyText('drive.hit');subtitle.hidden=false;subtitle.dataset.shock='true';
+            }
+            if(!braking && since>=1.32){
+                braking=true;delete subtitle.dataset.shock;subtitle.textContent=copyText('drive.brake');brake?.();
+            }
+            if(!struck && since>=1.55){struck=true;impact?.();}
+            if(since>=2.9 && subtitle.textContent!==blackCaption)subtitle.textContent=blackCaption;
+        }
+        if(page===revealPage && since>=3.75 && next.hidden)caption();
         if(ctx){
             const w=Math.max(1,Math.round(canvas.clientWidth*Math.min(1.5,window.devicePixelRatio||1)));
             const h=Math.max(1,Math.round(canvas.clientHeight*w/Math.max(1,canvas.clientWidth)));

@@ -9,7 +9,7 @@ export function wellCloseups(canvas) {
     ];
     const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     return {
-        preload(){if(!frames.getAttribute('src'))frames.src='assets/art/well-paper-shots.webp';},
+        preload(){if(!frames.getAttribute('src')){frames.fetchPriority='high';frames.src='assets/art/well-paper-shots.webp';}},
         draw(t){
             const shot=cuts.find(s=>t>=s.start && t<s.end);
             canvas.hidden=!ctx || !shot || !frames.naturalWidth;

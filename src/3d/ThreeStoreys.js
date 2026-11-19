@@ -5,6 +5,8 @@
         {id:'attic',x:-10.2,level:2.52,title:copyText('storeys.attic.title'),requires:'opened'},
         {id:'cellar',x:-15.2,level:-2.4,title:copyText('storeys.cellar.title'),requires:'cellarOpen'}
     ];
+    const cellarLeaf={id:'cellar',stateField:'cellarOpen',hingeX:-15.96,hingeZ:-14.99,width:1.5,thickness:.11,openAngle:-1.53,handleX:1.34,handleZ:-.092};
+    world.extraDoors.push(cellarLeaf);
     const bottom=-15, landing=-9.5, end=-4.8, half=1.85, stairHalf=.76, steps=15;
     for(const f of flights){
         world.walkable.push({id:f.id+'_steps',title:f.title+copyText('storeys.title'),xMin:f.x-stairHalf,xMax:f.x+stairHalf,zMin:bottom-.12,zMax:landing+.12,requiresState:f.requires},
@@ -75,7 +77,7 @@
             }
         }
         // Open the door away from the stair, retaining the iron hardware in view.
-        h.cellarDoor=new THREE.Group();h.cellarDoor.position.set(-15.96,0,-14.99);h.scene.add(h.cellarDoor);
+        h.cellarDoor=new THREE.Group();h.cellarDoor.position.set(cellarLeaf.hingeX,0,cellarLeaf.hingeZ);h.scene.add(h.cellarDoor);
         box('cellar-door-leaf',[1.5,2.34,.11],[.75,1.17,0],m.darkWood,'cellar_door',h.cellarDoor);
         for(const y of [.36,1.85]) box('strap-hinge',[.8,.07,.032],[.43,y,-.069],m.stone,'cellar_door',h.cellarDoor);
         h.box('padlock',[.12,.14,.07],[1.34,1.11,-.092],m.brass,'cellar_door',h.cellarDoor);
@@ -151,7 +153,7 @@
         return ids;
     };
     game.syncStoreys=(h,s,delta)=>{
-        h.cellarDoor.rotation.y=s.cellarOpen?-1.53:0;
+        h.swingLeaf('cellar_door',h.cellarDoor,cellarLeaf,s.cellarOpen,delta??0,delta===undefined);
         const blend=delta===undefined?1:1-Math.exp(-delta*3.4);
         h.atticBasket.position.y=THREE.MathUtils.lerp(h.atticBasket.position.y,s.basketDown?3.27:4.45,blend);
         h.paperParcel.visible=!s.gear.includes('paper');

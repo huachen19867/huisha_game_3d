@@ -186,6 +186,9 @@ try {
     assert.equal(ui.scene.story.state.arrival,'keys'); ui.click('重看登记簿'); ui.click('向周师傅领钥匙'); ui.click('东街 6 号'); ui.click('收好钥匙');
     ui.inspect('key_board'); assert.match(ui.$('reader-body').textContent,/中间的挂钩空了/); ui.click('返回');
     ui.inspect('front_gate'); ui.click('用六号钥匙开门'); assert.equal(ui.scene.story.state.arrival,'home');
+    ui.inspect('front_gate'); assert.ok(ui.scene.story.state.closedDoors.includes('front_gate'));
+    assert.equal(ui.scene.story.state.arrival,'home');
+    ui.inspect('front_gate'); assert.ok(!ui.scene.story.state.closedDoors.includes('front_gate'));
     // Existing hall saves start at their original pose and keep the old discovery history.
     ui.destroy(); ui = await boot(JSON.stringify({version:1,position:{x:0,z:3.4,yaw:Math.PI,pitch:0}}),savedPreferences); ui.$('begin').click();
     ui.key('KeyM'); assert.equal(ui.$('reader-title').textContent, '探索地图');

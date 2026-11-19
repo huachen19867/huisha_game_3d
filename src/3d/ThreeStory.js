@@ -3,7 +3,7 @@
     const game = global.Huisha3D || (global.Huisha3D = {});
     const SAVE_KEY = 'huisha.3d.homecoming.v1';
     const symbols = [copyText('story.symbols'), copyText('story.symbols.2'), copyText('story.symbols.3'), copyText('story.symbols.4')];
-    const freshState = () => ({ arrival: 'intro', chapterEdition: 2, basketDown:false, cellarOpen:false, filterClear:false, sumpDrained:false, oldCoffinLatch:false, gear: [], wardrobeOpen: false, chestOpen: false, calibrated: false, vigil: 0, coffinOpen: false, photoFiled:false, busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
+    const freshState = () => ({ closedDoors: [], arrival: 'intro', chapterEdition: 2, basketDown:false, cellarOpen:false, filterClear:false, sumpDrained:false, oldCoffinLatch:false, gear: [], wardrobeOpen: false, chestOpen: false, calibrated: false, vigil: 0, coffinOpen: false, photoFiled:false, busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
         courtyard: false, crossedYard: false, wellEscaped:false, bucketParked:false, wellGripOpen:false, maskHung:false, formJoined:false, buckets: [0, 0], waterSolved: false, departure: null, rememberPlace:null, position: null, lamp: 'altar', shielded: false,
         memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, fareTinOpen: false, heightStripTaken: false, riceStage:'covered', porkOnRice:false, leakMuffled:false, stoveLit:false, reasoningRevision: 2, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
@@ -23,6 +23,7 @@
                         this.state.wheels = saved.wheels.map(value => Number.isInteger(value) && value >= 0 && value < 4 ? value : 0);
                     }
                     this.state.opened = saved.opened === true;
+                    this.state.closedDoors=['front_gate','lock','yard_gate','cellar_door'].filter(id=>Array.isArray(saved.closedDoors) && saved.closedDoors.includes(id));
                     if (this.state.opened && saved.lamp === 'hook') this.state.lamp = 'hook';
                     if (!this.state.opened && ['lit', 'out'].includes(saved.lamp)) this.state.lamp = saved.lamp;
                     this.state.shielded = this.state.lamp === 'lit' && saved.shielded === true;
@@ -204,6 +205,16 @@
         enterCourtyard() {
             if (!this.state.opened || this.state.courtyard) return false;
             this.state.courtyard = true; this.save(); return true;
+        }
+        canSwingDoor(id) {
+            const s=this.state;
+            return (id==='front_gate' && s.arrival==='home') || (id==='lock' && s.opened) || (id==='yard_gate' && s.waterSolved) || (id==='cellar_door' && s.cellarOpen);
+        }
+        toggleDoor(id) {
+            if(!this.canSwingDoor(id))return false;
+            const closed=this.state.closedDoors;
+            this.state.closedDoors=closed.includes(id)?closed.filter(value=>value!==id):[...closed,id];
+            return true;
         }
         canUseBucket(index) { return this.state.opened && !this.state.waterSolved && (index === 0 || index === 1); }
         fillBucket(index) {

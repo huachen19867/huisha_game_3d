@@ -4,7 +4,7 @@
         constructor({ preferences, onChange }) { Object.assign(this, { preferences, onChange }); }
         append(container) {
             const root = document.createElement('section'); root.className = 'play-settings';
-            const controls = [], format = (name, value) => name === 'volume' ? `${Math.round(value * 100)}%` : `${value.toFixed(2)}${name.includes('Sensitivity') ? copyText('settings.append') : ''}`;
+            const controls = [], format = (name, value) => ['volume','musicMix','rainMix'].includes(name) ? `${Math.round(value * 100)}%` : `${value.toFixed(2)}${name.includes('Sensitivity') ? copyText('settings.append') : ''}`;
             const refresh = () => {
                 for (const { input, output, name } of controls) {
                     if (input.type === 'checkbox') input.checked = this.preferences.values[name];
@@ -16,6 +16,7 @@
             const changed = () => { this.onChange(); refresh(); };
             for (const [name, text, min, max, step] of [
                 ['brightness', copyText('settings.append.6'), 0.8, 1.8, 0.01], ['volume', copyText('settings.append.7'), 0, 1, 0.01],
+                ['musicMix', copyText('settings.music'), 0, 1, .01], ['rainMix', copyText('settings.rain'), 0, 1, .01],
                 ['mouseSensitivity', copyText('settings.append.8'), 0.25, 3, 0.05], ['touchSensitivity', copyText('settings.append.9'), 0.25, 3, 0.05]
             ]) {
                 const label = document.createElement('label'); label.className = 'setting-range';

@@ -384,7 +384,7 @@
             if (immediate) {
                 this.weighing = null;
                 this.releaseProgress = s.waterSolved ? 1 : 0;
-                this.gate.rotation.y = s.waterSolved ? this.gateSpec.openAngle : 0;
+                this.house.swingLeaf('yard_gate',this.gate,this.gateSpec,s.waterSolved,0,true);
                 this.update(1, true);
             }
         }
@@ -428,9 +428,7 @@
             this.marker.position.x = this.buckets[this.selected].position.x;
         }
         moveGate(delta) {
-            const target = this.house.story.state.waterSolved && this.releaseProgress >= 1 ? this.gateSpec.openAngle : 0;
-            const remaining = target - this.gate.rotation.y;
-            this.gate.rotation.y += this.house.reducedMotion?.matches || Math.abs(remaining) < 0.001 ? remaining : remaining * Math.min(1, delta * 4);
+            this.house.swingLeaf('yard_gate',this.gate,this.gateSpec,this.house.story.state.waterSolved && this.releaseProgress>=1,delta);
         }
         frame() {
             const h = this.house, width = h.root?.clientWidth || 1280, height = h.root?.clientHeight || 720;
