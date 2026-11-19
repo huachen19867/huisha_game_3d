@@ -594,8 +594,9 @@
             this.coffinLid.rotation.x = s.coffinOpen ? -1.37 : 0;
             this.uniform.visible = s.coffinOpen && !s.records.includes('uniform_collar');
             this.swingLeaf('front_gate',this.frontHinge,this.frontDoorSpec,s.arrival==='home',delta,immediate);
+            this.repairNote.visible=s.stripNoteLeft;
             this.heightStrip.visible = !s.heightStripTaken;
-            this.houseKey.visible = s.arrival !== 'gate' && !(s.arrival === 'home' && s.records.includes('key_board'));
+            this.houseKey.visible = s.keyAtBooth || s.arrival !== 'gate' && !(s.arrival === 'home' && s.records.includes('key_board'));
             this.portrait.sync(immediate);
             this.wheels.forEach((wheel, i) => {
                 if (immediate) this.wheelTargets[i] = s.wheels[i] * Math.PI / 2;

@@ -205,6 +205,8 @@ function knownRecords() {
         : game.WORLD_MAP.interactables.find(item => item.id === id)).filter(Boolean).map(presentRecord);
 }
 function presentRecord(item) {
+    if(item.id==='repair_order' && story.state.stripNoteLeft)return {...item,text:item.text+'\n\n'+copyText('workorder.note')};
+    if(item.id==='duty_book' && story.state.keyAtBooth)return {...item,text:copyText('housemap.duty_book.text',copyText('clerk.keyLogged'))};
     if (item.id === 'duty_book' && story.carried().includes('key'))
         return {...item,text:copyText('housemap.duty_book.text',copyText('main.presentrecord.text.2'))};
     if (Object.hasOwn(game.DOCUMENTS, item.id)) return { ...item, text: story.documentText(item.id) };
@@ -446,7 +448,10 @@ function busEnding() {
     if (heightStripTaken) paragraphs.push(records.includes('height_stitch')
         ? copyText('main.busending.3')
         : copyText('main.busending.4'));
-    if (records.includes('forwarding_slip')) paragraphs.push(copyText('main.busending.5'));
+    const hasKey=story.carried().includes('key');
+    if(records.includes('forwarding_slip'))paragraphs.push(copyText(hasKey?'main.busending.5':'clerk.busThanks'));
+    else if(hasKey && story.state.stripNoteLeft && !heightStripTaken)paragraphs.push(copyText('workorder.bringKey'));
+    if(story.state.stripNoteLeft && !heightStripTaken)paragraphs.push(copyText('workorder.bus'));
     return [...paragraphs,copyText('main.busending.6')].join('\n\n');
 }
 function ending(choice, memoryPlace) {
@@ -474,40 +479,94 @@ function ending(choice, memoryPlace) {
     }
     open({ stay: copyText('main.ending.stay'), leave: copyText('courtyardmap.bus_notice.location'), wake: copyText('main.ending.wake'), remember: copyText('main.ending.remember') }[choice], endingText, [[copyText('main.ending.14'), close], [copyText('main.titlesettings.3'), title]], copyText('main.ending.15'));
 }
+function inspectWorkOrder(){
+    const item=game.WORLD_MAP.interactables.find(entry=>entry.id==='repair_order');
+    const s=story.state,actions=[];
+    if(!s.records.includes(item.id))story.record(item.id);
+    if(s.stripNoteLeft || (s.records.includes('wall_marks') && !s.heightStripTaken)){
+        actions.push([copyText(s.stripNoteLeft?'workorder.remove':'workorder.add'),()=>{
+            s.stripNoteLeft=!s.stripNoteLeft;
+            story.save();audio.paper();inspectWorkOrder();
+        }]);
+    }
+    actions.push([copyText('chapter-ui.household'),close]);
+    readRecord(presentRecord(item),actions);
+}
 function inspectVillage(item) {
     const phase = story.state.arrival;
     if (item.id === 'clerk') {
         const after=phase==='letter'?copyText('main.inspectvillage'):
-            phase==='ledger'?copyText('main.inspectvillage.2'):
+            phase==='ledger'?copyText(story.state.clerkKnowsAddress?'main.inspectvillage.2':'clerk.noAddress'):
             phase==='keys'?copyText('main.inspectvillage.3'):
             phase==='gate'?copyText('main.inspectvillage.4'):
             copyText('main.inspectvillage.5');
-        const askAboutPost=[copyText('main.inspectvillage.6'),()=>{
-            const slip=game.WORLD_MAP.interactables.find(entry=>entry.id==='forwarding_slip');
-            open(copyText('main.inspectvillage.7'),copyText('main.inspectvillage.8'),[
-                [copyText('main.inspectvillage.9'),()=>{story.record(slip.id);readRecord(slip,[[copyText('main.inspectvillage.10'),()=>inspectVillage(item)],[copyText('main.inspectvillage.11'),close]]);}],
-                [copyText('main.inspectvillage.12'),close]]);
+        const returnToClerk=()=>inspectVillage(item);
+        const leave=[copyText('main.inspectvillage.11'),close];
+        const showLetter=[copyText(phase==='letter'?'main.inspectvillage.17':'clerk.showLetter'),()=>{
+            story.record('car_envelope');story.state.clerkKnowsAddress=true;
+            story.advanceArrival('letter','ledger');story.save();audio.paper();
+            open(item.title,copyText('clerk.envelopeShown'),[[copyText('clerk.toWindow'),returnToClerk],leave]);
         }];
+        const slip=game.WORLD_MAP.interactables.find(entry=>entry.id==='forwarding_slip');
+        const readSlip=()=>{
+            story.record(slip.id);
+            readRecord(slip,[[copyText('main.inspectvillage.10'),returnToClerk],leave]);
+        };
+        const askAboutPost=story.state.clerkExplainedPost?[copyText('clerk.readSlip'),readSlip]:
+            [copyText('main.inspectvillage.6'),()=>{
+                story.state.clerkKnowsAddress=true;story.state.clerkExplainedPost=true;story.save();
+                open(copyText('main.inspectvillage.7'),copyText('main.inspectvillage.8'),[
+                    [copyText('main.inspectvillage.9'),readSlip],[copyText('main.inspectvillage.12'),close]]);
+            }];
         const discuss=(id)=>{
             const account=game.WORLD_MAP.interactables.find(entry=>entry.id===id);
             story.record(id);
             readRecord(account,[[copyText('main.inspectvillage.13'),()=>inspectVillage(item)],[copyText('main.inspectvillage.11'),close]]);
         };
-        const askRoad=[copyText('clerk.askRoad'),()=>open(item.title,copyText('clerk.road'),[[copyText('main.inspectvillage.13'),()=>inspectVillage(item)],[copyText('main.inspectvillage.11'),close]])];
-        const questions=[askRoad];
-        if (phase==='keys') questions.push([copyText('main.inspectvillage.14'),()=>inspectVillage(game.WORLD_MAP.interactables.find(entry=>entry.id==='key_board'))]);
-        if(story.state.coffinOpen || story.state.records.includes('coffin')) questions.push([copyText('main.inspectvillage.15'),()=>discuss('clerk_holdall')]);
-        if(story.state.records.includes('uniform_cuff')) questions.push([copyText('main.inspectvillage.16'),()=>discuss('clerk_cuff')]);
-        open(copyText('housemap.clerk.title'),after,phase==='letter'?[[copyText('main.inspectvillage.17'),pocketLetter],askRoad,[copyText('main.inspectvillage.11'),close]]:[...questions,[copyText('main.inspectvillage.18'),()=>{
-            const book=game.WORLD_MAP.interactables.find(i=>i.id==='duty_book');story.record(book.id);inspectVillage(book);
-        }],askAboutPost,[copyText('main.inspectvillage.11'),close]]);return true;
+        const askRoad=[copyText('clerk.askRoad'),()=>{
+            const answer=copyText(story.state.askedAboutRoad?'clerk.repeatRoad':'clerk.road');
+            if(!story.state.askedAboutRoad){story.state.askedAboutRoad=true;story.save();}
+            open(item.title,answer,[[copyText('main.inspectvillage.13'),returnToClerk],leave]);
+        }];
+        const questions=[];
+        if(phase==='letter' || (phase==='ledger' && !story.state.clerkKnowsAddress)){
+            questions.push(showLetter,[copyText('clerk.sayAddress'),()=>{
+                story.state.clerkKnowsAddress=true;
+                story.advanceArrival('letter','ledger');story.save();
+                returnToClerk();
+            }]);
+        }
+        if(phase==='keys')questions.push([copyText('main.inspectvillage.14'),()=>inspectVillage(game.WORLD_MAP.interactables.find(entry=>entry.id==='key_board'))]);
+        if(phase!=='letter'){
+            questions.push([copyText('main.inspectvillage.18'),()=>{
+                const book=game.WORLD_MAP.interactables.find(entry=>entry.id==='duty_book');
+                story.record(book.id);inspectVillage(book);
+            }],askAboutPost);
+        }
+        if(phase==='home' && story.state.records.includes('key_board')){
+            const returned=story.state.keyAtBooth;
+            questions.push([copyText(returned?'clerk.borrowKey':'clerk.returnKey'),()=>{
+                story.state.keyAtBooth=!returned;story.save();scene.syncState();audio.latch();updateStatus();
+                open(item.title,copyText(returned?'clerk.borrowed':'clerk.returned'),[[copyText('main.inspectvillage.13'),returnToClerk],leave]);
+            }]);
+        }
+        questions.push(askRoad,[copyText('workorder.read'),inspectWorkOrder]);
+        if(story.state.records.includes('wardrobe') && !story.state.wardrobeOpen)questions.push([copyText('clerk.workshop.ask'),()=>{
+            open(item.title,copyText('clerk.workshop.answer'),[[copyText('main.inspectvillage.13'),returnToClerk],leave]);
+        }]);
+        if(story.state.coffinOpen || story.state.records.includes('coffin'))questions.push([copyText('main.inspectvillage.15'),()=>discuss('clerk_holdall')]);
+        if(story.state.records.includes('uniform_cuff'))questions.push([copyText('main.inspectvillage.16'),()=>discuss('clerk_cuff')]);
+        open(item.title,after,[...questions,leave]);return true;
     }
     if (item.id === 'car_envelope') {pocketLetter();return true;}
     else if (item.id === 'duty_book') {
-        story.advanceArrival('ledger','keys');
+        if(phase==='letter' || phase==='ledger')story.advanceArrival(phase,'keys');
         const actions = [[copyText('chapter-ui.household'),close]];
         if (story.state.arrival === 'keys') actions.unshift([copyText('main.inspectvillage.14'),()=>inspectVillage(game.WORLD_MAP.interactables.find(entry=>entry.id==='key_board'))]);
         readRecord(presentRecord(item),actions); return true;
+    }
+    else if(item.id==='key_board' && story.state.keyAtBooth){
+        open(item.title,copyText('clerk.onHook'),[[copyText('clerk.talk'),()=>inspectVillage(game.WORLD_MAP.interactables.find(entry=>entry.id==='clerk'))],[copyText('chapter-ui.household'),close]]);return true;
     }
     else if (item.id === 'key_board' && story.carried().includes('key')) {
         open(item.title,copyText('main.inspectvillage.19'),[[copyText('chapter-ui.household'),close]]); return true;
@@ -559,6 +618,7 @@ function inspectWellGrip(item,firstLook=false){
     showGripPhoto(s.wellGripOpen);
 }
 function inspect(item) {
+    if(item.id==='repair_order'){inspectWorkOrder();return;}
     if(story.toggleDoor(item.id)){
         audio.swingDoor(story.state.closedDoors.includes(item.id));
         save();return;

@@ -234,6 +234,10 @@
             h.box('booth-side',[1.52,1.02,.12],[3.47,.5,21+end*1.53],m.brick||m.plaster);
         }
         h.box('counter-edge',[1.12,.09,2.55],[3.1,1,21],m.darkWood,'duty_book');
+        h.box('work-order-board',[.40,.028,.48],[2.94,1.065,20.22],m.wood,'repair_order');
+        h.label('work-order-form',copyText('workorder.tag'),[.42,.34],[2.94,1.082,20.22],[-Math.PI/2,0,Math.PI/2],'repair_order',undefined,'#c1b18a','#474238');
+        h.repairNote=h.label('carpenter-note',copyText('workorder.noteTag'),[.27,.18],[2.87,1.087,20.24],[-Math.PI/2,0,Math.PI/2+.06],'repair_order',undefined,'#e2d7bd','#34342e');
+        h.box('work-order-clip',[.04,.015,.14],[3.09,1.085,20.22],m.brass,'repair_order');
         h.box('logbook-cover',[.56,.025,.84],[2.99,1.063,21.1],m.cloth,'duty_book');
         h.cylinder('tea-mug',.074,.068,.14,[3.22,1.12,21.73],m.paper,'duty_book');
         h.mesh('mug-handle',new THREE.TorusGeometry(.048,.011,7,16),m.paper,[3.22,1.13,21.81],'duty_book').rotation.y=Math.PI/2;

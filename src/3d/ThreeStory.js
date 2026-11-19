@@ -3,7 +3,7 @@
     const game = global.Huisha3D || (global.Huisha3D = {});
     const SAVE_KEY = 'huisha.3d.homecoming.v1';
     const symbols = [copyText('story.symbols'), copyText('story.symbols.2'), copyText('story.symbols.3'), copyText('story.symbols.4')];
-    const freshState = () => ({ closedDoors: [], arrival: 'intro', chapterEdition: 2, basketDown:false, cellarOpen:false, filterClear:false, sumpDrained:false, oldCoffinLatch:false, gear: [], wardrobeOpen: false, chestOpen: false, calibrated: false, vigil: 0, coffinOpen: false, photoFiled:false, busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
+    const freshState = () => ({ clerkKnowsAddress:false, clerkExplainedPost:false, askedAboutRoad:false, stripNoteLeft:false, keyAtBooth:false, closedDoors: [], arrival: 'intro', chapterEdition: 2, basketDown:false, cellarOpen:false, filterClear:false, sumpDrained:false, oldCoffinLatch:false, gear: [], wardrobeOpen: false, chestOpen: false, calibrated: false, vigil: 0, coffinOpen: false, photoFiled:false, busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
         courtyard: false, crossedYard: false, wellEscaped:false, bucketParked:false, wellGripOpen:false, maskHung:false, formJoined:false, buckets: [0, 0], waterSolved: false, departure: null, rememberPlace:null, position: null, lamp: 'altar', shielded: false,
         memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, fareTinOpen: false, heightStripTaken: false, riceStage:'covered', porkOnRice:false, leakMuffled:false, stoveLit:false, reasoningRevision: 2, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
@@ -19,6 +19,11 @@
                         ? saved.arrival : 'home';
                     this.state.records = [...new Set((Array.isArray(saved.records) ? saved.records : []).filter(id =>
                         (game.WORLD_MAP || game.MAIN_HALL_MAP).interactables.some(item => item.id === id) || id === 'portrait_back'))];
+                    this.state.clerkKnowsAddress=saved.clerkKnowsAddress===true || this.state.records.includes('forwarding_slip');
+                    this.state.clerkExplainedPost=saved.clerkExplainedPost===true || this.state.records.includes('forwarding_slip');
+                    this.state.askedAboutRoad=saved.askedAboutRoad===true;
+                    this.state.keyAtBooth=saved.keyAtBooth===true && this.state.arrival==='home' && this.state.records.includes('key_board');
+                    this.state.stripNoteLeft=saved.stripNoteLeft===true && ['wall_marks','repair_order'].every(id=>this.state.records.includes(id));
                     if (Array.isArray(saved.wheels) && saved.wheels.length === 3) {
                         this.state.wheels = saved.wheels.map(value => Number.isInteger(value) && value >= 0 && value < 4 ? value : 0);
                     }
@@ -238,7 +243,7 @@
             const s=this.state, ids=[];
             if(s.arrival !== 'intro') ids.push('envelope');
             if(s.arrival !== 'intro' && (s.riceStage!=='served' || s.gear.includes('rice') || s.vigil>0)) ids.push('lunchbox');
-            if(s.arrival === 'gate' || (s.arrival === 'home' && s.records.includes('key_board'))) ids.push('key');
+            if(!s.keyAtBooth && (s.arrival === 'gate' || (s.arrival === 'home' && s.records.includes('key_board')))) ids.push('key');
             if(['lit','out'].includes(s.lamp)) ids.push('lamp');
             if(s.records.includes('medicine_letter')) ids.push('familyLetter');
             for(const id of s.gear) {

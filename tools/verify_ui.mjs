@@ -178,7 +178,13 @@ try {
     assert.equal(ui.$('drive').hidden,true); assert.equal(ui.scene.story.state.arrival,'ledger');
     ui.inspect('clerk');
     assert.doesNotMatch(ui.$('reader-actions').textContent,/正厅那口棺|给周师傅看左袖/);
-    ui.click('这封信是谁寄的？');
+    assert.match(ui.$('reader-body').textContent,/从前是几号/);
+    ui.click('问刚才路上的人');ui.click('再问一句');ui.click('问刚才路上的人');
+    assert.match(ui.$('reader-body').textContent,/只看得见停车那一截/);ui.click('再问一句');
+    ui.click('把旧门牌指给老周看');ui.click('接过信，继续说');
+    assert.match(ui.$('reader-body').textContent,/槐树巷十四号/);
+    ui.click('看窗口那张修屋回执');assert.doesNotMatch(ui.$('reader-actions').textContent,/夹张便条/);
+    ui.click('返回');ui.inspect('clerk');ui.click('这封信是谁寄的？');
     assert.ok(!ui.scene.story.state.records.includes('forwarding_slip'));
     ui.click('核对寄件底单');assert.match(ui.$('reader-body').textContent,/0317/);
     assert.ok(ui.scene.story.state.records.includes('forwarding_slip'));
@@ -189,6 +195,16 @@ try {
     ui.inspect('front_gate'); assert.ok(ui.scene.story.state.closedDoors.includes('front_gate'));
     assert.equal(ui.scene.story.state.arrival,'home');
     ui.inspect('front_gate'); assert.ok(!ui.scene.story.state.closedDoors.includes('front_gate'));
+    ui.destroy();ui=await boot(JSON.stringify({version:1,arrival:'letter',chapterEdition:2}),savedPreferences);
+    ui.$('begin').click();ui.inspect('clerk');ui.click('报家里的旧门牌：槐树巷十四号');ui.click('翻看登记簿');
+    assert.equal(ui.scene.story.state.arrival,'keys');
+    assert.ok(!ui.scene.story.state.records.includes('car_envelope'),'giving the address does not inspect the pocket letter');
+    ui.click('向周师傅领钥匙');ui.click('东街 6 号');ui.click('收好钥匙');
+    ui.inspect('front_gate');ui.click('用六号钥匙开门');ui.inspect('clerk');ui.click('把六号钥匙还给周叔');
+    assert.ok(!ui.scene.story.carried().includes('key'));
+    assert.ok(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).state.keyAtBooth);
+    ui.click('告辞');ui.inspect('duty_book');assert.match(ui.$('reader-body').textContent,/李明　已还/);
+    ui.click('返回');ui.inspect('clerk');ui.click('再借一下六号钥匙');assert.ok(ui.scene.story.carried().includes('key'));
     // Existing hall saves start at their original pose and keep the old discovery history.
     ui.destroy(); ui = await boot(JSON.stringify({version:1,position:{x:0,z:3.4,yaw:Math.PI,pitch:0}}),savedPreferences); ui.$('begin').click();
     ui.key('KeyM'); assert.equal(ui.$('reader-title').textContent, '探索地图');
@@ -555,6 +571,14 @@ try {
     ui.click('转向老宅'); ui.click('再转一次'); ui.click('转向石桥'); ui.click('去站牌'); ui.inspect('road_exit'); ui.click('坐车下山'); assert.equal(ui.scene.story.state.departure, 'leave');
     assert.doesNotMatch(ui.$('reader-body').textContent,/周叔/);
     assert.match(ui.$('reader-body').textContent,/矮一点的那个，是我妈/);
+    assert.doesNotMatch(ui.$('reader-body').textContent,/墙换了新板/);
+    ui.click('留在现场回看');ui.inspect('wall_marks');ui.click('把布带挂回去');
+    ui.inspect('repair_order');ui.click('给木工夹张便条');ui.click('把自己夹的便条抽走');
+    assert.equal(ui.scene.story.state.stripNoteLeft,false);ui.click('给木工夹张便条');
+    assert.equal(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).state.stripNoteLeft,true);
+    ui.click('返回');ui.inspect('road_exit');ui.click('坐车下山');
+    assert.match(ui.$('reader-body').textContent,/墙换了新板/);
+    assert.doesNotMatch(ui.$('reader-body').textContent,/布带掉在过道/);
     ui.click('留在现场回看');ui.inspect('clerk');ui.click('这封信是谁寄的？');ui.click('核对寄件底单');ui.click('告辞');
     ui.inspect('road_exit');ui.click('坐车下山');assert.match(ui.$('reader-body').textContent,/周叔/);
     ui.inspect('medicine_letter'); ui.click('今晚留下，把晚饭热一热'); assert.equal(ui.scene.story.state.departure, 'stay');
