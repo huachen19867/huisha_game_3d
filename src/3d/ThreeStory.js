@@ -5,7 +5,7 @@
     const symbols = [copyText('story.symbols'), copyText('story.symbols.2'), copyText('story.symbols.3'), copyText('story.symbols.4')];
     const freshState = () => ({ clerkKnowsAddress:false, clerkExplainedPost:false, askedAboutRoad:false, stripNoteLeft:false, keyAtBooth:false, closedDoors: [], arrival: 'intro', chapterEdition: 2, basketDown:false, cellarOpen:false, filterClear:false, sumpDrained:false, oldCoffinLatch:false, gear: [], wardrobeOpen: false, chestOpen: false, calibrated: false, vigil: 0, coffinOpen: false, photoFiled:false, busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
         courtyard: false, crossedYard: false, wellEscaped:false, bucketParked:false, wellGripOpen:false, maskHung:false, formJoined:false, buckets: [0, 0], waterSolved: false, departure: null, rememberPlace:null, position: null, lamp: 'altar', shielded: false,
-        memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, fareTinOpen: false, heightStripTaken: false, riceStage:'covered', porkOnRice:false, leakMuffled:false, stoveLit:false, reasoningRevision: 2, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
+        memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, fareTinOpen: false, familyLetterTaken:false, heightStripTaken: false, riceStage:'covered', porkOnRice:false, leakMuffled:false, stoveLit:false, reasoningRevision: 2, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
     class ThreeStory {
         constructor(storage) {
@@ -43,6 +43,9 @@
                             Number.isInteger(value) && value >= 0 && value <= (index ? 5 : 3) ? value : 0);
                     }
                     this.state.waterSolved = saved.waterSolved === true && this.state.opened;
+                    // Older saves gave the packet to the player upon first reading.
+                    this.state.familyLetterTaken=this.state.waterSolved && (saved.familyLetterTaken===true ||
+                        (!Object.hasOwn(saved,'familyLetterTaken') && this.state.records.includes('medicine_letter')));
                     this.state.busCalled = this.state.waterSolved && (saved.busCalled === true || saved.departure === 'leave');
                     const legacy = !saved.chapterEdition && this.state.waterSolved;
                     this.state.oldCoffinLatch = saved.oldCoffinLatch === true || legacy || (saved.chapterEdition===1 && saved.vigil>0);
@@ -245,7 +248,7 @@
             if(s.arrival !== 'intro' && (s.riceStage!=='served' || s.gear.includes('rice') || s.vigil>0)) ids.push('lunchbox');
             if(!s.keyAtBooth && (s.arrival === 'gate' || (s.arrival === 'home' && s.records.includes('key_board')))) ids.push('key');
             if(['lit','out'].includes(s.lamp)) ids.push('lamp');
-            if(s.records.includes('medicine_letter')) ids.push('familyLetter');
+            if(s.familyLetterTaken) ids.push('familyLetter');
             for(const id of s.gear) {
                 if(id==='weight' && s.calibrated || id==='rice' && s.vigil>=1 || id==='paper' && s.vigil>=3) continue;
                 ids.push(id);
@@ -401,7 +404,7 @@
                 return this.state.vigil === 3 ? (this.state.oldCoffinLatch || this.state.gear.includes('coffinKey') ? copyText('story.objective.9') : copyText('story.objective.10')) : copyText('story.objective.11');
             if (this.state.waterSolved && this.state.busCalled) return copyText('story.objective.12');
             if (this.state.waterSolved && this.state.records.includes('bus_notice')) return copyText('story.objective.13');
-            if (this.state.waterSolved) return this.state.records.includes('medicine_letter')
+            if (this.state.waterSolved) return this.state.familyLetterTaken || this.state.records.some(id=>id==='medicine_letter'||id==='family_stub')
                 ? copyText('story.objective.14') : copyText('story.objective.15');
             if(this.state.courtyard && !this.state.calibrated) return this.state.gear.includes('weight') ? copyText('story.objective.16') : copyText('story.objective.17');
             if (this.state.courtyard) return this.state.crossedYard ? copyText('story.objective.18') : copyText('story.objective.19');

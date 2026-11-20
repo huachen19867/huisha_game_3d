@@ -189,6 +189,34 @@ function lookAtHeightStrip() {
         }], [copyText('main.pocketletter'), backpack], [copyText('main.lookatheightstrip.4'), close]
     ]);
 }
+function familyPacket(inBag=false){
+    const s=story.state;
+    const empty=s.familyLetterTaken && !inBag;
+    const actions=[];
+    const back=()=>familyPacket(inBag);
+    const read=id=>{
+        const item=game.WORLD_MAP.interactables.find(entry=>entry.id===id);
+        if(!s.records.includes(id))story.record(id);
+        audio.paper();
+        const choices=[[copyText('family.fold'),back]];
+        if(id==='family_stub' && s.records.includes('hospital_fare')){
+            choices.unshift([copyText('family.compareAction'),()=>open(copyText('family.compareTitle'),copyText('family.compare'),[[copyText('family.fold'),back]])]);
+        }
+        readRecord(item,choices);
+    };
+    if(!empty){
+        actions.push([copyText('family.read'),()=>read('medicine_letter')],[copyText('family.checkStub'),()=>read('family_stub')]);
+    }
+    if(inBag){
+        actions.push([copyText('family.back'),backpack],[copyText('main.backpack.3'),close]);
+    }else{
+        actions.push([copyText(empty?'family.replace':'family.take'),()=>{
+            s.familyLetterTaken=!empty;
+            save();audio.paper();scene.courtyard.syncPacket(s);familyPacket();
+        }],[copyText('main.inspect.37'),close],[copyText(s.stoveLit || s.gear.includes('matches')?'main.inspect.38':'main.inspect.39'),()=>ending('stay')]);
+    }
+    open(copyText(empty?'family.emptyTitle':'family.packet'),copyText(empty?'family.empty':inBag?'family.inBag':'family.outside'),actions);
+}
 function backpack() {
     const description=id=>{
         if (id==='rice' && story.state.porkOnRice) return copyText('main.backpack');
@@ -196,7 +224,7 @@ function backpack() {
         return equipment[id][1];
     };
     const choices=story.carried().map(id=>[equipment[id][0],id==='envelope'?pocketLetter:id==='uniform'?inspectUniform:id==='roadPhoto'?showBridgePhoto:
-        id==='heightStrip'?lookAtHeightStrip:()=>open(equipment[id][0],description(id),[[copyText('main.pocketletter'),backpack],[copyText('main.backpack.3'),close]],copyText('main.backpack.4'))]);
+        id==='familyLetter'?()=>familyPacket(true):id==='heightStrip'?lookAtHeightStrip:()=>open(equipment[id][0],description(id),[[copyText('main.pocketletter'),backpack],[copyText('main.backpack.3'),close]],copyText('main.backpack.4'))]);
     open(copyText('main.backpack.5'),choices.length?'':copyText('main.backpack.6'),[...choices,[copyText('main.backpack.7'),close]],copyText('main.backpack.8'));
 }
 function knownRecords() {
@@ -442,9 +470,11 @@ function waterAction(action) {
 }
 function busEnding() {
     const {records,heightStripTaken} = story.state;
-    const paragraphs = [records.includes('medicine_letter')
-        ? copyText('main.busending')
-        : copyText('main.busending.2')];
+    const readLetter=records.includes('medicine_letter');
+    const departureText=story.state.familyLetterTaken
+        ? (readLetter?'family.busRead':'family.busCarried')
+        : (readLetter?'main.busending':'main.busending.2');
+    const paragraphs=[copyText(departureText)];
     if (heightStripTaken) paragraphs.push(records.includes('height_stitch')
         ? copyText('main.busending.3')
         : copyText('main.busending.4'));
@@ -713,10 +743,14 @@ function inspect(item) {
         open(item.title,item.text,[[copyText('main.inspect.35'),roadside],[copyText('main.inspect.36'),()=>home(bridge)],leave]);return;
     }
     if (item.deduction) {
-        readRecord(item, [[copyText('memoryjournal.show'), close], [copyText('main.updateobjectreading.2'), () => memoryJournal.show(item.deduction)], [copyText('memoryjournal.show.3'), returnMemory]]); return;
+        const actions=[[copyText('memoryjournal.show'),close],[copyText('main.updateobjectreading.2'),()=>memoryJournal.show(item.deduction)],[copyText('memoryjournal.show.3'),returnMemory]];
+        if(item.id==='hospital_fare' && story.state.records.includes('family_stub')){
+            actions.unshift([copyText('family.recallAction'),()=>open(copyText('family.compareTitle'),copyText('family.recall'),[[copyText('family.toTin'),()=>inspect(item)]])]);
+        }
+        readRecord(item,actions);return;
     }
     if (item.id === 'medicine_letter') {
-        readRecord(item, [[copyText('main.inspect.37'), close], [story.state.stoveLit || story.state.gear.includes('matches') ? copyText('main.inspect.38') : copyText('main.inspect.39'), () => ending('stay')]]); return;
+        familyPacket();return;
     }
     if (item.id === 'stop_signal') {
         if (story.state.busCalled) {open(item.title, copyText('main.inspect.40'), [[copyText('chapter-ui.household'),close]]); return;}

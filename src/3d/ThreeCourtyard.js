@@ -301,9 +301,12 @@
             h.box('drawer-front', [1.05, 0.22, 0.08], [0, 0, 0], m.wood, 'water_station', this.drawer);
             h.box('drawer-bottom', [1.05, 0.05, 0.6], [0, -0.09, -0.3], m.darkWood, 'water_station', this.drawer);
             h.box('drawer-handle', [0.19, 0.04, 0.06], [0, 0, 0.07], m.brass, 'water_station', this.drawer);
-            this.letter = h.label('unmailed-letter', copyText('courtyard.unmailed-letter'), [0.73, 0.36], [0, -0.057, -0.33], [-Math.PI / 2, 0, 0], 'medicine_letter', this.drawer);
+            this.packetSite=new THREE.Group();this.drawer.add(this.packetSite);
+            h.label('appointment-slip',copyText('family.printedStub'),[.48,.29],[.13,-.062,-.34],[-Math.PI/2,0,-.10],'medicine_letter',this.packetSite,'#c59f98','#544340');
+            this.letter = h.label('unmailed-letter', copyText('courtyard.unmailed-letter'), [.53,.26], [-.055,-.057,-.33], [-Math.PI / 2,0,.045], 'medicine_letter', this.packetSite,'#bdae89','#3c332c');
             const letterRecord = h.map.interactables.find(item => item.id === 'medicine_letter');
-            letterRecord.targetObject = this.letter;
+            this.drawerSite=new THREE.Group();this.drawer.add(this.drawerSite);
+            letterRecord.targetObject=this.drawerSite;
             this.marker = h.mesh('bucket-selection', new THREE.TorusGeometry(0.31, 0.012, 6, 32),
                 new THREE.MeshBasicMaterial({ color: 0xd7b875 }), [7.65, 1, -22.55], undefined, undefined, false);
             this.marker.rotation.x = Math.PI / 2;
@@ -372,6 +375,10 @@
             place('chinese_console_table', [2.75, 0.98, 1.05], [8.5, 0, -22.75], 0, 'water_station', true);
             place('chinese_cabinet', [1.45, 1.9, 0.7], [7.75, 0, -24.3], 0);
         }
+        syncPacket(s){
+            this.drawerSite.visible=s.waterSolved && this.drawer.position.z> -21.75;
+            this.packetSite.visible=this.drawerSite.visible && !s.familyLetterTaken;
+        }
         sync(immediate,delta=0) {
             this.syncMask();
             this.syncWell(immediate,delta);
@@ -379,7 +386,7 @@
             const s = this.house.story.state;
             this.busLights.visible = s.busCalled;
             this.signalBoard.rotation.y = s.busCalled ? -.64 : Math.PI / 2;
-            this.letter.visible = s.waterSolved && this.drawer.position.z > -21.75;
+            this.syncPacket(s);
             this.marker.visible = this.house.inspectionKind === 'water' && !s.waterSolved;
             if (immediate) {
                 this.weighing = null;
@@ -415,7 +422,7 @@
             this.drawer.position.z += ((s.waterSolved ? -21.57 : -22.23) - this.drawer.position.z) * step;
             this.busLights.visible = s.busCalled;
             this.signalBoard.rotation.y = s.busCalled ? -.64 : Math.PI / 2;
-            this.letter.visible = s.waterSolved && this.drawer.position.z > -21.75;
+            this.syncPacket(s);
             const obstacle = this.house.map.obstacles.find(item => item.id === 'open-drawer');
             obstacle.zMin = this.drawer.position.z - 0.68; obstacle.zMax = this.drawer.position.z + 0.11;
             // The opening drawer may gently push the real player/return pose forward; it must not trap them on exit.

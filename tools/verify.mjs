@@ -616,7 +616,7 @@ assert.equal(drawerResumeControls.canOccupy(drawerResumeCamera.position.x, drawe
 assert.equal(drawerResumeControls.yaw, Math.PI); assert.equal(drawerResumeControls.pitch, -0.2); drawerResumeControls.dispose();
 const roadPoints = flood();
 assert.ok(roadPoints.some(point => point.z < -30.5), 'operating the scale opens a walkable path to the mountain road');
-for (const item of game.WORLD_MAP.interactables.filter(item => !item.space && item.requiresWater)) verifyReachable(item, roadPoints);
+for (const item of game.WORLD_MAP.interactables.filter(item => !item.inventoryOnly && !item.space && item.requiresWater)) verifyReachable(item, roadPoints);
 assert.equal(story.state.departure, null, 'reading clues and reaching the road do not choose an ending');
 assert.equal(story.depart('stay'), true); assert.equal(new game.ThreeStory(adapter).state.departure, 'stay');
 assert.equal(story.state.stoveLit,story.state.gear.includes('matches'));

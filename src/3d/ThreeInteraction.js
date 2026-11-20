@@ -78,6 +78,7 @@
             if (this.prompt.hidden !== hidden) this.prompt.hidden = hidden;
             if (this.current) {
                 let title = this.current.title, observed = this.story.state.records.includes(this.current.id);
+                if(this.current.id==='medicine_letter')title=copyText(this.story.state.familyLetterTaken?'family.emptyTitle':'family.packet');
                 if (this.current.id === 'well_grip' && !observed) title=copyText('well.grip.closed');
                 if (this.current.id === 'hospital_fare')
                     title = this.story.state.fareTinOpen ? copyText('interaction.showprompt') : copyText('interaction.showprompt.2');
