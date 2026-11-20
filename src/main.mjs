@@ -199,6 +199,16 @@ function familyPacket(inBag=false){
         if(!s.records.includes(id))story.record(id);
         audio.paper();
         const choices=[[copyText('family.fold'),back]];
+        if (id === 'medicine_letter' && story.hasDocumentFace('school_postcard','front')) {
+            choices.unshift([copyText('family.viewPostcard'), () => {
+                open(copyText('postcard.title'), copyText('postcard.photo'), [[copyText('family.returnLetter'), () => read(id)]]);
+                const image = document.createElement('img');
+                image.className = 'record-photo';
+                image.alt = copyText('postcard.photoTitle');
+                image.src = 'assets/art/school-postcard.webp';
+                $('reader-body').prepend(image);
+            }]);
+        }
         if(id==='family_stub' && s.records.includes('hospital_fare')){
             choices.unshift([copyText('family.compareAction'),()=>open(copyText('family.compareTitle'),copyText('family.compare'),[[copyText('family.fold'),back]])]);
         }

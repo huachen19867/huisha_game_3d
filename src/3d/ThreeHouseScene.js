@@ -111,7 +111,11 @@
             this.textures.push(sky);
             const portrait = new THREE.TextureLoader().load('assets/art/mother-portrait.png', undefined, () => this.onAssetError?.('mother-portrait'));
             portrait.colorSpace = THREE.SRGBColorSpace; this.textures.push(portrait);
+            const campus = new THREE.TextureLoader().load('assets/art/school-postcard.webp', undefined, () => this.onAssetError?.('school-postcard'));
+            campus.colorSpace = THREE.SRGBColorSpace;
+            this.textures.push(campus);
             this.materials = {
+                postcardPhoto: new THREE.MeshBasicMaterial({map: campus, toneMapped: false}),
                 portrait: new THREE.MeshStandardMaterial({ map: portrait, roughness: 0.85 }),
                 wall: mat(0x9b8d7c, this.texture('木墙', [2.5, 1])),
                 floor: planks,

@@ -16,7 +16,7 @@ const eventTarget = {
     addEventListener(type, callback) { if (!listeners.has(type)) listeners.set(type, new Set()); listeners.get(type).add(callback); },
     removeEventListener(type, callback) { listeners.get(type)?.delete(callback); }
 };
-const canvasContext = { fillRect() {}, strokeRect() {}, fillText() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {} };
+const canvasContext = { save() {}, restore() {}, translate() {}, rotate() {}, ellipse() {}, fillRect() {}, strokeRect() {}, fillText() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {} };
 const document = { ...eventTarget, createElement() { return { getContext() { return canvasContext; } }; }, hidden: false };
 const window = { ...eventTarget, THREE, Huisha3D: {} };
 window.HuishaCopy=parseStoryCopy(await text('STORY.md'));
@@ -759,14 +759,19 @@ for (const [id, definition] of Object.entries(game.MEMORY_CASES)) {
 }
 console.log('Memories: real classroom/hospital/road reachability, space isolation, explicit observation and deduction, persistent drafts, return poses and four ending choices passed.');
 const legacyMemory = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, opened: true, waterSolved: true,
-    records: Object.values(game.MEMORY_CASES).flatMap(definition => definition.records),
+    records: Object.values(game.MEMORY_CASES).flatMap(definition => definition.records).map(id => id === 'school_postcard' ? 'school_receipt' : id),
     deductions: { school: true, hospital: true, crash: true }, memory: 'crash', departure: 'wake' }), setItem() {} });
 assert.equal(legacyMemory.truthSolved(), true); assert.equal(legacyMemory.state.departure, 'wake', 'completed legacy deductions/endings do not require replaying new timeline controls');
 assert.deepEqual([...legacyMemory.state.phoneViews], ['calls', 'recording'], 'legacy phone observations retain both previously visible pages');
 assert.deepEqual([...legacyMemory.state.documentViews.school_notice], ['front', 'back'], 'legacy school records retain both already-read sides');
+legacyMemory.save();
+const inherited = new game.ThreeStory({ getItem: () => JSON.stringify({version: 1, ...legacyMemory.state}) });
+assert.ok(inherited.truthSolved());
+assert.equal(inherited.hasDocumentFace('school_postcard','back'), false);
+assert.match(inherited.conclusionFor('school'), /缝纫机/);
 const malformedDocument = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, opened: true, waterSolved: true,
-    documentViews: { school_notice: ['front', 'front', '__proto__', {}], school_receipt: [] }, records: ['school_notice', 'school_receipt'] }), setItem() {} });
-assert.deepEqual([...malformedDocument.state.documentViews.school_notice], ['front']); assert.equal(malformedDocument.state.records.includes('school_receipt'), false);
+    documentViews: { school_notice: ['front', 'front', '__proto__', {}], school_postcard: [] }, records: ['school_notice', 'school_postcard'] }), setItem() {} });
+assert.deepEqual([...malformedDocument.state.documentViews.school_notice], ['front']); assert.equal(malformedDocument.state.records.includes('school_postcard'), false);
 assert.equal(malformedDocument.readDocumentFace('school_notice', 'back'), false, 'paper reading requires its actual memory space');
 const malformedPhone = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, opened: true, waterSolved: true,
     phoneViews: ['calls', 'calls', '__proto__', {}], records: ['crash_phone'] }), setItem() {} });
@@ -774,10 +779,10 @@ assert.deepEqual([...malformedPhone.state.phoneViews], ['calls']);
 assert.equal(malformedPhone.readPhonePage('recording'), false, 'reading is restricted to the actual crash space');
 const legacyPartialMemory = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, opened: true, waterSolved: true,
     records: ['school_notice', 'school_receipt'], drafts: { school: { evidence: ['school_notice', 'school_receipt'], interpretation: 1 } } }), setItem() {} });
-assert.deepEqual([...legacyPartialMemory.state.drafts.school.evidence], ['school_notice', 'school_receipt']);
+assert.deepEqual([...legacyPartialMemory.state.drafts.school.evidence], ['school_notice', '']);
 assert.equal(legacyPartialMemory.state.drafts.school.interpretation, null); assert.equal(legacyPartialMemory.state.drafts.school.questionChanged, true);
 assert.equal(legacyPartialMemory.state.drafts.school.timeline.length, 0);
-assert.match(legacyPartialMemory.deduce('school').message, /时间线/);
+assert.match(legacyPartialMemory.deduce('school').message, /两份不同的已读记录/);
 const partialTimeline = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, opened: true, waterSolved: true, records: ['school_notice'],
     drafts: { school: { evidence: ['school_notice', 'school_receipt'], interpretation: 1, timeline: ['notice', 'notice', 'receipt', '__proto__'] } } }), setItem() {} });
 assert.deepEqual([...partialTimeline.state.drafts.school.timeline], ['notice']);

@@ -477,6 +477,14 @@
 
 把信和单子一起收好
 
+`family.viewPostcard`
+
+翻手记，看寄回家的照片
+
+`family.returnLetter`
+
+接着读妈的信
+
 `family.replace`
 
 把信和单子放回抽屉
@@ -525,7 +533,9 @@
 
 `courtyardmap.medicine_letter.text`
 
-「明，小俞把钱给我了。药钱我留好了，这二十你拿去买饭票。你那件蓝秋衣还没干，下礼拜再给你带。妈　九月二十一」
+「明，小俞把钱给我了。药钱我留好了，这二十你拿去买饭票。你那件蓝秋衣还没干，下礼拜再给你带。
+宿舍那张相片收到了。你爸拿去给你姑看了。
+妈　九月二十一」
 
 两张旧十块对折在信纸里。大一刚开学那阵，小俞家里有车，周末回来总替同学捎东西。
 
@@ -795,6 +805,10 @@
 
 正面 · 录取专业与日期
 
+`school.college`
+
+省铁路职业学院
+
 `memorymap.school_notice.lines`
 
 李明　铁道车辆专业
@@ -805,7 +819,7 @@
 
 `memorymap.school_notice.text`
 
-二〇一四年七月十日。通知上印着我的名字，录取专业是铁道车辆。
+二〇一四年七月十日。省铁路职业学院寄给我的录取通知，专业是铁道车辆。
 
 `memorymap.school_notice.title.3`
 
@@ -867,65 +881,81 @@
 
 背面有一道发黄的胶印，两头都沾着纸毛。我把指腹搁上去，想起自己在教室门口问同桌借胶带。爸撕了草表，我把两半揣进书包，第二天还得照着抄学校代码。
 
-班主任递给我一张干净的正式表，只问了句：「专业再看一遍，填好了？」我把表转回来，看了一遍才交。
+交正式表那天，班主任指着第一栏问：「院校代码核过了？」我从书包里摸出粘好的草表，把那几位数挨个对了一遍。
 
-`memorymap.school_receipt.title`
+`postcard.title`
 
-家长回执
+寄回家的明信片
 
-`memorymap.school_receipt.title.2`
+`postcard.photoTitle`
 
-正面 · 日期与签名
+正面 · 宿舍楼
 
-`memorymap.school_receipt.lines`
+`postcard.photo`
 
-二〇一四年
+照片拍的是我们宿舍楼。我拿蓝笔在二楼画了个圈，正好套住我们那扇窗。
 
-`memorymap.school_receipt.lines.2`
+`postcard.backTitle`
 
-七月二十日
+背面 · 寄给爸妈
 
-`memorymap.school_receipt.lines.3`
+`postcard.postmark`
 
-家长签字
+2014.09.02
 
-`memorymap.school_receipt.signature`
+`postcard.address`
 
-父
+槐树巷十四号
 
-`memorymap.school_receipt.text`
+`postcard.to`
 
-二〇一四年七月二十日，家长回执上是父亲的签名。
+爸、妈收
 
-`memorymap.school_receipt.title.3`
+`postcard.greeting`
 
-背面 · 父亲的留言
+爸，妈：
 
-`memorymap.school_receipt.lines.4`
+`postcard.window`
 
-明，车钱在缝纫机
+我把住的那间圈出来了。
 
-`memorymap.school_receipt.lines.5`
+`postcard.bedding`
 
-第二个抽屉。
+爸捆被子的绳别找了，
 
-`memorymap.school_receipt.lines.6`
+`postcard.line`
 
-那天我把你的志愿草表撕了，
+我留着晾毛巾。
 
-`memorymap.school_receipt.lines.7`
+`postcard.from`
 
-这事是爸不对。
+明
 
-`memorymap.school_receipt.lines.8`
+`postcard.caption`
 
-要我送，出门前敲一下门。爸
+省铁路职业学院　学生宿舍
 
-`memorymap.school_receipt.text.2`
+`postcard.postage`
 
-回执沿虚线撕开了，家里留下的这一联背面有爸的字：「明，车钱在缝纫机第二个抽屉。那天我把你的志愿草表撕了，这事是爸不对。要我送，出门前敲一下门。爸」
+中国邮政　80分
+
+`postcard.quote`
+
+邮戳：二〇一四年九月二日。
+
+`postcard.message`
+
+邮戳：二〇一四年九月二日。寄往槐树巷十四号。卡片底边印着「省铁路职业学院　学生宿舍」。
+
+爸，妈：
+我把住的那间圈出来了。爸捆被子的绳别找了，我留着晾毛巾。
+明
 
 ### 医院文书
+
+`hospital.year`
+
+二〇一四年
 
 `memorymap.hospital_record.title`
 
@@ -965,7 +995,7 @@
 
 `memorymap.hospital_record.text.2`
 
-后续栏里是反复检查与长期用药的记录。那时候，你还没有收到录取通知，更没有离家。
+后续栏里是反复检查与长期用药的记录。那时候，你还没有铁路职院签发录取通知，更没有离家。
 
 `memorymap.hospital_plan.title`
 
@@ -1021,19 +1051,19 @@
 
 `memorymap.school.title.2`
 
-离家前留下了什么记录
+李明最后去了哪所学校
 
 `memorymap.school.choices`
 
-回执没有家长签名，背面只重复了“不许离家”
+我收了录取通知，后来还是去了县里的机修班。
 
 `memorymap.school.choices.2`
 
-通知先到，父亲十天后签回执，留了去学校的车钱
+我去了铁路职院报到。临走前，爸帮我捆了被子。
 
 `memorymap.school.choices.3`
 
-父亲先签回执，十天后你才收到录取通知
+九月那张明信片是爸从学校寄给我的。
 
 `memorymap.notice.title`
 
@@ -1045,7 +1075,7 @@
 
 `memorymap.receipt.title`
 
-父亲签下回执
+我从学校寄出明信片
 
 `memorymap.rules.title`
 
@@ -1057,7 +1087,11 @@
 
 `memorymap.school.conclusion`
 
-七月十日，我已经查好了去学校的头班车。十天后爸才签字。他把车钱放进了抽屉。那张被他撕掉的草表，我记得也没错。
+那床被子比我的包还宽。出门前爸叫我把膝盖压上去，他在底下绕绳，两头各留了一个提手。到了宿舍，我跟对铺借了把剪刀，剪开一头。剩下那截刚够从床头拉到床尾。
+
+`school.legacyConclusion`
+
+爸撕过我的草表。后来他在回执背面给我留了言，说去学校的车钱放在缝纫机的抽屉里。
 
 `memorymap.hospital.title.2`
 
@@ -1159,13 +1193,7 @@
 
 `memorymap.school.3`
 
-课桌上的家长回执
-
-`memorymap.school.4`
-
-二〇一四年七月二十日，家长回执上是父亲的签名。
-
-回执沿虚线撕开了，家里留下的这一联背面有爸的字：「明，车钱在缝纫机第二个抽屉。那天我把你的志愿草表撕了，这事是爸不对。要我送，出门前敲一下门。爸」
+课桌上的宿舍明信片
 
 `memorymap.school.5`
 
@@ -2971,7 +2999,7 @@ E / 点击　〔1〕
 
 
 
-草表上爸的蓝字挤在格子外面。「第一志愿」里是我填的铁道车辆。七月寄到家里的录取通知上，也是这四个字。
+爸那行蓝字挤在格子外面。我填的第一志愿是铁道车辆。录取通知上也是这四个字。
 
 `story.deduce.message`
 
@@ -3067,7 +3095,7 @@ E / 点击　〔1〕
 
 `story.headline.school`
 
-查清父亲什么时候签了回执
+看看当年从哪儿寄过信回家
 
 `story.headline.hospital`
 
@@ -3267,7 +3295,7 @@ E / 点击　〔1〕
 
 `story.memorytask.school.2`
 
-去右侧课桌看家长回执
+去右侧课桌看明信片
 
 `story.memorytask.hospital`
 
@@ -3461,7 +3489,7 @@ E / 点击　〔1〕
 
 `story.memoryguidance.school`
 
-近处左侧课桌留着录取通知，远处右侧课桌有家长回执。拿近并翻看正反面，再用“整理记忆”核对。
+左侧课桌上是录取通知。右侧课桌上有张宿舍照片，翻过来能看到寄信地址和邮戳。
 
 `story.memoryguidance.hospital`
 
@@ -3711,7 +3739,7 @@ E / 点击 · 〔1〕〔2〕
 
 `memoryjournal.show.8`
 
-核对问题已更新。原文和时间线草稿保留，请重新选择判断。
+这段记忆的证物或问题有改动。请看看草稿里还缺什么，再选一次判断。
 
 `memoryjournal.show.9`
 

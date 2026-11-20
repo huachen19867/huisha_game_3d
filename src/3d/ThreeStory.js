@@ -5,7 +5,7 @@
     const symbols = [copyText('story.symbols'), copyText('story.symbols.2'), copyText('story.symbols.3'), copyText('story.symbols.4')];
     const freshState = () => ({ clerkKnowsAddress:false, clerkExplainedPost:false, askedAboutRoad:false, stripNoteLeft:false, keyAtBooth:false, closedDoors: [], arrival: 'intro', chapterEdition: 2, basketDown:false, cellarOpen:false, filterClear:false, sumpDrained:false, oldCoffinLatch:false, gear: [], wardrobeOpen: false, chestOpen: false, calibrated: false, vigil: 0, coffinOpen: false, photoFiled:false, busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
         courtyard: false, crossedYard: false, wellEscaped:false, bucketParked:false, wellGripOpen:false, maskHung:false, formJoined:false, buckets: [0, 0], waterSolved: false, departure: null, rememberPlace:null, position: null, lamp: 'altar', shielded: false,
-        memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, fareTinOpen: false, familyLetterTaken:false, heightStripTaken: false, riceStage:'covered', porkOnRice:false, leakMuffled:false, stoveLit:false, reasoningRevision: 2, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
+        memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, fareTinOpen: false, familyLetterTaken:false, heightStripTaken: false, riceStage:'covered', porkOnRice:false, leakMuffled:false, stoveLit:false, legacySchoolSolved: false, reasoningRevision: 3, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
     class ThreeStory {
         constructor(storage) {
@@ -83,7 +83,7 @@
                     else if (!this.state.records.includes('crash_phone')) this.state.records.push('crash_phone');
                     for (const [id, document] of Object.entries(game.DOCUMENTS)) {
                         const hadWholeRecord = this.state.records.includes(id) && (!Object.hasOwn(saved, 'documentViews')
-                            || (document.introducedRevision === 2 && saved.reasoningRevision !== 2 && !Object.hasOwn(saved.documentViews || {}, id)));
+                            || (document.introducedRevision === 2 && !(saved.reasoningRevision >= 2) && !Object.hasOwn(saved.documentViews || {}, id)));
                         this.state.documentViews[id] = !this.state.waterSolved ? [] : hadWholeRecord
                             ? Object.keys(document.faces) : [...new Set((Array.isArray(saved.documentViews?.[id]) ? saved.documentViews[id] : [])
                                 .filter(face => typeof face === 'string' && Object.hasOwn(document.faces, face)))];
@@ -95,14 +95,21 @@
                     this.state.formJoined=this.state.waterSolved && (saved.formJoined===true || this.state.records.includes('school_draft'));
                     this.state.pinnedRecords = [...new Set((Array.isArray(saved.pinnedRecords) ? saved.pinnedRecords : [])
                         .filter(id => this.state.records.includes(id)))].slice(0, 2);
+                    const oldReceipt = Array.isArray(saved.records) && saved.records.includes('school_receipt')
+                        && (!Object.hasOwn(saved, 'documentViews') || (Array.isArray(saved.documentViews?.school_receipt) && ['front','back'].every(face => saved.documentViews.school_receipt.includes(face))));
+                    this.state.legacySchoolSolved = this.state.waterSolved && saved.deductions?.school === true
+                        && ['front','back'].every(face => this.hasDocumentFace('school_notice', face))
+                        && (saved.legacySchoolSolved === true || (saved.reasoningRevision !== 3 && oldReceipt));
                     for (const [id, definition] of Object.entries(game.MEMORY_CASES || {})) {
                         this.state.deductions[id] = this.state.waterSolved && saved.deductions?.[id] === true
                             && definition.records.every(record => this.state.records.includes(record))
                             && definition.facts.every(fact => (!fact.phonePage && !fact.documentFace) || this.knowsFact(fact))
                             && this.missingDocumentFaces(definition).length === 0;
+                        if (id === 'school' && this.state.legacySchoolSolved) this.state.deductions.school = true;
                         const draft = saved.drafts?.[id];
-                        const questionChanged = draft?.questionChanged === true || (saved.reasoningRevision !== 2 && Number.isInteger(draft?.interpretation));
-                        this.state.drafts[id] = this.cleanDraft(id, draft?.evidence, saved.reasoningRevision === 2 ? draft?.interpretation : null, draft?.timeline, questionChanged);
+                        const sameQuestion = id === 'school' ? saved.reasoningRevision === 3 : saved.reasoningRevision >= 2;
+                        const questionChanged = draft?.questionChanged === true || (!sameQuestion && Number.isInteger(draft?.interpretation));
+                        this.state.drafts[id] = this.cleanDraft(id, draft?.evidence, sameQuestion ? draft?.interpretation : null, draft?.timeline, questionChanged);
                     }
                     if (this.state.waterSolved && typeof saved.memory === 'string' && Object.hasOwn(game.MEMORIES || {}, saved.memory)) {
                         this.state.memory = saved.memory;
@@ -313,6 +320,8 @@
             this.state.drafts[id] = this.cleanDraft(id, evidence, interpretation, timeline === undefined ? this.state.drafts[id]?.timeline : timeline, this.state.drafts[id]?.questionChanged); this.save();
         }
         conclusionFor(id){
+            if (id === 'school' && this.state.legacySchoolSolved && this.state.documentViews.school_postcard?.length !== 2)
+                return copyText('school.legacyConclusion');
             const base=game.MEMORY_CASES[id].conclusion;
             if (id === 'hospital' && this.state.records.includes('hospital_fare'))
                 return base + copyText('story.conclusionfor');
@@ -416,7 +425,7 @@
         }
         memoryTask(id) {
             const routes = {
-                school: [['school_notice',copyText('story.memorytask.school')],['school_receipt',copyText('story.memorytask.school.2')]],
+                school: [['school_notice',copyText('story.memorytask.school')],['school_postcard',copyText('story.memorytask.school.2')]],
                 hospital: [['hospital_record',copyText('story.memorytask.hospital')],['hospital_plan',copyText('story.memorytask.hospital.2')]],
                 crash: [['crash_phone',copyText('story.memorytask.crash')],['crash_report',copyText('story.memorytask.crash.2')]]
             };

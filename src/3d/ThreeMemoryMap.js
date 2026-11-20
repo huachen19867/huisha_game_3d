@@ -17,7 +17,7 @@
     };
     game.DOCUMENTS = {
         school_notice: { title: copyText('memorymap.school_notice.title'), space: 'school', position: [-2, 0.954, 1], faces: {
-            front: { title: copyText('memorymap.school_notice.title.2'), lines: [copyText('memorymap.school_notice.title'), copyText('memorymap.school_notice.lines'), copyText('memorymap.school_notice.lines.2')], text: copyText('memorymap.school_notice.text') },
+            front: { title: copyText('memorymap.school_notice.title.2'), lines: [copyText('school.college'), copyText('memorymap.school_notice.title'), copyText('memorymap.school_notice.lines'), copyText('memorymap.school_notice.lines.2')], text: copyText('memorymap.school_notice.text') },
             back: { title: copyText('memorymap.school_notice.title.3'), lines: [copyText('memorymap.school_notice.lines.3'), copyText('memorymap.school_notice.lines.4'), copyText('memorymap.school_notice.lines.5')],
                 text: copyText('memorymap.school_notice.text.2') }
         } },
@@ -27,11 +27,9 @@
             back:{title:copyText('memorymap.school_draft.title.3'),lines:[],
                 text:copyText('memorymap.school_draft.text.2')}
         }},
-        school_receipt: { title: copyText('memorymap.school_receipt.title'), space: 'school', position: [2, 0.954, -1.5], faces: {
-            front: { title: copyText('memorymap.school_receipt.title.2'), lines: [copyText('memorymap.school_receipt.title'), copyText('memorymap.school_receipt.lines'), copyText('memorymap.school_receipt.lines.2'), copyText('memorymap.school_receipt.lines.3')], signature: copyText('memorymap.school_receipt.signature'),
-                text: copyText('memorymap.school_receipt.text') },
-            back: { title: copyText('memorymap.school_receipt.title.3'), lines: [copyText('memorymap.school_receipt.lines.4'), copyText('memorymap.school_receipt.lines.5'), copyText('memorymap.school_receipt.lines.6'), copyText('memorymap.school_receipt.lines.7'), copyText('memorymap.school_receipt.lines.8')],
-                text: copyText('memorymap.school_receipt.text.2') }
+        school_postcard: { title: copyText('postcard.title'), style: 'postcard', space: 'school', position: [2, 0.954, -1.5], faces: {
+            front: { title: copyText('postcard.photoTitle'), text: copyText('postcard.photo') },
+            back: { title: copyText('postcard.backTitle'), text: copyText('postcard.message') }
         } },
         hospital_record: { title: copyText('memorymap.hospital_record.title'), space: 'hospital', position: [2.3, 1.004, -3.27], introducedRevision: 2, style: 'medical', faces: {
             front: { title: copyText('memorymap.hospital_record.title.2'), lines: [copyText('memorymap.hospital_record.title'), copyText('memorymap.hospital_record.lines'), copyText('memorymap.hospital_record.lines.2')], text: copyText('memorymap.hospital_record.text') },
@@ -39,20 +37,20 @@
                 text: copyText('memorymap.hospital_record.text.2') }
         } },
         hospital_plan: { title: copyText('memorymap.hospital_plan.title'), space: 'hospital', position: [-2.8, 1.32, -0.808], rotation: [0, 0, 0], introducedRevision: 2, style: 'medical', faces: {
-            front: { title: copyText('memorymap.hospital_plan.title.2'), lines: [copyText('memorymap.hospital_plan.title'), copyText('memorymap.school_receipt.lines'), copyText('memorymap.hospital_plan.lines'), copyText('memorymap.hospital_plan.lines.2')], signature: copyText('memorymap.hospital_plan.signature'),
+            front: { title: copyText('memorymap.hospital_plan.title.2'), lines: [copyText('memorymap.hospital_plan.title'), copyText('hospital.year'), copyText('memorymap.hospital_plan.lines'), copyText('memorymap.hospital_plan.lines.2')], signature: copyText('memorymap.hospital_plan.signature'),
                 text: copyText('memorymap.hospital_plan.text') },
             back: { title: copyText('memorymap.hospital_plan.title.3'), lines: [copyText('memorymap.hospital_plan.lines.3'), copyText('memorymap.hospital_plan.lines.4'), copyText('memorymap.hospital_plan.lines.5'), copyText('memorymap.hospital_plan.lines.6')],
                 text: copyText('memorymap.hospital_plan.text.2') }
         } }
     };
     game.MEMORY_CASES = {
-        school: { title: copyText('memorymap.school.title.2'), records: ['school_notice', 'school_receipt'], requiredFaces: { school_notice: ['front', 'back'], school_receipt: ['front', 'back'] },
+        school: { title: copyText('memorymap.school.title.2'), records: ['school_notice', 'school_postcard'], requiredFaces: { school_notice: ['front', 'back'], school_postcard: ['front', 'back'] },
             choices: [copyText('memorymap.school.choices'), copyText('memorymap.school.choices.2'), copyText('memorymap.school.choices.3')], answer: 1,
             facts: [
                 { id: 'notice', record: 'school_notice', documentFace: 'front', title: copyText('memorymap.notice.title'), quote: copyText('memorymap.notice.quote') },
-                { id: 'receipt', record: 'school_receipt', documentFace: 'front', title: copyText('memorymap.receipt.title'), quote: copyText('memorymap.school_receipt.text') },
+                { id: 'postmark', record: 'school_postcard', documentFace: 'back', title: copyText('memorymap.receipt.title'), quote: copyText('postcard.quote') },
                 { id: 'rules', record: 'school_rules', title: copyText('memorymap.rules.title'), quote: copyText('memorymap.rules.quote'), dated: false }
-            ], timelineOrder: ['notice', 'receipt'],
+            ], timelineOrder: ['notice', 'postmark'],
             conclusion: copyText('memorymap.school.conclusion') },
         hospital: { title: copyText('memorymap.hospital.title.2'), records: ['hospital_record', 'hospital_plan'], requiredFaces: { hospital_record: ['front'], hospital_plan: ['front', 'back'] },
             choices: [copyText('memorymap.hospital.choices'), copyText('memorymap.hospital.choices.2'), copyText('memorymap.hospital.choices.3')], answer: 1,
@@ -98,8 +96,8 @@
         Object.values(game.DOCUMENTS.school_notice.faces).map(face=>face.text).join('\n\n'), { deduction: 'school', journal: false });
     add('school','school_draft',copyText('memorymap.school.2'),-2,.96,-1.5,
         Object.values(game.DOCUMENTS.school_draft.faces).map(face=>face.text).join('\n\n'),{deduction:'school',journal:false});
-    add('school', 'school_receipt', copyText('memorymap.school.3'), 2, 0.96, -1.5,
-        copyText('memorymap.school.4'), { deduction: 'school', journal: false });
+    add('school', 'school_postcard', copyText('memorymap.school.3'), 2, 0.96, -1.5,
+        Object.values(game.DOCUMENTS.school_postcard.faces).map(face => face.text).join('\n\n'), { deduction: 'school', journal: false });
     add('school', 'school_rules', copyText('memorymap.school.5'), 0, 1.7, -4.45,
         copyText('memorymap.school.6'), { deduction: 'school' });
     add('hospital', 'hospital_record', copyText('memorymap.hospital_record.title'), 2.3, 1.02, -3.22,

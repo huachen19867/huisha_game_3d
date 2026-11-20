@@ -9,6 +9,7 @@
                 if (definition.space !== parent.userData.memorySpace || this.papers.has(id)) continue;
                 const root = new THREE.Group(); root.name = `document-${id}`;
                 root.position.set(...definition.position); root.rotation.set(...(definition.rotation || [-Math.PI / 2, 0, 0])); parent.add(root);
+                if (definition.style === 'postcard') root.scale.setScalar(0.34);
                 const sheet = new THREE.PlaneGeometry(0.38, 0.54, 12, definition.style==='torn'?38:16), vertices = sheet.attributes.position;
                 for (let i = 0; i < vertices.count; i++) {
                     const x = vertices.getX(i), y = vertices.getY(i);
@@ -68,8 +69,16 @@
             this.tearDrag=null;this.syncTear();return aligned;
         }
         createFaceMaterial(definition, face) {
+            if (definition.style === 'postcard' && face === 'front') return this.house.materials.postcardPhoto;
             const canvas = document.createElement('canvas'); canvas.width = 768; canvas.height = 1024;
             const ctx = canvas.getContext('2d'), data = definition.faces[face];
+            if (definition.style === 'postcard') {
+                this.drawPostcardBack(ctx);
+                const texture = new THREE.CanvasTexture(canvas);
+                texture.colorSpace = THREE.SRGBColorSpace;
+                this.house.textures.push(texture);
+                return new THREE.MeshBasicMaterial({map: texture, side: THREE.BackSide, toneMapped: false});
+            }
             if(definition.style==='torn'){
                 this.drawDraft(ctx,face,data.lines);
                 const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
@@ -90,6 +99,40 @@
             const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace; this.house.textures.push(texture);
             if (medical) return new THREE.MeshBasicMaterial({ map: texture, toneMapped: false, side: face === 'front' ? THREE.FrontSide : THREE.BackSide });
             return new THREE.MeshStandardMaterial({ map: texture, roughness: 0.95, side: face === 'front' ? THREE.FrontSide : THREE.BackSide });
+        }
+        drawPostcardBack(ctx) {
+            ctx.fillStyle = '#ece5cd';
+            ctx.fillRect(0, 0, 768, 1024);
+            ctx.strokeStyle = '#96795f';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(502, 52, 198, 127);
+            ctx.font = '27px serif';
+            ctx.fillStyle = '#846043';
+            ctx.fillText(copyText('postcard.postage'), 517, 115, 168);
+            ctx.save();
+            ctx.translate(485, 151);
+            ctx.rotate(-0.12);
+            ctx.strokeStyle = '#554f46';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 109, 51, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = '#454239';
+            ctx.fillText(copyText('postcard.postmark'), -76, 9);
+            ctx.restore();
+            ctx.fillStyle = '#343f55';
+            ctx.font = '48px "KaiTi", serif';
+            ctx.fillText(copyText('postcard.address'), 94, 311);
+            ctx.fillText(copyText('postcard.to'), 205, 393);
+            ctx.fillStyle = '#b6a891';
+            ctx.fillRect(58, 440, 650, 2);
+            ctx.fillStyle = '#29384e';
+            ctx.font = '42px "KaiTi", serif';
+            const lines = [copyText('postcard.greeting'), copyText('postcard.window'),
+                copyText('postcard.bedding'), copyText('postcard.line'), copyText('postcard.from')];
+            lines.forEach((line, i) => ctx.fillText(line, i === lines.length - 1 ? 598 : 75, 529 + i * 81, 625));
+            ctx.font = '24px serif';
+            ctx.fillStyle = '#847967';
+            ctx.fillText(copyText('postcard.caption'), 62, 968);
         }
         drawDraft(ctx,face,lines){
             ctx.fillStyle='#d7ccac';ctx.fillRect(0,0,768,1024);
@@ -123,7 +166,7 @@
             camera.fov = 48; camera.setViewOffset(width, height, side ? width * 0.19 : 0, side ? 0 : height * 0.2, width, height);
             const tangent = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
             const torn=this.activeId==='school_draft';
-            const distance = Math.max((torn ? .66 : .55) / (2 * tangent * (side ? 0.8 : 0.48)), (torn ? .56 : .39) / (2 * tangent * camera.aspect * (side ? 0.55 : 0.88)));
+            const distance = paper.root.scale.x * Math.max((torn ? .66 : .55) / (2 * tangent * (side ? 0.8 : 0.48)), (torn ? .56 : .39) / (2 * tangent * camera.aspect * (side ? 0.55 : 0.88)));
             const target = paper.root.getWorldPosition(new THREE.Vector3());
             camera.position.copy(target).add(new THREE.Vector3(0, 0, distance)); camera.lookAt(target);
             camera.updateProjectionMatrix(); camera.updateMatrixWorld(true);

@@ -243,7 +243,7 @@
         }
         placeFurniture(place) {
             for (const x of [-2, 2]) for (const z of [-1.5, 1]) {
-                const item = x === -2 && z === 1 ? 'school_notice' : x === 2 && z === -1.5 ? 'school_receipt' : undefined;
+                const item = x === -2 && z === 1 ? 'school_notice' : x === 2 && z === -1.5 ? 'school_postcard' : undefined;
                 this.rooms.school.add(place('SchoolDesk_01', [1.2, 0.95, 0.85], [x, 0, z], 0, item, true));
                 this.rooms.school.add(place('SchoolChair_01', [0.5, 0.85, 0.5], [x, 0, z + 0.85], 0));
             }
