@@ -40,7 +40,7 @@
             this.apply(immediate); this.updateLight(immediate);
         }
         apply(force = false) {
-            const untied=this.house.story.state.vigil===3;
+            const untied=this.house.story.state.coffinCordsAside;
             if (!force && this.progress === this.renderedProgress && untied===this.renderedUntied) return;
             const bolt = ease(this.progress / 0.45), drop = ease((this.progress - 0.2) / 0.75);
             this.bolt.position.x = 1.85 - bolt * 0.93; this.lever.rotation.x = -0.7 * ease(this.progress / 0.2);

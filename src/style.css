@@ -1,6 +1,7 @@
 @charset "UTF-8";
-#drive{position:fixed;inset:0;z-index:5;background:#10181c;color:#f2eadc}
-#windscreen{display:block;width:100%;height:100%}
+#drive{position:fixed;inset:0;z-index:5;background:transparent;color:#f2eadc}
+#drive-film,#drive-glass{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#drive-film{object-fit:contain;background:#06090b}
 .drive-heading{position:absolute;inset:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:clamp(14px,3vw,36px);background:linear-gradient(#080d10c9,transparent);font-size:14px;letter-spacing:.2em}
 .drive-heading button{font-size:13px;background:#0e1519cc}
 #drive-caption{position:absolute;bottom:4%;left:50%;transform:translateX(-50%);width:max-content;max-width:86vw;margin:0;padding:12px 18px;background:#0b1115d9;line-height:1.7;text-align:center;font-size:clamp(14px,2vw,21px)}
@@ -26,7 +27,7 @@
 .drive-dialog{position:absolute;inset:auto 5% 5%;display:flex;align-items:center;justify-content:center;gap:10px}
 .drive-dialog #drive-caption[data-shock]{color:#f04a3c;font-weight:800;letter-spacing:.15em}
 .drive-dialog #drive-caption{white-space:pre-line;position:static;transform:none;width:auto;max-width:58ch}
-.drive-dialog button{flex-shrink:0;background:#111814e8}
+.drive-dialog{pointer-events:none}.drive-dialog #drive-caption{background:#080c10a3;text-shadow:0 1px 3px #000}
 #well-film{position:fixed;inset:0;z-index:3;pointer-events:none;border-block:clamp(15px,5vh,56px) solid #060808}
 #well-closeup{width:100%;height:100%;display:block}
 #skip-well{position:absolute;right:3vw;top:8px;pointer-events:auto}

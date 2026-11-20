@@ -837,8 +837,12 @@ $('skip-well').addEventListener('click',()=>scene.watch.release());
 $('skip-drive').addEventListener('click', leaveDrive);
 function startDrive() {
     $('title-screen').hidden = true; audio.start();
-    mode = 'drive'; scene.showingFilm = true; audio.startEngine(); audio.update(scene.map.roadStart,true); $('drive').hidden = false; $('skip-drive').focus();
-    stopDrive = playDrive($('windscreen'), $('drive-caption'), leaveDrive, ()=>{audio.stopEngine();audio.knock();audio.tone(53,.6,.65);}, $('drive-next'), ()=>audio.silenceRadio(),()=>audio.brake());
+    mode = 'drive'; scene.showingFilm = true; audio.update(scene.map.roadStart,true); $('drive').hidden = false; $('skip-drive').focus();
+    stopDrive = playDrive(scene, $('drive-film'), $('drive-glass'), $('drive-caption'), leaveDrive, {
+        start:()=>audio.startEngine(), wiper:()=>audio.noiseBurst(.19,.052,920,'bandpass'),
+        cut:()=>audio.silenceRadio(), brake:()=>audio.brake(),
+        impact:()=>{audio.stopEngine();audio.knock();audio.noiseBurst(.30,.43,410);audio.tone(53,.6,.65);}
+    });
 }
 $('replay-drive').addEventListener('click', () => {replayOnly = true; startDrive();});
 $('begin').addEventListener('click', () => {

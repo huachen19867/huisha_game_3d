@@ -354,8 +354,38 @@
             this.offeringRice = game.ThreeKitchen.bowl(this,altar,[-.66,1.09,.14],'altar');
             this.offeringRice.rotation.y=Math.PI;
             this.offeredPork=this.offeringRice.getObjectByName('braised-pork');
-            this.offeringEmber = this.mesh('incense-ember',new THREE.SphereGeometry(.024,8,6),new THREE.MeshBasicMaterial({color:0xff813a}),[0,1.62,-.18],'altar',altar);
-            this.paperAsh = this.box('offering-ash',[.2,.025,.18],[.47,1.11,.2],m.ash,'altar',altar);
+            this.offeringEmber = new THREE.Group();
+            altar.add(this.offeringEmber);
+            const ember = new THREE.MeshBasicMaterial({color:0xd45c36});
+            for (const x of [-.06,0,.06]) this.cylinder('incense-ember',.008,.009,.013,[x,1.615,-.18],ember,'altar',this.offeringEmber);
+            for (const x of [.37,.392]) this.cylinder('offering-chopstick',.005,.009,.28,[x,1.102,.03],m.wood,'altar',altar).rotation.x = Math.PI/2;
+            const basinProfile = [[.001,0],[.15,.008],[.217,.07],[.231,.125],[.223,.128],[.19,.066],[.144,.02],[.001,.018]];
+            const basin = this.mesh('offering-enamel-basin',new THREE.LatheGeometry(basinProfile.map(([x,y])=>new THREE.Vector2(x,y)),40),m.stone,[.59,.015,.64],'altar',altar);
+            const ashes = this.cylinder('old-paper-ash',.15,.137,.018,[0,.032,0],m.ash,'altar',basin);
+            ashes.rotation.y = .2;
+            this.paperAsh = new THREE.Group();
+            basin.add(this.paperAsh);
+            for (let i=0; i<8; i++) {
+                const angle=i*2.4;
+                const flake=this.box('burnt-paper-fold',[.074,.007,.042],[Math.cos(angle)*.10,.053+i*.001,Math.sin(angle)*.10],i%2 ? m.cloth : m.ash,'altar',this.paperAsh,false);
+                flake.rotation.set(.19,angle,.13);
+            }
+            this.caughtSleeve = new THREE.Group();
+            this.caughtSleeve.position.set(.21,.71,1.216);
+            this.scene.add(this.caughtSleeve);
+            const flapGeometry = new THREE.PlaneGeometry(.16,.16,8,8);
+            const points = flapGeometry.attributes.position;
+            for (let i=0;i<points.count;i++) {
+                const x=points.getX(i), t=(.08-points.getY(i))/.16;
+                points.setXYZ(i,x+.021*t,-.09*t,.04*Math.sin(t*Math.PI/2)+.006*Math.cos(x*87)*t);
+            }
+            flapGeometry.computeVertexNormals();
+            const cuff=twill.clone();cuff.side=THREE.DoubleSide;
+            this.mesh('pinched-sleeve',flapGeometry,cuff,[0,0,0],'coffin',this.caughtSleeve,false);
+            for(const x of [-.046,-.023]) {
+                const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(x,0,.002),new THREE.Vector3(x+.011,-.045,.031),new THREE.Vector3(x+.021,-.09,.042+.006*Math.cos(x*87))]);
+                this.mesh('pinched-sleeve-stripe',new THREE.TubeGeometry(curve,8,.003,4,false),m.paper,[0,0,0],'coffin',this.caughtSleeve,false);
+            }
             for (const [name,width,depth,y,thickness,material] of [
                 ['coffin-lid-lip',1.039,1.12,.714,.045,m.darkWood],
                 ['coffin-lid',1.025,1.09,.787,.070,m.wood],
@@ -590,11 +620,12 @@
             this.westLid.rotation.x = s.chestOpen ? -1.05 : 0;
             this.spareWeight.visible = !s.gear.includes('weight');
             this.matchTin.visible = !s.gear.includes('matches');
-            this.offeringRice.visible = s.vigil >= 1;
+            this.offeringRice.visible = s.offerings.includes('rice');
             this.offeredPork.visible = s.porkOnRice;
-            this.offeringEmber.visible = s.vigil >= 2;
-            this.paperAsh.visible = s.vigil >= 3;
-            this.coffinPadlock.visible=!s.coffinOpen;
+            this.offeringEmber.visible = s.offerings.includes('incense');
+            this.paperAsh.visible = s.offerings.includes('paper');
+            this.caughtSleeve.visible=!s.coffinOpen;
+            this.coffinPadlock.visible=!s.oldCoffinLatch && !s.coffinOpen;
             this.coffinLid.rotation.x = s.coffinOpen ? -1.37 : 0;
             this.uniform.visible = s.coffinOpen && !s.records.includes('uniform_collar');
             this.swingLeaf('front_gate',this.frontHinge,this.frontDoorSpec,s.arrival==='home',delta,immediate);

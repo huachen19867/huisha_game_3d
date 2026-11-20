@@ -3,7 +3,7 @@
     const game = global.Huisha3D || (global.Huisha3D = {});
     const SAVE_KEY = 'huisha.3d.homecoming.v1';
     const symbols = [copyText('story.symbols'), copyText('story.symbols.2'), copyText('story.symbols.3'), copyText('story.symbols.4')];
-    const freshState = () => ({ clerkKnowsAddress:false, clerkExplainedPost:false, askedAboutRoad:false, stripNoteLeft:false, keyAtBooth:false, closedDoors: [], arrival: 'intro', chapterEdition: 2, basketDown:false, cellarOpen:false, filterClear:false, sumpDrained:false, oldCoffinLatch:false, gear: [], wardrobeOpen: false, chestOpen: false, calibrated: false, vigil: 0, coffinOpen: false, photoFiled:false, busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
+    const freshState = () => ({ clerkKnowsAddress:false, clerkExplainedPost:false, askedAboutRoad:false, stripNoteLeft:false, keyAtBooth:false, closedDoors: [], arrival: 'intro', chapterEdition: 2, basketDown:false, cellarOpen:false, filterClear:false, sumpDrained:false, oldCoffinLatch:false, gear: [], wardrobeOpen: false, chestOpen: false, calibrated: false, offerings: [], coffinCordsAside: false, coffinOpen: false, photoFiled:false, busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
         courtyard: false, crossedYard: false, wellEscaped:false, bucketParked:false, wellGripOpen:false, maskHung:false, formJoined:false, buckets: [0, 0], waterSolved: false, departure: null, rememberPlace:null, position: null, lamp: 'altar', shielded: false,
         memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, fareTinOpen: false, familyLetterTaken:false, heightStripTaken: false, riceStage:'covered', porkOnRice:false, leakMuffled:false, stoveLit:false, legacySchoolSolved: false, reasoningRevision: 3, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
@@ -52,20 +52,29 @@
                     this.state.wardrobeOpen = this.state.opened && saved.wardrobeOpen === true;
                     this.state.chestOpen = this.state.opened && saved.chestOpen === true;
                     this.state.gear = [...new Set((Array.isArray(saved.gear) ? saved.gear : []).filter(id => ['weight','rice','matches','paper','cellarKey','coffinKey'].includes(id)))];
-                    this.state.basketDown = this.state.opened && (saved.basketDown===true || this.state.gear.includes('paper'));
                     this.state.cellarOpen = this.state.wardrobeOpen && saved.cellarOpen===true;
                     this.state.filterClear = this.state.cellarOpen && saved.filterClear===true;
                     this.state.sumpDrained = this.state.filterClear && saved.sumpDrained===true;
                     this.state.calibrated = this.state.waterSolved || (this.state.opened && saved.calibrated === true);
-                    this.state.vigil = legacy ? 3 : Number.isInteger(saved.vigil) ? Math.max(0, Math.min(3, saved.vigil)) : 0;
+                    const previousVigil = legacy ? 3 : Number.isInteger(saved.vigil) ? Math.max(0, Math.min(3, saved.vigil)) : 0;
+                    const offerings = ['rice','incense','paper'];
+                    if (this.state.opened) {
+                        this.state.offerings = Array.isArray(saved.offerings)
+                            ? offerings.filter(id => saved.offerings.includes(id)) : offerings.slice(0, previousVigil);
+                        // The basket is empty after its only parcel has been burned, including in older saves.
+                        if (this.state.offerings.includes('paper') && !this.state.gear.includes('paper')) this.state.gear.push('paper');
+                        this.state.basketDown = saved.basketDown === true || this.state.gear.includes('paper');
+                        this.state.coffinCordsAside = saved.coffinCordsAside === true ||
+                            (!Object.hasOwn(saved, 'coffinCordsAside') && previousVigil === 3);
+                    }
                     const sawOldMeal = !Object.hasOwn(saved,'riceStage') && this.state.records.includes('rice_bowl');
                     if (this.state.opened) {
-                        if (this.state.gear.includes('rice') || this.state.vigil > 0 || sawOldMeal) this.state.riceStage = 'served';
+                        if (this.state.gear.includes('rice') || this.state.offerings.includes('rice') || sawOldMeal) this.state.riceStage = 'served';
                         else if (['empty','served'].includes(saved.riceStage)) this.state.riceStage = saved.riceStage;
                         this.state.porkOnRice = this.state.riceStage==='served' && saved.porkOnRice===true;
                         this.state.leakMuffled = saved.leakMuffled === true && this.state.records.includes('leak_basin');
                     }
-                    this.state.coffinOpen = legacy || (this.state.vigil === 3 && saved.coffinOpen === true);
+                    this.state.coffinOpen = this.state.coffinCordsAside && (legacy || saved.coffinOpen === true);
                     // Earlier saves awarded the coat, photograph and album access together.
                     const hadPhoto=this.state.coffinOpen && !Object.hasOwn(saved,'photoFiled');
                     if(hadPhoto) {
@@ -252,12 +261,12 @@
         carried() {
             const s=this.state, ids=[];
             if(s.arrival !== 'intro') ids.push('envelope');
-            if(s.arrival !== 'intro' && (s.riceStage!=='served' || s.gear.includes('rice') || s.vigil>0)) ids.push('lunchbox');
+            if(s.arrival !== 'intro' && (s.riceStage!=='served' || s.gear.includes('rice') || s.offerings.includes('rice'))) ids.push('lunchbox');
             if(!s.keyAtBooth && (s.arrival === 'gate' || (s.arrival === 'home' && s.records.includes('key_board')))) ids.push('key');
             if(['lit','out'].includes(s.lamp)) ids.push('lamp');
             if(s.familyLetterTaken) ids.push('familyLetter');
             for(const id of s.gear) {
-                if(id==='weight' && s.calibrated || id==='rice' && s.vigil>=1 || id==='paper' && s.vigil>=3) continue;
+                if(id==='weight' && s.calibrated || s.offerings.includes(id)) continue;
                 ids.push(id);
             }
             if(s.records.includes('uniform_collar')) ids.push('uniform');
@@ -268,13 +277,17 @@
         takeGear(id) {
             const s=this.state;
             if(!s.opened || s.memory || s.gear.includes(id)) return false;
-            if(!({weight:s.wardrobeOpen,matches:s.wardrobeOpen,rice:s.riceStage==='served' && s.vigil===0,paper:s.basketDown,cellarKey:s.chestOpen,coffinKey:s.sumpDrained})[id]) return false;
+            if(!({weight:s.wardrobeOpen,matches:s.wardrobeOpen,rice:s.riceStage==='served' && !s.offerings.includes('rice'),paper:s.basketDown,cellarKey:s.chestOpen,coffinKey:s.sumpDrained})[id]) return false;
             s.gear.push(id); this.save(); return true;
         }
         offer(id) {
-            const s=this.state;
-            if (!s.opened || ['rice','matches','paper'][s.vigil] !== id || !this.carried().includes(id)) return false;
-            s.vigil++; this.save(); return true;
+            const s = this.state;
+            const offering = id === 'matches' || id === 'candle' ? 'incense' : id;
+            if (!s.opened || s.memory || !['rice','incense','paper'].includes(offering) || s.offerings.includes(offering)) return false;
+            if (id !== 'candle' && !this.carried().includes(id)) return false;
+            s.offerings.push(offering);
+            this.save();
+            return true;
         }
         weighWater() {
             if (!this.state.calibrated || !this.state.opened || this.state.waterSolved || this.state.buckets[1] !== 4) return false;
@@ -410,7 +423,8 @@
                 return this.state.records.includes('uniform_collar')?copyText('story.objective.7'):copyText('story.objective.8');
             }
             if(this.state.waterSolved && !this.state.coffinOpen && !this.state.records.includes('bus_notice') && !this.state.busCalled)
-                return this.state.vigil === 3 ? (this.state.oldCoffinLatch || this.state.gear.includes('coffinKey') ? copyText('story.objective.9') : copyText('story.objective.10')) : copyText('story.objective.11');
+                return this.state.oldCoffinLatch || this.state.gear.includes('coffinKey') ? copyText('story.objective.9')
+                    : this.state.coffinCordsAside ? copyText('story.objective.10') : copyText('story.objective.11');
             if (this.state.waterSolved && this.state.busCalled) return copyText('story.objective.12');
             if (this.state.waterSolved && this.state.records.includes('bus_notice')) return copyText('story.objective.13');
             if (this.state.waterSolved) return this.state.familyLetterTaken || this.state.records.some(id=>id==='medicine_letter'||id==='family_stub')

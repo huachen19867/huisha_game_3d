@@ -72,8 +72,8 @@ export function household(context,item) {
     } else if(item.id==='rice_bowl') {
         if (s.riceStage==='covered') {
             s.riceStage='empty'; story.save(); scene.syncState(); audio.latch();
-        } else if (s.gear.includes('rice') || s.vigil>0) {
-            open(copyText('interaction.showprompt.4'),s.vigil>0?copyText('chapter-ui.household.38'):copyText('chapter-ui.household.39'),[back]);
+        } else if (s.gear.includes('rice') || s.offerings.includes('rice')) {
+            open(copyText('interaction.showprompt.4'),s.offerings.includes('rice')?copyText('chapter-ui.household.38'):copyText('chapter-ui.household.39'),[back]);
         } else if (s.riceStage==='empty') {
             story.record(item.id);
             const serve = withPork => {
@@ -91,26 +91,53 @@ export function household(context,item) {
         open(item.title,s.gear.includes(id)?copyText('chapter-ui.household.51'):item.text,
             s.gear.includes(id)?[back]:[[copyText('chapter-ui.household.52', equipment[id][0]),()=>obtain(id)],back]);
     } else if(item.id==='altar' && s.opened) {
-        const offerings=['rice','matches','paper'], names=[copyText('chapter-ui.household.53'),copyText('chapter-ui.household.54'),copyText('chapter-ui.household.55')], next=offerings[s.vigil];
-        const description=[copyText('chapter-ui.household.56'),
-            (s.porkOnRice?copyText('chapter-ui.household.57'):copyText('chapter-ui.household.58'))+copyText('chapter-ui.household.59'),copyText('chapter-ui.household.60'),copyText('chapter-ui.household.61')][s.vigil];
-        const returnToAltar=()=>household(context,item);
-        const missing={rice:copyText('chapter-ui.household.rice'),matches:copyText('chapter-ui.household.matches'),paper:copyText('chapter-ui.household.paper')};
-        const actions=next ? offerings.slice(s.vigil).map((id,index)=>[names[s.vigil+index],()=>{
-            if(id!==next) open(copyText('chapter-ui.household.62'),next==='rice'?copyText('chapter-ui.household.63'):copyText('chapter-ui.household.64'),[[copyText('chapter-ui.household.65'),returnToAltar],back]);
-            else if(story.offer(id)){audio.latch();scene.syncState();returnToAltar();}
-            else open(copyText('chapter-ui.household.66'),missing[id],[back]);
-        }]) : [];
-        open(copyText('chapter-ui.household.67'),description,[...actions,back]);
+        const offered = id => s.offerings.includes(id);
+        const lines = [];
+        if (!s.offerings.length) lines.push(copyText('chapter-ui.household.56'));
+        if (offered('rice')) lines.push(copyText(s.porkOnRice ? 'chapter-ui.household.57' : 'chapter-ui.household.58'));
+        if (offered('incense')) lines.push(copyText('chapter-ui.household.60'));
+        if (offered('paper')) lines.push(copyText('chapter-ui.household.61'));
+        const actions = [];
+        const offer = (id, label, missing) => actions.push([label, () => {
+            if (!story.offer(id)) {
+                open(copyText('chapter-ui.household.66'), missing, [back]);
+                return;
+            }
+            if (id === 'rice') audio.knock();
+            else audio.paper();
+            scene.syncState();
+            if (s.offerings.length === 3) open(copyText('chapter-ui.household.67'),copyText('vigil.supper'),[back]);
+            else household(context,item);
+        }]);
+        if (!offered('rice')) offer('rice',copyText('chapter-ui.household.53'),copyText('chapter-ui.household.rice'));
+        if (!offered('incense')) {
+            offer('candle',copyText('vigil.candle'));
+            if (s.gear.includes('matches')) offer('matches',copyText('vigil.matches'));
+        }
+        if (!offered('paper')) offer('paper',copyText('chapter-ui.household.55'),copyText('chapter-ui.household.paper'));
+        open(copyText('chapter-ui.household.67'), lines.join('\n\n'), [...actions,back]);
     } else if(item.id==='coffin' && s.opened) {
         const lookInside=()=>open(copyText('chapter-ui.household.68'),s.records.includes('uniform_collar')?copyText('chapter-ui.household.69'):copyText('chapter-ui.household.70'),[
             [s.records.includes('uniform_collar')?copyText('chapter-ui.household.71'):copyText('chapter-ui.household.72'),inspectUniform],back]);
-        if(s.coffinOpen) lookInside();
-        else if(s.vigil===3 && !s.oldCoffinLatch && !s.gear.includes('coffinKey')) open(copyText('chapter-ui.household.73'),copyText('chapter-ui.household.74'),[back]);
-        else if(s.vigil===3) open(copyText('chapter-ui.household.75'),(s.gear.includes('coffinKey')?copyText('chapter-ui.household.76'):'')+copyText('chapter-ui.household.77'),[[copyText('chapter-ui.household.78'),()=>{
-            s.coffinOpen=true;redraw();audio.knock();lookInside();
-        }],back]);
-        else open(item.title,copyText('chapter-ui.household.79'),[back]);
+        if (s.coffinOpen) { lookInside(); return true; }
+        story.record(item.id);
+        const checkSeam = [copyText('coffin.touch'), () => {
+            audio.paper();
+            open(copyText('coffin.seamTitle'),copyText('coffin.caught'),[[copyText('coffin.lookAgain'),()=>household(context,item)],back]);
+        }];
+        if (!s.coffinCordsAside) {
+            open(item.title,copyText('chapter-ui.household.79'),[checkSeam,[copyText('coffin.moveCords'),()=>{
+                s.coffinCordsAside = true;
+                redraw(); audio.paper(); household(context,item);
+            }],back]);
+        } else if (!s.oldCoffinLatch && !s.gear.includes('coffinKey')) {
+            open(copyText('chapter-ui.household.73'),copyText('chapter-ui.household.74'),[checkSeam,back]);
+        } else {
+            open(copyText('chapter-ui.household.75'),copyText(s.oldCoffinLatch ? 'chapter-ui.household.77' : 'chapter-ui.household.76'),[
+                [copyText('chapter-ui.household.78'),()=>{
+                    s.coffinOpen=true; redraw(); audio.knock(); lookInside();
+                }],checkSeam,back]);
+        }
     } else return false;
     return true;
 }

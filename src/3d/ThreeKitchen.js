@@ -166,7 +166,7 @@
             this.fire.visible=s.stoveLit;
             const open=s.riceStage!=='covered', angle=open ? 1.83 : 0;
             this.lid.rotation.x=immediate||h.reducedMotion?.matches ? angle : THREE.MathUtils.damp(this.lid.rotation.x,angle,10,delta);
-            this.bowl.visible=!s.gear.includes('rice') && !s.vigil;
+            this.bowl.visible=!s.gear.includes('rice') && !s.offerings.includes('rice');
             this.rice.visible=s.riceStage==='served';
             this.pork.visible=s.porkOnRice;
             this.lunchbox.visible=this.bowl.visible && s.riceStage==='served';

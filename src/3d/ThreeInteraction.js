@@ -85,8 +85,9 @@
                 if (this.current.id === 'wall_marks' && this.story.state.heightStripTaken) title = copyText('interaction.showprompt.3');
                 if (this.current.id === 'rice_bowl') {
                     const s=this.story.state;
-                    title = s.gear.includes('rice') || s.vigil>0 ? copyText('interaction.showprompt.4') : {covered:copyText('interaction.showprompt.covered'),empty:copyText('interaction.showprompt.empty'),served:copyText('interaction.showprompt.served')}[s.riceStage];
+                    title = s.gear.includes('rice') || s.offerings.includes('rice') ? copyText('interaction.showprompt.4') : {covered:copyText('interaction.showprompt.covered'),empty:copyText('interaction.showprompt.empty'),served:copyText('interaction.showprompt.served')}[s.riceStage];
                 }
+                if (this.current.id === 'coffin' && this.story.state.coffinCordsAside) title = copyText('coffin.seamTitle');
                 if (this.current.id === 'coffin' && this.story.state.coffinOpen) {
                     observed = this.story.state.records.includes('uniform_collar');
                     title = observed ? copyText('interaction.showprompt.5') : copyText('interaction.showprompt.6');

@@ -22,6 +22,8 @@ async function boot(saved, preferences) {
         return {ok:true,text:()=>readFile(path.join(root,'STORY.md'),'utf8')};
     };
     // jsdom does not implement native dialog modality, default Escape behavior or layout.
+    window.HTMLMediaElement.prototype.play = async function () {};
+    window.HTMLMediaElement.prototype.pause = function () {};
     window.HTMLDialogElement.prototype.showModal = function () { this.open = true; };
     window.HTMLDialogElement.prototype.close = function () { this.open = false; this.dispatchEvent(new window.Event('close')); };
     window.HTMLCanvasElement.prototype.getContext = () => null;
@@ -319,6 +321,8 @@ try {
     ui.$('map').click(); assert.match(ui.document.querySelector('[data-map-area-notes="corridor"]').textContent, /已解开/);
     assert.equal(ui.document.querySelector('[data-map-area="path"]'), null, 'unlocking alone does not draw a room that has not been entered'); ui.click('继续探索');
     ui.inspect('wardrobe'); ui.click('沿滑轨推向床尾'); ui.inspect('brass_weight'); ui.click('拿走铜秤砣');
+    ui.inspect('altar');ui.click('借供烛点香');ui.key('KeyE');
+    assert.deepEqual([...ui.scene.story.state.offerings], ['incense']);
     ui.inspect('matchbox');ui.click('拿走火柴盒');
     ui.inspect('well_grip');
     assert.ok(!ui.scene.story.state.records.includes('well_grip'));
@@ -345,8 +349,9 @@ try {
     ui.inspect('cellar_door');ui.click('打开地下室');ui.inspect('sump_pump');ui.click('压动手柄');assert.equal(ui.scene.story.state.sumpDrained,false);ui.key('KeyE');
     ui.inspect('sump_grate');ui.click('提起棉纱，清掉树叶');ui.inspect('sump_pump');ui.click('压动手柄');ui.key('KeyE');
     ui.inspect('cellar_keyring');ui.click('拿走梅花铜钥匙');
-    ui.inspect('altar');ui.click('摆饭');ui.click('点香');ui.click('烧纸');ui.key('KeyE');
-    ui.inspect('coffin');ui.click('推开棺盖');ui.key('KeyE');assert.ok(!ui.scene.story.carried().includes('uniform'));
+    ui.inspect('coffin');ui.click('轻轻拉一下布角');ui.click('看看棺盖');ui.click('把盖上的三根红绳拨到地上');ui.click('推开棺盖');ui.key('KeyE');
+    assert.ok(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).state.coffinOpen);
+    ui.inspect('altar');ui.click('烧纸');ui.click('摆饭');ui.key('KeyE');assert.ok(!ui.scene.story.carried().includes('uniform'));
     ui.inspect('coffin');ui.click('拿起校服，翻开衣领');ui.key('KeyE');
     assert.ok(ui.scene.story.carried().includes('uniform'));assert.ok(!ui.scene.story.state.records.includes('bend_photo'));
     ui.inspect('clerk');ui.click('正厅那口棺是谁的？');ui.click('再问一句');

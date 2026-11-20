@@ -1,99 +1,91 @@
-// As in the 2D dialogue, advancing the text starts the next beat.
-export function playDrive(canvas, subtitle, finish, impact, next, radioCut, brake) {
-    const copyText=window.HuishaCopy;
-    const ctx=canvas.getContext('2d');
-    const still=new window.Image(), face=new window.Image();
-    still.src='assets/art/village-windscreen.webp';
-    face.src='assets/art/windscreen-face.webp';
-    const captions=[
-        copyText('drive-intro.playdrive'),
-        ...copyText('drive-intro.playdrive.2').split(/\n\s*\n/),
-        copyText('drive-intro.playdrive.3'),
-        copyText('drive-intro.playdrive.4')
-    ];
-    const blackCaption=copyText('drive.black');
-    const revealPage=captions.length-1;
+import {driveBeats, cockpitLayers} from './drive-glass.mjs';
+
+function subtitles(copy) {
+    const cues=[];
+    const section=(key,from,to)=>{
+        const paragraphs=copy(key).split(/\n\s*\n/).filter(Boolean);
+        const weights=paragraphs.map(text=>Math.max(2.3,[...text].length*.15+.9));
+        const total=weights.reduce((a,b)=>a+b,0);
+        let at=from;
+        paragraphs.forEach((text,i)=>{cues.push({at,text});at+=(to-from)*weights[i]/total;});
+    };
+    const b=driveBeats;
+    section('drive-intro.playdrive',.55,b.inside);
+    section('drive-intro.playdrive.2',b.inside,b.cut);
+    section('drive-intro.playdrive.3',b.cut,b.scare);
+    cues.push({at:b.scare,text:copy('drive.hit'),shock:true},{at:b.scare+.58,text:copy('drive.brake')},
+        {at:b.impact+.65,text:copy('drive.black')});
+    section('drive-intro.playdrive.4',b.wake,b.end-.45);
+    return cues;
+}
+export function playDrive(house, video, glass, subtitle, finish, sound) {
+    const cues=subtitles(window.HuishaCopy), b=driveBeats;
+    let request,active=true,started=false,live=false,scene,paint,last=null,t=0,index=-1;
     const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    let page=0, since=0, time=0, request, last, struck=false, braking=false;
-    const caption=()=>{
-        delete subtitle.dataset.shock;
-        subtitle.textContent=captions[page] || '';
-        subtitle.hidden=!subtitle.textContent;
-        next.hidden=false;
-        next.textContent=page===revealPage?copyText('main.leavedrive'):copyText('drive-intro.playdrive.5');
-    };
-    const advance=()=>{
-        if(next.hidden) return;
-        if(page===revealPage){finish();return;}
-        page++; since=0;
-        if(page===revealPage-1)radioCut?.();
-        if(page===revealPage){next.hidden=true;subtitle.hidden=true;}
-        else caption();
-    };
-    next.addEventListener('click',advance); caption(); next.focus();
-    function draw(){
-        const w=canvas.width,h=canvas.height,scale=Math.max(w/1672,h/941);
-        // Keep the driver and the vanishing point in frame on a portrait screen.
-        const zoom=reduced?1:1+.025*(1-Math.exp(-time*.035));
-        const sx=scale*zoom,ox=(w-1672*sx)*.52,oy=(h-941*sx)*.5;
-        ctx.setTransform(sx,0,0,sx,ox,oy);
-        if(still.naturalWidth)ctx.drawImage(still,0,0,1672,941);
-        else {ctx.fillStyle='#10181b';ctx.fillRect(0,0,1672,941);}
-        const hit=page===revealPage;
-        ctx.save();
-        ctx.beginPath();ctx.moveTo(92,0);ctx.lineTo(1672,0);ctx.lineTo(1672,630);ctx.lineTo(179,674);ctx.closePath();ctx.clip();
-        const sweep=(1-Math.cos(time*Math.PI/.6))*.5;
-        for(let i=0;i<52;i++){
-            const x=(i*157.4+1672-(time*(19+i%6))%1672)%1672,y=(i*97+time*(170+i%9*7))%670;
-            ctx.strokeStyle='rgba(173,196,210,.23)'; ctx.lineWidth=1.3;
-            ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-3,y+11);ctx.stroke();
-        }
-        if(hit && since>=.65 && since<1.55 && face.naturalWidth){
-            const rush=Math.min(1,Math.max(0,(since-1.05)/.30));
-            const height=reduced?300:34+875*rush**3, width=height*face.naturalWidth/face.naturalHeight;
-            ctx.drawImage(face,860-width*.5,407-height*.44,width,height);
-        }
-        if(hit && since>=1.55){
-            for(const [x,y,r,alpha] of [[1048,536,6,.50],[1054,537,5,.32]]){
-                ctx.fillStyle='rgba(133,49,40,'+alpha+')';ctx.beginPath();ctx.ellipse(x,y,r,r*.80,.21,0,Math.PI*2);ctx.fill();
-            }
-        }
-        if(!reduced)for(const pivot of [400,948]){
-            const angle=-.04-1.67*sweep;
-            ctx.save();ctx.translate(pivot,661);ctx.rotate(angle);
-            ctx.strokeStyle='#111614';ctx.lineCap='round';ctx.lineWidth=6;
-            ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(285,0);ctx.stroke();
-            ctx.lineWidth=10;ctx.beginPath();ctx.moveTo(187,-3);ctx.lineTo(478,-3);ctx.stroke();ctx.restore();
-        }
-        ctx.restore();
-        if(hit && since>=2.7){
-            ctx.fillStyle='rgba(5,8,10,'+Math.min(1,(since-2.7)*1.55)+')';ctx.fillRect(0,0,1672,941);
-        }
+    let lastProgress=null;
+    const startSound=()=>{if(!started){started=true;sound.start();}};
+    async function useLiveScene() {
+        if(!active||live)return;
+        live=true;video.pause();video.hidden=true;glass.hidden=false;last=null;
+        const {drivingScene}=await import('./drive-scene.mjs');
+        if(!active)return;
+        scene=drivingScene(house);
+        cockpitLayers().then(layer=>{if(active)paint=layer;}).catch(()=>{});
     }
-    function frame(now){
-        const dt=last===undefined||document.hidden?0:Math.min(.12,(now-last)/1000);
-        last=now; time+=dt;
-        // On a slow connection hold the reveal until its image is ready (or failed).
-        if(page!==revealPage || (face.complete && still.complete)) since+=dt;
-        if(page===revealPage && next.hidden){
-            if(since>=.67 && subtitle.hidden && !braking){
-                subtitle.textContent=copyText('drive.hit');subtitle.hidden=false;subtitle.dataset.shock='true';
+    function playVideo() {
+        video.play().catch(()=>{if(!document.hidden)useLiveScene();});
+    }
+    function visibility() {
+        last=null;lastProgress=null;
+        if(document.hidden)video.pause();
+        else if(!live)playVideo();
+    }
+    function frame(now) {
+        if(!active)return;
+        const previous=t;
+        if(!document.hidden){
+            if(live && scene){
+                startSound();
+                if(last!==null)t+=(now-last)/1000;
+                last=now;
+                scene.draw(t,b,reduced);
+                const w=house.renderer.domElement.width,h=house.renderer.domElement.height;
+                if(glass.width!==w||glass.height!==h){glass.width=w;glass.height=h;}
+                const ctx=glass.getContext('2d');
+                ctx.clearRect(0,0,w,h);
+                paint?.(ctx,w,h,t,reduced);
+            }else if(!live){
+                t=video.currentTime;
+                if(t!==previous || lastProgress===null)lastProgress=now;
+                else if(now-lastProgress>6000)useLiveScene();
+                if(t>0)startSound();
             }
-            if(!braking && since>=1.32){
-                braking=true;delete subtitle.dataset.shock;subtitle.textContent=copyText('drive.brake');brake?.();
+            if(t>=b.inside && t<b.scare && Math.floor(t*4.8/(2*Math.PI))>Math.floor(previous*4.8/(2*Math.PI)))sound.wiper();
+            if(previous<b.cut && t>=b.cut)sound.cut();
+            if(previous<b.scare+.58 && t>=b.scare+.58)sound.brake();
+            if(previous<b.impact && t>=b.impact)sound.impact();
+            while(index+1<cues.length && t>=cues[index+1].at){
+                index++;subtitle.textContent=cues[index].text;
+                subtitle.toggleAttribute('data-shock',!!cues[index].shock);
             }
-            if(!struck && since>=1.55){struck=true;impact?.();}
-            if(since>=2.9 && subtitle.textContent!==blackCaption)subtitle.textContent=blackCaption;
-        }
-        if(page===revealPage && since>=3.75 && next.hidden)caption();
-        if(ctx){
-            const w=Math.max(1,Math.round(canvas.clientWidth*Math.min(1.5,window.devicePixelRatio||1)));
-            const h=Math.max(1,Math.round(canvas.clientHeight*w/Math.max(1,canvas.clientWidth)));
-            if(canvas.width!==w || canvas.height!==h){canvas.width=w;canvas.height=h;}
-            draw();
+            subtitle.hidden=index<0;
+            if(t>=b.end){finish();return;}
         }
         request=window.requestAnimationFrame(frame);
     }
+    document.addEventListener('visibilitychange',visibility);
+    video.addEventListener('playing',startSound);
+    video.addEventListener('ended',finish);
+    video.addEventListener('error',useLiveScene);
+    subtitle.hidden=true;subtitle.textContent='';
+    video.hidden=false;glass.hidden=true;video.currentTime=0;
+    if(video.error || reduced)useLiveScene();else playVideo();
     request=window.requestAnimationFrame(frame);
-    return ()=>{window.cancelAnimationFrame(request);next.removeEventListener('click',advance);};
+    return ()=>{
+        active=false;window.cancelAnimationFrame(request);
+        video.removeEventListener('playing',startSound);
+        video.removeEventListener('ended',finish);video.removeEventListener('error',useLiveScene);
+        document.removeEventListener('visibilitychange',visibility);
+        video.pause();scene?.dispose();glass.hidden=true;subtitle.removeAttribute('data-shock');
+    };
 }

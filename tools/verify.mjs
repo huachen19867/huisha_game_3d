@@ -35,6 +35,15 @@ let mapWrites = 0; const mapStorage = new Map(), mapAdapter = { getItem: key => 
     migrated.save();
     assert.ok(new game.ThreeStory(oldSlot).state.photoFiled,'a migrated accident photo survives the next reload');
 }
+for (const vigil of [0, 1, 2, 3]) {
+    const old = new game.ThreeStory({getItem:()=>JSON.stringify({version:1,chapterEdition:2,opened:true,vigil})});
+    assert.deepEqual([...old.state.offerings], ['rice','incense','paper'].slice(0,vigil));
+    assert.equal(old.state.coffinCordsAside, vigil===3);
+    if (vigil === 3) {
+        assert.ok(old.state.basketDown);
+        assert.equal(old.takeGear('paper'), false);
+    }
+}
 for (const vigil of [0, 1]) {
     const oldKitchen = new game.ThreeStory({getItem: () => JSON.stringify({
         version:1, chapterEdition:2, arrival:'home', opened:true, records:['rice_bowl'], vigil
@@ -396,10 +405,10 @@ assert.ok(house.door.rotation.y > 0 && house.door.rotation.y < Math.PI / 2, 'the
 assert.ok(house.outsideLight.intensity > 4 && house.outsideLight.intensity < 9, 'the outside fill follows the actual opening angle');
 assert.deepEqual(releaseEvents, ['door-release']);
 assert.ok(house.doorMechanism.cords.every(cord => cord.points[9].y < 0.04 && cord.mesh.visible));
-const beforeVigil=house.story.state.vigil;
-house.story.state.vigil=3;house.doorMechanism.apply();
+const beforeCords=house.story.state.coffinCordsAside;
+house.story.state.coffinCordsAside=true;house.doorMechanism.apply();
 assert.ok(house.doorMechanism.cords.every(cord=>cord.points.slice(0,4).every(p=>p.y<.04 && p.z<-.15)));
-house.story.state.vigil=beforeVigil;house.doorMechanism.apply();
+house.story.state.coffinCordsAside=beforeCords;house.doorMechanism.apply();
 const settledCordVersions = house.doorMechanism.cords.map(cord => cord.mesh.instanceMatrix.version);
 for (let frame = 0; frame < 10; frame++) { house.syncState(); house.moveDoor(0.05); }
 assert.deepEqual(house.doorMechanism.cords.map(cord => cord.mesh.instanceMatrix.version), settledCordVersions, 'settled cords never rewrite GPU matrices each frame');
