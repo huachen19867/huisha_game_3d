@@ -44,7 +44,7 @@
 
 在“录取那年”，前排课桌上有一份从中间撕开的志愿草表。拿近后，拖动错开的那半张，也可以按「沿撕口合上两半」。正面能看见两种笔迹，翻过来能查到旧胶带留下的痕迹。读过草表正面，再回看学校判断，就能跟录取通知上的专业对照。[草表实机画面](docs/school-form.jpg)
 
-石桥护栏边停着李明的车，驾驶位窗边垂着半截安全带。手机里的旧录音解释了他经过桥头为什么会拨家里的座机。走到路尽头的担架前，可以先听车门外的人和母亲各自说什么，随时退开。亲手回应才决定结局。
+石桥护栏边停着李明的车，驾驶位窗边垂着半截安全带。担架旁的红箱子上，物品袋里有他的手机和驾驶证，旁边夹着交接单。可以先翻通话记录，也可以先去看车。走到路尽头的担架前，可以先听车门外的人和母亲各自说什么，随时退开。亲手回应才决定结局。
 
 本仓库只维护 3D。原 [2D 版本](https://github.com/huachen19867/huisha_game_AI) 已停止研发并保留成果。旧 3D 原型的布局、界面、交互和拼装家具已被替换；本版使用本地 glTF 中式家具、木地板与灰墙 PBR 材质，不依赖在线 CDN。
 
@@ -114,7 +114,7 @@ WASD 或方向键移动，双击 W 并按住第二下疾跑，也可按住 Shift
 
 `ThreeWindowWall.js` 共用窗洞墙体、窗框/窗格和玻璃的建模。墙段使用连续 UV，四段墙体合为一份网格，窗框/窗条合为另一份；玻璃单独保留透明绘制，不投实心阴影。合并复用现有 `vendor/BufferGeometryUtils.mjs` 的 `mergeGeometries`，主入口注入到场景命名空间；替换后的临时几何及时释放，窗材质随场景统一释放。
 
-`ThreePhone.js` / `src/phone.css` 管理手机实体、按页面更新的屏幕文字、屏幕 UV 点选与近看取景；`ThreeMemoryScenes` 将手机放在事故石块上。页面内容在 `ThreeMemoryMap` 的 `PHONE_PAGES`，`ThreeStory.phoneViews` 保存已主动阅读的页面，`phoneText()` 为手记提供当前已知原文，`knowsFact()` 同时校验记录与对应页面。未读页面不进入时间线，旧整份观察迁移为两页；标题、记录页及选证继续使用同一个手机记录 id。
+`ThreePhone.js` / `src/phone.css` 管理手机实体、按页面更新的屏幕文字、屏幕 UV 点选与近看取景；`ThreeMemoryScenes` 将手机和驾驶证放在救护箱盖的物品袋里。页面内容在 `ThreeMemoryMap` 的 `PHONE_PAGES`，`ThreeStory.phoneViews` 保存已主动阅读的页面，`phoneText()` 为手记提供当前已知原文，`knowsFact()` 同时校验记录与对应页面。未读页面不进入时间线，旧整份观察迁移为两页；标题、记录页及选证继续使用同一个手机记录 id。
 
 `ThreeDocument.js` / `src/document.css` 共用学校与医院四张纸的正反面、弯曲几何、翻转/拖动和取景，按所属记忆分别建模并保存原放置朝向。内容来自 `ThreeMemoryMap.DOCUMENTS`，`ThreeStory.documentViews` 按记录保存已读面，`documentText()` 提供已知原文；`knowsFact()` 校验日期来自已经读过的正面，`MEMORY_CASES.requiredFaces` 明确每段核对所需的面。Canvas 字迹纹理只在创建时绘制，学校纸张与医疗表格使用不同色调。`ThreeHouseScene` 统一保存近看前站位和退出恢复，主入口管理按钮与当前可读面。
 

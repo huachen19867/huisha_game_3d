@@ -514,7 +514,7 @@ try {
             assert.equal(ui.scene.story.state.records.includes('crash_phone'), false);
             ui.document.querySelector('[data-phone-page="calls"]').click(); assert.equal(ui.scene.story.state.phoneViews.length, 0);
             ui.$('phone-read').click(); assert.equal(ui.$('reader').open, false);
-            assert.match(ui.$('phone-reading').textContent, /二十一时十二分/); assert.doesNotMatch(ui.$('phone-reading').textContent, /二〇一六/);
+            assert.match(ui.$('phone-reading').textContent, /旧宅　呼出　21:12　未接通/); assert.doesNotMatch(ui.$('phone-reading').textContent, /二〇一六/);
             ui.key('Digit2'); assert.equal(ui.$('phone-reading').hidden, true); assert.equal(ui.$('phone-reading').textContent, '');
             assert.deepEqual([...ui.scene.story.state.phoneViews], ['calls'], 'switching directly to the recording page does not observe it');
             ui.key('Digit1'); ui.expandReading('phone'); assert.equal(ui.$('reader-title').textContent, '手机 · 通话记录');
@@ -555,9 +555,9 @@ try {
         }
     }
     ui.inspect('rescue_light');ui.click('听母亲说完');assert.match(ui.$('reader-body').textContent,/面该坨了/);
-    ui.click('再听车门外的人');ui.key('KeyE');assert.equal(ui.scene.story.state.departure,null);
+    ui.click('再听车门外的人');assert.doesNotMatch(ui.$('reader-body').textContent,/带子剪开/);ui.key('KeyE');assert.equal(ui.scene.story.state.departure,null);
     ui.inspect('crash_belt');ui.key('KeyE');
-    ui.inspect('rescue_light');ui.click('听车门外的人说完');assert.match(ui.$('reader-body').textContent,/剪开安全带/);
+    ui.inspect('rescue_light');ui.click('听车门外的人说完');assert.match(ui.$('reader-body').textContent,/带子剪开/);
     ui.click('捏他的手两下，醒来'); assert.equal(ui.$('reader-title').textContent, '破茧');
     ui.inspect('bridge_post');ui.key('KeyE');
     ui.inspect('rescue_light');ui.click('听母亲说完');ui.click('回想灶间');ui.click('端起碗，留在灶间');

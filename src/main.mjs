@@ -732,7 +732,7 @@ function inspect(item) {
         const leave=[copyText('main.inspect.19'),close];
         const roadside=()=>{
             const touch=story.state.records.includes('crash_belt')?copyText('main.inspect.20'):copyText('main.inspect.21');
-            open(copyText('main.inspect.22'),touch+copyText('main.inspect.23'),[
+            open(copyText('main.inspect.22'),touch+'\n\n'+copyText('main.inspect.23'),[
                 [copyText('main.inspect.24'),()=>ending('wake')],[copyText('main.inspect.25'),()=>home(bridge)],leave]);
         };
         const home=onBridge=>open(onBridge?copyText('main.inspect.26'):copyText('main.inspect.27'),onBridge

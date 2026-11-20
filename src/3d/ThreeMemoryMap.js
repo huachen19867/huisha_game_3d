@@ -91,8 +91,7 @@
         { id: 'hospital-wheelchair', space: 'hospital', xMin: 28.4, xMax: 29.5, zMin: -1.7, zMax: -0.6 },
         { id: 'hospital-desk', space: 'hospital', xMin: 33.425, xMax: 35.975, zMin: -4.74, zMax: -2.94 });
     regions.push({ id: 'crash', title: game.MEMORIES.crash.title, xMin: -3.74, xMax: 3.74, zMin: -64, zMax: -48, space: 'crash', requiresState: 'waterSolved' });
-    obstacles.push({ id: 'phone-stone', space: 'crash', xMin: -1.925, xMax: -1.375, zMin: -55.075, zMax: -54.525 },
-        { id: 'emergency-case', space: 'crash', xMin: 1.3, xMax: 2.1, zMin: -60.825, zMax: -60.175 });
+    obstacles.push({ id: 'emergency-case', space: 'crash', xMin: 1.02, xMax: 2.38, zMin: -60.825, zMax: -60.175 });
     for (const side of [-1, 1]) obstacles.push({ id: `rescue-post-${side}`, space: 'crash',
         xMin: side * 0.9 - 0.08, xMax: side * 0.9 + 0.08, zMin: -63.08, zMax: -62.92 });
     add('school', 'school_notice', copyText('memorymap.school'), -2, 0.96, 1,
@@ -116,9 +115,9 @@
     obstacles.push({id:'rescue-cot',space:'crash',xMin:-.36,xMax:.36,zMin:-63.91,zMax:-62.03});
     add('crash','crash_belt',copyText('memorymap.crash'),-2.53,1.0,.97,copyText('memorymap.crash.2'));
     add('crash','bridge_post',copyText('memorymap.crash.3'),-3.17,.89,4,copyText('memorymap.crash.4'));
-    add('crash', 'crash_report', copyText('memorymap.crash.5'), 1.7, 1.05, -4.5,
+    add('crash', 'crash_report', copyText('memorymap.crash.5'), 2.03, 1.05, -4.5,
         copyText('memorymap.crash.6'), { deduction: 'crash' });
-    add('crash', 'crash_phone', copyText('memorymap.crash.7'), -1.65, 0.7, 1.2,
+    add('crash', 'crash_phone', copyText('memorymap.crash.7'), 1.285, 1.04, -4.5,
         Object.values(game.PHONE_PAGES).map(page=>page.text).join('\n\n'), { deduction: 'crash', journal: false });
     add('crash', 'crash_return', copyText('memorymap.crash.8'), 0, 1.3, 6.8,
         copyText('memorymap.crash.9'), { journal: false, returnMemory: true });

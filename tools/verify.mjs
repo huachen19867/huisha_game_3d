@@ -243,8 +243,8 @@ assert.equal(house.scene.getObjectByName('chinese_armchair').isGroup, true);
 assert.equal(house.scene.getObjectByName('chinese_console_table').isGroup, true);
 assert.equal(house.scene.getObjectByName('chinese_cabinet').isGroup, true);
 const phoneBottom = new THREE.Box3().setFromObject(house.scene.getObjectByName('phone-body')).min.y;
-const phoneStoneTop = new THREE.Box3().setFromObject(house.scene.getObjectByName('phone-stone')).max.y;
-assert.ok(phoneBottom >= phoneStoneTop && phoneBottom - phoneStoneTop < 0.01, 'the phone rests on its stone rather than floating above it');
+const bagTop = new THREE.Box3().setFromObject(house.scene.getObjectByName('open-effects-bag')).max.y;
+assert.ok(phoneBottom >= bagTop && phoneBottom - bagTop < 0.006, 'the phone rests on the effects bag');
 for (const [id, paper] of house.documents.papers) {
     const definition = game.DOCUMENTS[id]; assert.equal(paper.root.parent.userData.memorySpace, definition.space);
     if (id === 'hospital_plan') {

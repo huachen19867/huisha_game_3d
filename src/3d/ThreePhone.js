@@ -6,7 +6,7 @@
         build(parent) {
             const h = this.house;
             this.root = new THREE.Group(); this.root.name = 'memory-phone'; parent.add(this.root);
-            this.home = new THREE.Vector3(-1.65, 0.654, 1.2);
+            this.home = new THREE.Vector3(-0.065, 0.008, 0);
             const shape = new THREE.Shape(), x = 0.09, y = 0.17, r = 0.018;
             shape.moveTo(-x + r, -y); shape.lineTo(x - r, -y); shape.quadraticCurveTo(x, -y, x, -y + r);
             shape.lineTo(x, y - r); shape.quadraticCurveTo(x, y, x - r, y); shape.lineTo(-x + r, y);
@@ -51,7 +51,7 @@
             }
             this.texture.needsUpdate = true;
         }
-        begin() { this.root.position.set(-1.65, 1.5, 1.5); this.root.rotation.set(0, 0, 0); this.selectPage('home'); this.frame(); }
+        begin() { this.root.position.copy(this.home); this.root.position.y += 0.5; this.root.rotation.set(0, 0, 0); this.selectPage('home'); this.frame(); }
         frame() {
             const h = this.house, camera = h.camera, width = h.root?.clientWidth || 1280, height = h.root?.clientHeight || 720;
             const side = height <= 520 && width > 680;
