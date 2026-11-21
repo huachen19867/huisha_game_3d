@@ -2,7 +2,7 @@
     const copyText=global.HuishaCopy;
     const game = global.Huisha3D;
     class ThreeEvidenceJournal {
-        constructor({ story, knownRecords }) { Object.assign(this, { story, knownRecords }); }
+        constructor({ story, knownRecords, appendRecordAction }) { Object.assign(this, { story, knownRecords, appendRecordAction }); }
         location(record) {
             return record.location || (['lock', 'wall_marks', 'threshold'].includes(record.id) ? copyText('evidencejournal.location') : copyText('evidencejournal.location.2'));
         }
@@ -96,7 +96,7 @@
                         const detail = document.createElement('details'); detail.className = 'record'; detail.dataset.record = record.id;
                         const summary = document.createElement('summary'); summary.textContent = record.title;
                         const content = document.createElement('p'); content.textContent = record.text;
-                        detail.append(summary, content); this.appendPinAction(detail, record.id); section.append(detail);
+                        detail.append(summary, content); this.appendRecordAction?.(detail,record);this.appendPinAction(detail, record.id); section.append(detail);
                     }
                     list.append(section);
                 }

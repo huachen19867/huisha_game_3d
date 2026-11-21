@@ -96,13 +96,15 @@
             h.label('wagon-registration',copyText('villagelane.wagon-registration'),[.46,.13],[0,.54,side*2.215],[0,side>0?0:Math.PI,0],undefined,car,'#20394a','#c8cebd');
         }
         h.box('rear-bumper',[1.75,.11,.12],[0,.44,2.14],rubber,'car_envelope',car);
-        const transfer=new THREE.MeshStandardMaterial({color:0x99463c,transparent:true,opacity:.82,roughness:.76,depthWrite:false});
-        for(const [x,y,z,opacity] of [[.44,1.085,-.805,.84],[.473,1.081,-.810,.44]]){
-            const ink=transfer.clone();ink.opacity=opacity;
-            const dab=h.mesh('wiper-pigment',new THREE.CircleGeometry(.031,24,0,Math.PI*1.86),ink,[x,y,z],'wiper_print',car,false);
-            dab.rotation.x=-2.25;
+        const ink=new THREE.MeshStandardMaterial({transparent:true,roughness:.84,depthWrite:false,side:THREE.DoubleSide});
+        if(h.renderer?.isWebGLRenderer){
+            ink.map=new THREE.TextureLoader().load('assets/art/cheek-impression.svg');
+            ink.map.colorSpace=THREE.SRGBColorSpace;h.textures.push(ink.map);
         }
-        transfer.dispose();
+        const dab=h.mesh('wiper-pigment',new THREE.PlaneGeometry(.126,.087),ink,[.452,1.09,-.810],'wiper_print',car,false);
+        dab.rotation.set(-2.25,0,Math.PI);
+        dab.scale.x=-1; // The mark seen from outside the car is reversed by the first contact.
+        h.wiperInk=ink;
         h.box('front-bumper',[1.76,.12,.11],[0,.45,-2.16],rubber,'car_envelope',car);
         return car;
     }

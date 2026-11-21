@@ -1,5 +1,9 @@
 # 3D 美术与许可
 
+## 0.22.8 玻璃与手记上的红印
+
+[红印纹理](art/cheek-impression.svg) 是按原有纸脸右颊上两次瓶盖印的大小和错位重新绘制的透明纹理。深印、浅印和颜料的缺口共用同一张图。在车外看玻璃时印子反向，把纸压上去再揭开，纸面上的方向和纸脸一致。手机正面照使用既有 [纸脸正面](art/paper-mask-front.webp)。
+
 ## 0.22.6 石桥接驳车
 
 中巴车身、候车处站牌、驾驶位、司机衣服和值班室座机使用本项目几何模型。司机头部复用 Lee Perry-Smith / Infinite-Realities 的头部扫描与原贴图，调整尺寸、朝向及衣领位置。与值班员共享已载入的资源。[原始署名](models/night-clerk/LeePerrySmith_License.txt) · [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)

@@ -509,7 +509,15 @@ try {
     ui.inspect('paper_mask');assert.ok(ui.document.querySelector('img[src$="paper-mask-front.webp"]'));
     assert.doesNotMatch(ui.$('reader-actions').textContent,/比一比/);ui.key('KeyE');
     assert.ok(!ui.scene.story.state.records.includes('mask_strap'));
-    ui.inspect('wiper_print');ui.click('比一比两处红印');assert.ok(ui.scene.story.state.records.includes('mask_transfer'));ui.key('KeyE');
+    ui.inspect('wiper_print');assert.ok(!ui.scene.story.state.records.includes('glass_impression'));
+    ui.click('用手记的纸角按一下');assert.ok(ui.document.querySelector('.ink-paper img'));
+    assert.doesNotMatch(ui.$('reader-actions').textContent,/比一比/);ui.key('KeyE');
+    ui.inspect('paper_mask');ui.click('比一比两处红印');assert.match(ui.$('reader-body').textContent,/托在纸脸旁边/);
+    ui.click('看画面左边的脸蛋');assert.ok(!ui.scene.story.state.records.includes('mask_transfer'));
+    ui.click('看画面右边的脸蛋');assert.ok(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).state.records.includes('mask_transfer'));ui.key('KeyE');
+    ui.inspect('paper_mask');ui.click('拍一张纸脸的正面');ui.key('KeyE');
+    ui.inspect('wiper_print');ui.click('翻到留着红印的那一页');ui.click('比一比两处红印');
+    assert.match(ui.$('reader-body').textContent,/手机上找出/);ui.key('KeyE');
     ui.inspect('paper_mask');ui.click('翻看背面');assert.ok(ui.document.querySelector('img[src$="paper-mask-back.webp"]'));
     ui.click('挂到门边的木钉上');assert.equal(JSON.parse(ui.window.localStorage.getItem(saveKey)).maskHung,true);
     assert.equal(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).state.maskHung,true);

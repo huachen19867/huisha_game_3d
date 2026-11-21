@@ -38,6 +38,8 @@
         interactables: [
             { id:'wiper_print',title:copyText('housemap.wiper_print.title'),area:'lane',location:copyText('housemap.wiper_print.location'),position:{x:-1.71,y:1.095,z:28.90},radius:2.1,
                 text:copyText('housemap.wiper_print.text') },
+            {id:'glass_impression',title:copyText('mask.sampleTitle'),inventoryOnly:true,area:'lane',location:copyText('housemap.wiper_print.location'),
+                position:{x:-1.71,y:1.095,z:28.90},text:copyText('mask.sampleText')},
             { id: 'car_envelope', title: copyText('housemap.car_envelope.title'), inventoryOnly: true, location: copyText('housemap.wiper_print.location'), area: 'lane', position: {x: -1.11, y: 1.08, z: 29.8}, radius: 2.4,
                 text: copyText('housemap.car_envelope.text') },
             { id:'forwarding_slip', title:copyText('housemap.forwarding_slip.title'), inventoryOnly:true, location:copyText('housemap.wiper_print.location'), area:'lane', position:{x:2.98,y:1.08,z:21.15},

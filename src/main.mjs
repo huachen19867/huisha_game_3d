@@ -43,7 +43,14 @@ const reader = $('reader');
 const audio = new game.ThreeAudio();
 const wellShots=wellCloseups($('well-closeup'));
 const assetErrors = new Set();
-const evidenceJournal = new game.ThreeEvidenceJournal({ story, knownRecords });
+const evidenceJournal = new game.ThreeEvidenceJournal({ story, knownRecords, appendRecordAction(detail,record){
+    const label={glass_impression:'mask.openSample',mask_photo:'mask.openPhoto'}[record.id];
+    if(!label)return;
+    const button=document.createElement('button');button.type='button';button.textContent=copyText(label);
+    const back=()=>journal(!!scene?.inspectionReturn);
+    button.onclick=()=>readRecord(record,[[copyText('main.readrecord'),back]]);
+    detail.append(button);
+} });
 const explorationMap = new game.ThreeExplorationMap({ story, knownRecords, open, onRead: id => {
     const record = knownRecords().find(record => record.id === id);
     if (record) readRecord(record, [[copyText('main.explorationmap.onread'), () => showMap(false)]]);
@@ -269,6 +276,9 @@ function recordPhoto(slug,caption) {
 }
 function readRecord(item, actions) {
     const choices = [...actions];
+    if(['glass_impression','mask_photo'].includes(item.id) && ['glass_impression','mask_photo'].every(id=>story.state.records.includes(id))){
+        choices.unshift([copyText('main.inspect.13'),()=>compareMask(false,()=>readRecord(item,actions))]);
+    }
     if (!choices.some(([label]) => label === copyText('main.readrecord'))) choices.push([copyText('main.readrecord'), () => journal(!!scene?.inspectionReturn)]);
     open(item.title, item.text, choices);
     if(item.id==='well_grip')showGripPhoto(true);
@@ -276,10 +286,11 @@ function readRecord(item, actions) {
     if(photographs[item.id]){
         $('reader-body').prepend(recordPhoto(photographs[item.id],item.title));
     }
-    if(item.id==='paper_mask' || item.id==='mask_strap'){
+    if(item.id==='glass_impression')$('reader-body').prepend(inkStudy());
+    if(['paper_mask','mask_strap','mask_photo'].includes(item.id)){
         const image=document.createElement('img');
         image.className='mask-study';image.width=702;image.height=768;image.alt=item.title;
-        image.src='assets/art/paper-mask-'+(item.id==='paper_mask'?'front':'back')+'.webp';
+        image.src='assets/art/paper-mask-'+(item.id==='mask_strap'?'back':'front')+'.webp';
         $('reader-body').prepend(image);
     }
     evidenceJournal.appendPinAction($('reader-actions'), item.id);
@@ -674,6 +685,38 @@ $('well-seat-remember').addEventListener('click',()=>{
     $('well-seat-view').textContent=copyText(remembering?'well.seat.memory':story.state.bucketParked?'well.seat.quiet':'well.seat.view');
     updateStatus();
 });
+function inkStudy(){
+    const page=document.createElement('div');page.className='ink-paper';
+    const ink=document.createElement('img');ink.src='assets/art/cheek-impression.svg';ink.alt=copyText('mask.sampleAlt');
+    page.append(ink);return page;
+}
+function compareMask(atDoor,back,side){
+    const records=story.state.records;
+    if(!records.includes('glass_impression') || !records.includes(atDoor?'paper_mask':'mask_photo'))return;
+    const title=copyText('courtyardmap.mask_transfer.title');
+    if(side==='right' && !records.includes('mask_transfer')){story.record('mask_transfer');audio.paper();}
+    open(title,copyText(side==='right'?'mask.rightMatch':side==='left'?'mask.leftOnly':atDoor?'mask.compareHere':'mask.comparePhoto'),[
+        [copyText('mask.left'),()=>compareMask(atDoor,back,'left')],
+        [copyText('mask.right'),()=>compareMask(atDoor,back,'right')],
+        [copyText('chapter-ui.household'),back]
+    ]);
+    const study=document.createElement('div');study.className='mask-comparison';
+    const face=document.createElement('div');face.className='mask-reference';
+    const image=document.createElement('img');image.src='assets/art/paper-mask-front.webp';image.alt=copyText('mask.faceAlt');
+    face.append(image);
+    const [left,right]=$('reader-actions').querySelectorAll('button');
+    left.setAttribute('aria-pressed',String(side==='left'));right.setAttribute('aria-pressed',String(side==='right'));
+    face.addEventListener('click',event=>{
+        const bounds=face.getBoundingClientRect();
+        (event.clientX<bounds.left+bounds.width/2?left:right).click();
+    });
+    if(side)face.dataset.cheek=side;
+    for(const [visual,caption] of [[face,atDoor?'courtyardmap.paper_mask.title':'mask.photoTitle'],[inkStudy(),'mask.sampleTitle']]){
+        const figure=document.createElement('figure'),label=document.createElement('figcaption');
+        label.textContent=copyText(caption);figure.append(visual,label);study.append(figure);
+    }
+    $('reader-body').prepend(study);
+}
 function inspectWellGrip(item,firstLook=false){
     const s=story.state,known=s.records.includes(item.id);
     const actions=[];
@@ -748,9 +791,15 @@ function inspect(item) {
                 show('mask_strap',[[copyText('main.lookatheightstrip.3'),()=>inspect(item)],...(!story.state.maskHung?[[copyText('main.inspect.11'),hang]]:[]),leave]);
             };
             actions.push([copyText('main.inspect.12'),flip]);
-        }
-        if(records.includes('wiper_print') && records.includes('paper_mask')){
-            actions.push([copyText('main.inspect.13'),()=>show('mask_transfer',[[copyText('main.inspect.14'),()=>inspect(item)],leave])]);
+            const photographed=records.includes('mask_photo');
+            actions.push([copyText(photographed?'mask.openPhoto':'mask.photoAction'),()=>show('mask_photo',[[copyText('main.inspect.14'),()=>inspect(item)],leave])]);
+            if(records.includes('glass_impression'))actions.unshift([copyText('main.inspect.13'),()=>compareMask(true,()=>inspect(item))]);
+        }else{
+            const sampled=records.includes('glass_impression');
+            if(sampled)item={...item,text:copyText('mask.glassAfter')};
+            actions.push([copyText(sampled?'mask.openSample':'mask.sampleAction'),()=>{
+                show('glass_impression',[[copyText('main.inspect.14'),()=>inspect(item)],leave]);
+            }]);
         }
         readRecord(item,[...actions,leave]);return;
     }

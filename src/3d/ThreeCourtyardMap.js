@@ -42,6 +42,8 @@
                 text:copyText('courtyardmap.paper_mask.text') },
             {id:'mask_strap',title:copyText('courtyardmap.mask_strap.title'),area:'yard',location:copyText('courtyardmap.yard.title'),requiresState:'crossedYard',inventoryOnly:true,position:{x:5.78,y:.21,z:-19.15},
                 text:copyText('courtyardmap.mask_strap.text') },
+            {id:'mask_photo',title:copyText('mask.photoTitle'),area:'yard',location:copyText('courtyardmap.yard.title'),inventoryOnly:true,
+                position:{x:5.78,y:.21,z:-19.15},text:copyText('mask.photoText')},
             {id:'mask_transfer',title:copyText('courtyardmap.mask_transfer.title'),area:'yard',location:copyText('courtyardmap.mask_transfer.location'),inventoryOnly:true,position:{x:5.78,y:.21,z:-19.15},
                 text:copyText('courtyardmap.mask_transfer.text') },
             { id: 'yard_well', title: copyText('courtyardmap.yard_well.title'), location: copyText('courtyardmap.yard.title'), position: { x: -3, y: 0.92, z: -21.5 }, radius: 2,

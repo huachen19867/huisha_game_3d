@@ -35,6 +35,12 @@ let mapWrites = 0; const mapStorage = new Map(), mapAdapter = { getItem: key => 
     migrated.save();
     assert.ok(new game.ThreeStory(oldSlot).state.photoFiled,'a migrated accident photo survives the next reload');
 }
+{
+    const original=['wiper_print','paper_mask','mask_strap','mask_transfer'];
+    const old=new game.ThreeStory({getItem:()=>JSON.stringify({version:1,chapterEdition:2,arrival:'home',opened:true,crossedYard:true,maskHung:true,records:original})});
+    assert.ok(old.state.maskHung);
+    assert.deepEqual([...old.state.records],original,'an old comparison survives without inventing a print or a photo');
+}
 for (const vigil of [0, 1, 2, 3]) {
     const old = new game.ThreeStory({getItem:()=>JSON.stringify({version:1,chapterEdition:2,opened:true,vigil})});
     assert.deepEqual([...old.state.offerings], ['rice','incense','paper'].slice(0,vigil));

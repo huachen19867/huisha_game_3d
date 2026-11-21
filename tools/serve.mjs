@@ -8,7 +8,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const port = Number(process.env.PORT || 8133);
 const mime = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
     '.mjs': 'text/javascript; charset=utf-8', '.json': 'application/json', '.gltf': 'model/gltf+json', '.bin': 'application/octet-stream',
-    '.jpg': 'image/jpeg', '.png': 'image/png', '.webp':'image/webp', '.mp4':'video/mp4', '.ogg': 'audio/ogg', '.txt': 'text/plain; charset=utf-8', '.md': 'text/plain; charset=utf-8' };
+    '.jpg': 'image/jpeg', '.png': 'image/png', '.svg':'image/svg+xml', '.webp':'image/webp', '.mp4':'video/mp4', '.ogg': 'audio/ogg', '.txt': 'text/plain; charset=utf-8', '.md': 'text/plain; charset=utf-8' };
 const server = http.createServer(async (request, response) => {
     try {
         if (!['GET', 'HEAD'].includes(request.method)) { response.writeHead(405); response.end(); return; }

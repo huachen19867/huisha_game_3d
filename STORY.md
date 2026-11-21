@@ -93,7 +93,7 @@
 
 `housemap.wiper_print.text`
 
-雨刷底下有两个红印，叠在一起。我伸手抹了一下，指头也红了。
+雨刷底下有两个红印，挨得很近。雨水流到印子底下，带出了一点红。
 
 `housemap.car_envelope.title`
 
@@ -308,7 +308,7 @@
 
 `courtyardmap.paper_mask.text`
 
-左边一个红印，右边两个，有半边叠在一起。这张脸是我糊的。那年我拿汽水瓶盖给它印脸蛋，右边没盖全，又补了一下。
+这张纸脸是我糊的。那会儿不会拿笔画圆，就找了个汽水瓶盖，蘸红颜料给它印脸蛋。
 
 `courtyardmap.mask_strap.title`
 
@@ -316,7 +316,7 @@
 
 `courtyardmap.mask_strap.text`
 
-背后系着一截红格子布。爸戴的时候得把扣放松，他头大。鼻梁上那道折还在——那年妈端汤出来，碰掉了刚挂在灶门口的纸脸。
+红格子布从耳朵边两个孔穿过去，右边留着个活扣。爸以前逗我，往脸上一扣，两只眼睛全让布带挡住了。我还得踮起脚替他往上提一提。
 
 `courtyardmap.mask_transfer.title`
 
@@ -328,7 +328,75 @@
 
 `courtyardmap.mask_transfer.text`
 
-我把纸脸转正。右边多出来的半个红印，跟雨刷底下那半个一模一样。
+雨刷边上那两个圆，一深一浅。纸脸右边的脸蛋也是这样。那年瓶盖印歪了，我往下挪了一点，又盖了一次。
+
+`mask.sampleAction`
+
+用手记的纸角按一下
+
+`mask.sampleTitle`
+
+纸角上的红印
+
+`mask.sampleText`
+
+我把手记末页的纸角压在玻璃上。揭开一看，两个印都沾过来了，一深一浅。我晾了一会儿才合上本子。
+
+`mask.glassAfter`
+
+玻璃上还剩一圈淡红。纸上那份夹在手记最后一页。
+
+`mask.openSample`
+
+翻到留着红印的那一页
+
+`mask.photoAction`
+
+拍一张纸脸的正面
+
+`mask.photoTitle`
+
+纸脸的正面照
+
+`mask.photoText`
+
+我把纸脸转向门口的灯，用手机拍了正面。照片里，折进去的鼻梁和两边的红脸蛋都看得清。
+
+`mask.openPhoto`
+
+看拍下来的正面照
+
+`mask.compareHere`
+
+我翻到带红印的那一页，把纸角托在纸脸旁边。
+
+`mask.comparePhoto`
+
+我翻开手记，又在手机上找出灶门口拍的照片。
+
+`mask.left`
+
+看画面左边的脸蛋
+
+`mask.right`
+
+看画面右边的脸蛋
+
+`mask.leftOnly`
+
+左边只盖了一下。纸角上那个浅印，挪到哪儿都多出来一截。
+
+`mask.rightMatch`
+
+右边。第一下盖得重，补的那一下往下偏了点。纸角上的两个印也是这么挨着的。
+
+`mask.faceAlt`
+
+正面朝向我的纸脸，左脸一个圆印，右脸一深一浅两印相叠
+
+`mask.sampleAlt`
+
+从玻璃上按下来的红印，一个完整的深圆，旁边叠着一个偏低的浅圆
 
 ### 雨庭旧井
 
