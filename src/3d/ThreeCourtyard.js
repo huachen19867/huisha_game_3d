@@ -50,8 +50,9 @@
             h.box('road', [2.6, 0.16, 5], [0, -0.1, -30], m.paving, 'road_exit');
             for (const side of [-1, 1]) h.box(`road-edge-${side}`, [0.18, 0.76, 18.5], [side * 1.35, 0.36, -36.85], m.wood);
             h.box('bus-path',[2.7,.16,18.7],[0,-.1,-36.8],m.paving);
-            h.box('road-barrier', [2.8,.96,.18], [0,.48,-46.09], m.wood, 'road_exit');
-            h.label('road-end-sign', copyText('courtyard.road-end-sign'), [1.3,.32], [0,.75,-45.98], [0,0,0], 'road_exit');
+            h.box('bus-turnout',[7.1,.16,13.8],[0,-.102,-53.05],m.paving);
+            h.box('bus-stop-post', [.10,1.43,.10], [1.45,.72,-44.96], m.stone, 'road_exit');
+            h.label('road-end-sign', copyText('courtyard.road-end-sign'), [.83,.25], [1.45,1.38,-44.89], [0,-.25,0], 'road_exit');
             h.box('bus-notice-post',[.09,1.9,.09],[1.22,.95,-31.4],m.wood,'bus_notice');
             h.label('bus-notice',copyText('courtyard.bus-notice'),[.9,.6],[.99,1.55,-31.22],[0,-.32,0],'bus_notice');
             h.box('shelter-roof',[2.82,.15,3.4],[0,2.65,-40.8],m.darkWood);
@@ -59,12 +60,7 @@
             h.box('signal-pole',[.1,1.71,.11],[-1.21,.86,-40.5],m.stone,'stop_signal');
             this.signalBoard=h.box('signal-board',[.63,.37,.06],[-.98,1.54,-40.5],m.brass,'stop_signal');
             h.label('stop-name',copyText('courtyard.stop-name'),[1.44,.33],[0,2.36,-39.12],[0,0,0],'stop_signal');
-            this.busLights=new THREE.Group(); h.scene.add(this.busLights);
-            for(const x of [-.76,.76]) h.box('bus-headlamp',[.39,.19,.08],[x,1,-46.4],
-                new THREE.MeshBasicMaterial({color:0xffdf9e}),'road_exit',this.busLights);
-            h.box('waiting-bus',[2.46,1.96,3.3],[0,1.04,-48.15],m.stone,'road_exit',this.busLights);
-            h.box('bus-windscreen',[2.12,.79,.08],[0,1.59,-46.45],m.cloth,'road_exit',this.busLights);
-            h.label('bus-destination',copyText('courtyard.bus-destination'),[.88,.22],[0,2.08,-46.41],[0,0,0],'road_exit',this.busLights);
+            this.buildShuttle();
 
             // These fill lights add no shadow maps; the existing candle remains the sole shadow caster.
             for (const [color, intensity, distance, position] of [
@@ -73,6 +69,56 @@
             h.cylinder('kitchen-lamp-chain',.009,.009,.34,[9.83,2.94,-23.47],m.darkWood);
             this.dressEaves();
             this.dressStove();
+        }
+        buildShuttle() {
+            const h=this.house, m=h.materials;
+            const bus=new THREE.Group();
+            this.busLights=bus; bus.name='county-shuttle';bus.position.set(-.16,0,-48.34);bus.rotation.y=.18;h.scene.add(bus);
+            const enamel=new THREE.MeshStandardMaterial({color:0xb6b49e,metalness:.34,roughness:.45});
+            const stripe=new THREE.MeshStandardMaterial({color:0x325851,roughness:.51});
+            const glass=new THREE.MeshStandardMaterial({color:0x839b98,transparent:true,opacity:.19,depthWrite:false,side:THREE.DoubleSide});
+            const part=(name,size,at,material)=>h.box(name,size,at,material,'road_exit',bus);
+            part('bus-floor',[2.29,.17,4.50],[0,.51,0],m.cloth);
+            part('bus-nose',[2.28,.72,.33],[0,.84,2.09],enamel);
+            part('bus-bumper',[2.32,.12,.15],[0,.49,2.27],stripe);
+            part('bus-roof',[2.3,.16,4.56],[0,2.36,0],enamel);
+            part('bus-header',[2.27,.26,.14],[0,2.19,2.14],stripe);
+            part('bus-dashboard',[2.02,.18,.43],[0,1.13,1.89],m.cloth);
+            part('bus-windscreen',[2.09,.91,.025],[0,1.64,2.16],glass).rotation.x=-.066;
+            part('bus-rear',[2.21,1.66,.16],[0,1.37,-2.18],enamel);
+            for(const side of [-1,1]){
+                const x=side*1.09;
+                // The passenger side ends before the front step, leaving the door open.
+                const front=side<0?.93:2.12, length=front+2.18;
+                part('bus-side-panel',[.10,.64,length],[x,.84,front-length/2],enamel);
+                part('bus-side-stripe',[.11,.10,length],[x,1.06,front-length/2],stripe);
+                part('bus-side-glass',[.025,1.1,length],[x,1.71,front-length/2],glass);
+                for(const z of [-2.16,-1.09,-.06,.94,2.12])part('bus-pillar',[.082,1.18,.08],[x,1.72,z],stripe);
+                for(const z of [-1.47,1.36]){
+                    const tire=h.cylinder('bus-tire',.36,.36,.19,[x,.36,z],m.cloth,'road_exit',bus);
+                    tire.rotation.z=Math.PI/2;
+                    h.cylinder('bus-hub',.18,.18,.018,[side*1.19,.36,z],enamel,'road_exit',bus).rotation.z=Math.PI/2;
+                }
+                part('bus-headlamp',[.36,.14,.036],[side*.82,.89,2.274],new THREE.MeshBasicMaterial({color:0xffdfaa}));
+                part('headlamp-surround',[.45,.21,.04],[side*.82,.89,2.252],m.cloth);
+                part('bus-indicator',[.14,.055,.04],[side*.90,.72,2.274],m.brass);
+                part('bus-wiper',[.51,.023,.027],[side*.44,1.245,2.205],m.cloth).rotation.z=side*.12;
+                part('bus-mirror-arm',[.22,.033,.036],[side*1.20,1.95,2.01],stripe);
+                part('bus-mirror',[.13,.23,.08],[side*1.34,1.88,2.01],m.cloth);
+                for(const z of [-1.60,-.66,.22]){
+                    part('bench-back',[.75,.61,.11],[side*.58,1.22,z],stripe);
+                    part('bench-seat',[.75,.12,.46],[side*.58,.93,z+.16],stripe);
+                }
+            }
+            part('bus-tread',[.39,.08,.93],[-1.08,.30,1.56],m.stone);
+            part('door-handrail',[.034,1.25,.034],[-.98,1.24,1.03],m.brass);
+            for(const y of [.70,.77,.84])part('bus-grille',[.77,.027,.032],[0,y,2.27],m.cloth);
+            h.label('bus-destination',copyText('courtyard.bus-destination'),[.85,.20],[0,2.19,2.22],[0,0,0],'road_exit',bus);
+            const wheel=h.mesh('bus-steering-wheel',new THREE.TorusGeometry(.19,.018,8,32),m.cloth,[.51,1.29,1.75],'road_exit',bus);
+            wheel.rotation.x=-.59;
+            game.buildBusDriver(h,bus);
+            const light=new THREE.PointLight(0xffdfb0,2.5,4,1.7);
+            light.position.set(-.18,2.15,1.92);bus.add(light);
         }
         buildMask() {
             const h=this.house, geometry=new THREE.PlaneGeometry(.315,.345,24,26);

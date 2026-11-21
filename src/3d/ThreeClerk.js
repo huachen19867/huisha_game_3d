@@ -61,6 +61,37 @@
             head.traverse(node=>{if(node.isMesh){node.material=material;node.userData.item='clerk';}});
             head.scale.setScalar(scale);head.position.set(-center.x*scale,1.552-center.y*scale,.01-center.z*scale);
             group.add(head);skull.attach(head);face.visible=false;features.visible=false;
+            // The shuttle is built before the asynchronous portrait finishes loading.
+            if(h.driverPortrait){
+                const driver=head.clone(true);
+                driver.traverse(node=>{if(node.isMesh)node.userData.item='road_exit';});
+                h.driverPortrait.add(driver);
+                h.driverPortrait.getObjectByName('driver-face').visible=false;
+                h.driverPortrait.getObjectByName('driver-hair').visible=false;
+            }
         },undefined,()=>{/* The painted head stays visible while offline. */});
+    };
+    game.buildBusDriver=function(h,bus){
+        const driver=new THREE.Group();driver.position.set(.51,.21,1.36);bus.add(driver);
+        const navy=(h.materials.denim||h.materials.cloth).clone();
+        navy.color.setHex(0x455361);
+        const skin=new THREE.MeshStandardMaterial({color:0xa7785a,roughness:.88});
+        const form=(name,xyz,scale,mat,parent=driver)=>{
+            const mesh=h.mesh(name,new THREE.SphereGeometry(1,24,16),mat,xyz,'road_exit',parent);
+            mesh.scale.set(...scale);return mesh;
+        };
+        const jacket=[[.18,.94],[.205,1.02],[.205,1.21],[.269,1.34],[.262,1.39],[.20,1.43],[.093,1.475]];
+        h.mesh('driver-jacket',new THREE.LatheGeometry(jacket.map(([r,y])=>new THREE.Vector2(r,y)),32),navy,[0,0,0],'road_exit',driver).scale.z=.85;
+        h.box('driver-placket',[.018,.35,.012],[0,1.21,.174],navy,'road_exit',driver);
+        for(const side of [-1,1]){
+            h.box('driver-collar',[.074,.088,.025],[side*.060,1.432,.092],navy,'road_exit',driver).rotation.z=side*.54;
+            form('driver-sleeve',[side*.205,1.22,.034],[.081,.217,.104],navy).rotation.x=-.44;
+            form('driver-forearm',[side*.19,1.025,.19],[.065,.068,.17],navy).rotation.x=-.18;
+            form('driver-hand',[side*.16,1.066,.34],[.052,.047,.077],skin);
+        }
+        const head=new THREE.Group();head.position.y=1.47;head.rotation.y=-.30;
+        head.scale.set(1.10,.97,1.04);driver.add(head);h.driverPortrait=head;
+        form('driver-face',[0,.128,.008],[.117,.15,.12],skin,head);
+        form('driver-hair',[0,.220,-.018],[.12,.085,.117],h.materials.cloth,head);
     };
 })(window);

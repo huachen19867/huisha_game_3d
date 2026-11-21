@@ -42,6 +42,8 @@
                 text: copyText('housemap.car_envelope.text') },
             { id:'forwarding_slip', title:copyText('housemap.forwarding_slip.title'), inventoryOnly:true, location:copyText('housemap.wiper_print.location'), area:'lane', position:{x:2.98,y:1.08,z:21.15},
                 text:copyText('housemap.forwarding_slip.text') },
+            { id:'bridge_call', title:copyText('clerk.bridgeCallTitle'), inventoryOnly:true, area:'lane', location:copyText('housemap.clerk_holdall.location'),
+                position:{x:3.20,y:1.64,z:20.38}, text:copyText('clerk.bridgeCall') },
             { id:'repair_order',title:copyText('workorder.title'),area:'lane',location:copyText('housemap.clerk_holdall.location'),
                 position:{x:2.87,y:1.07,z:20.22},radius:1.90,text:copyText('workorder.face') },
             { id: 'clerk', title: copyText('housemap.clerk.title'), location: copyText('housemap.wiper_print.location'), area: 'lane', position: {x:3.20,y:1.64,z:20.38}, radius:2.65,

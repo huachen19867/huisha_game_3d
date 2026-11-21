@@ -1,5 +1,9 @@
 # 3D 美术与许可
 
+## 0.22.6 石桥接驳车
+
+中巴车身、候车处站牌、驾驶位、司机衣服和值班室座机使用本项目几何模型。司机头部复用 Lee Perry-Smith / Infinite-Realities 的头部扫描与原贴图，调整尺寸、朝向及衣领位置。与值班员共享已载入的资源。[原始署名](models/night-clerk/LeePerrySmith_License.txt) · [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)
+
 ## 0.22.5 雨夜行车片头
 
 [雨夜行车](cinematics/rain-drive.mp4) 是本项目逐帧渲染的四十秒短片，1280 × 720，24 帧/秒，H.264。镜头使用游戏里的旅行车、路旁村屋、桥边的纸扎人和值班室。驾驶位叠加既有挡风玻璃图中的仪表台与后视镜，贴窗的一瞬使用已有的纸脸近景。画面单独编码，游戏按影片播放位置从 [STORY.md](../STORY.md#雨夜驾驶片头) 取字幕，并播放收音机、雨刷和刹车声。

@@ -57,6 +57,8 @@
                 requiresOpen:true, requiresWater:true, text:copyText('courtyardmap.bus_notice.text') },
             { id: 'stop_signal', title: copyText('courtyardmap.stop_signal.title'), location: copyText('courtyardmap.bus_notice.location'), position: {x:-.9,y:1.35,z:-40.5}, radius:2,
                 requiresOpen:true, requiresWater:true, text:copyText('courtyardmap.stop_signal.text') },
+            { id:'bridge_driver',title:copyText('bus.bridgeTitle'),location:copyText('courtyardmap.bus_notice.location'),inventoryOnly:true,
+                position:{x:0,y:1.2,z:-44.7},text:copyText('bus.bridgeAnswer') },
             { id: 'road_exit', title: copyText('courtyardmap.road_exit.title'), location: copyText('courtyardmap.bus_notice.location'), position: { x: 0, y: 1.2, z: -44.7 }, radius: 1.8,
                 requiresOpen: true, requiresWater: true, text: copyText('courtyardmap.road_exit.text') }
         ]

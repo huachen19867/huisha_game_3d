@@ -241,6 +241,13 @@
         h.box('logbook-cover',[.56,.025,.84],[2.99,1.063,21.1],m.cloth,'duty_book');
         h.cylinder('tea-mug',.074,.068,.14,[3.22,1.12,21.73],m.paper,'duty_book');
         h.mesh('mug-handle',new THREE.TorusGeometry(.048,.011,7,16),m.paper,[3.22,1.13,21.81],'duty_book').rotation.y=Math.PI/2;
+        const phone=new THREE.Group();phone.position.set(3.18,1.046,19.92);phone.rotation.y=-.24;h.scene.add(phone);
+        h.box('booth-telephone',[.20,.053,.205],[0,.027,0],m.cloth,'clerk',phone);
+        h.box('phone-receiver',[.055,.031,.18],[-.065,.083,0],m.darkWood,'clerk',phone);
+        for(const z of [-.073,.073])h.box('receiver-end',[.065,.043,.053],[-.065,.071,z],m.darkWood,'clerk',phone);
+        for(let row=0;row<4;row++)for(let col=0;col<3;col++){
+            h.box('telephone-key',[.017,.009,.014],[.006+col*.023,.057,-.035+row*.023],m.paper,'clerk',phone);
+        }
         game.buildClerk(h);
         h.box('duty-canopy',[2.4,.15,3.4],[3.52,2.79,21],m.roof||m.darkWood);
         h.label('duty-sign',copyText('housemap.clerk_holdall.location'),[1.64,.42],[2.66,2.55,21],[0,-Math.PI/2,0],'duty_book');
