@@ -327,8 +327,8 @@ function guidance(stage = 0, backToLock = !!scene?.inspectionReturn) {
     if (hint.next) actions.push([hint.next, () => guidance(stage + 1, backToLock)]);
     open(copyText('main.guidance'), hint.text, actions, stage >= 2 ? copyText('main.guidance.2') : copyText('main.guidance.3'));
 }
-function inspectionLabel() { return { water: copyText('main.inspectionlabel.water'), portrait: copyText('main.inspectionlabel.portrait'), phone: copyText('main.inspectionlabel.phone'), document: copyText('main.inspectionlabel.document') }[scene.inspectionKind] || copyText('main.inspectionlabel'); }
-function resumeInspection() { ({ water, portrait, phone, lock, document: () => documentInspect(scene.documents.activeId) }[scene.inspectionKind] || lock)(); }
+function inspectionLabel() { return { wellSeat: copyText('well.seat.back'), water: copyText('main.inspectionlabel.water'), portrait: copyText('main.inspectionlabel.portrait'), phone: copyText('main.inspectionlabel.phone'), document: copyText('main.inspectionlabel.document') }[scene.inspectionKind] || copyText('main.inspectionlabel'); }
+function resumeInspection() { ({ wellSeat: sitAtDoorway, water, portrait, phone, lock, document: () => documentInspect(scene.documents.activeId) }[scene.inspectionKind] || lock)(); }
 function updateObjectReading(kind, record, space) {
     const host = $(`${kind}-reading`), hadFocus = host.contains(document.activeElement);
     host.replaceChildren(); host.hidden = !record;
@@ -417,6 +417,7 @@ function updateLock(message) {
 }
 function leaveInspection(restoreFocus = true) {
     if (!scene?.inspectionReturn) return;
+    $('well-seat').hidden=true;
     scene.endInspection(); $('lock-inspector').hidden = true; $('water-inspector').hidden = true; $('portrait-inspector').hidden = true; $('phone-inspector').hidden = true; $('document-inspector').hidden = true; $('hud').classList.remove('inspecting');
     for (const kind of ['phone', 'document']) { $(`${kind}-reading`).replaceChildren(); $(`${kind}-reading`).hidden = true; }
     touches.clear(); updateTouch();
@@ -652,6 +653,27 @@ function showGripPhoto(inside){
     photo.setAttribute('aria-label',copyText(inside?'well.grip.photoInside':'well.grip.photoOutside'));
     $('reader-body').prepend(photo);
 }
+function sitAtDoorway(){
+    if(reader.open)reader.close();
+    releaseMouse();touches.clear();updateTouch();scene.sitAtWellDoorway();
+    $('hud').classList.add('inspecting');$('well-seat').hidden=false;
+    $('well-seat-view').textContent=copyText(story.state.bucketParked?'well.seat.quiet':'well.seat.view');
+    $('well-seat-remember').textContent=copyText('well.seat.remember');
+    $('well-seat-remember').setAttribute('aria-expanded','false');
+    $('well-seat-remember').hidden=!story.state.records.includes('well_grip');
+    $('well-seat-leave').focus();
+}
+$('well-seat-leave').addEventListener('click',()=>leaveInspection());
+$('well-seat-remember').addEventListener('click',()=>{
+    if(scene.inspectionKind!=='wellSeat' || !story.state.records.includes('well_grip'))return;
+    const button=$('well-seat-remember');
+    const remembering=button.getAttribute('aria-expanded')!=='true';
+    if(remembering)story.record('well_seat_memory');
+    button.setAttribute('aria-expanded',String(remembering));
+    button.textContent=copyText(remembering?'well.seat.look':'well.seat.remember');
+    $('well-seat-view').textContent=copyText(remembering?'well.seat.memory':story.state.bucketParked?'well.seat.quiet':'well.seat.view');
+    updateStatus();
+});
 function inspectWellGrip(item,firstLook=false){
     const s=story.state,known=s.records.includes(item.id);
     const actions=[];
@@ -680,18 +702,22 @@ function inspect(item) {
     ['lock', 'water_station'].includes(item.id) ? audio.knock() : audio.paper();
     if (['car_envelope','clerk','duty_book','key_board','front_gate'].includes(item.id) && inspectVillage(item)) return;
     if (household({story,scene,open,close,audio,inspectUniform},item)) return;
-    if(item.id==='well_grip' || item.id==='yard_well'){
+    if(item.id==='well_grip' || item.id==='yard_well' || item.id==='well_seat'){
         if(scene.watch?.phase==='chase'){
             open(item.title,copyText('main.inspect'),[[copyText('main.inspect.2'),close]]);return;
         }
+    }
+    if(item.id==='well_seat'){
+        open(item.title,item.text,[[copyText('well.seat.sit'),sitAtDoorway],[copyText('chapter-ui.household'),close]]);
+        return;
     }
     if(item.id==='well_grip'){inspectWellGrip(item);return;}
     if(item.id==='yard_well'){
         wellShots.preload();
         const investigate=()=>{close();scene.watch.begin();};
         const s=story.state;
-        const text=s.bucketParked?copyText('well.grip.parked'):s.wellEscaped?copyText('well.grip.after'):item.text;
-        const pull=s.bucketParked?copyText('well.grip.replay'):s.wellEscaped?copyText('main.inspect.3'):copyText('main.inspect.4');
+        const text=s.bucketParked?copyText('well.grip.parked'):s.wellRopeFreed?copyText('well.grip.after'):item.text;
+        const pull=s.wellEscaped?copyText('well.grip.replay'):s.wellRopeFreed?copyText('main.inspect.3'):copyText('main.inspect.4');
         readRecord({...item,text},[[pull,investigate],[copyText('main.inspect.5'),close]]);return;
     }
     if (item.id === 'wall_marks') {
@@ -1031,7 +1057,7 @@ try {
             if(kind==='run'){
                 $('well-film').hidden=true;restoreMouse=!!window.matchMedia?.('(pointer:fine)').matches;resumeWorld();
             }
-            const words={run:copyText('main.words.run'),caught:copyText('main.words.caught'),safe:copyText('main.words.safe')};
+            const words={run:copyText('main.words.run'),caught:copyText('main.words.caught'),safe:copyText(story.state.bucketParked?'well.seat.safeQuiet':'main.words.safe')};
             panel.hidden=false;panel.textContent=words[kind];panel.dataset.cue=kind;
             if(kind==='caught')audio.knock();
             if(kind==='safe'||kind==='caught')audio.resetPosition();
@@ -1102,6 +1128,7 @@ try {
         }
         if (!press || press.dragged || press.id !== event.pointerId || Math.hypot(event.clientX - press.originX, event.clientY - press.originY) > 8) return;
         const kind=scene.inspectionKind;
+        if(kind==='wellSeat'){leaveInspection();return;}
         if (['portrait','document','phone'].includes(kind)) {
             const object=kind==='portrait' ? scene.portrait.root : kind==='phone' ? scene.phone.root : scene.documents.papers.get(scene.documents.activeId)?.root;
             const rect=scene.renderer.domElement.getBoundingClientRect();

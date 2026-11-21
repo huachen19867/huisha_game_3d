@@ -330,6 +330,9 @@ try {
     ui.inspect('altar');ui.click('借供烛点香');ui.key('KeyE');
     assert.deepEqual([...ui.scene.story.state.offerings], ['incense']);
     ui.inspect('matchbox');ui.click('拿走火柴盒');
+    ui.inspect('well_seat');ui.click('坐下，往井边看');
+    assert.ok(ui.$('well-seat-remember').hidden);
+    ui.key('KeyE');assert.ok(ui.$('well-seat').hidden);
     ui.inspect('well_grip');
     assert.ok(!ui.scene.story.state.records.includes('well_grip'));
     ui.click('把松起的胶皮翻过来');
@@ -339,6 +342,14 @@ try {
     const rewrapped=new ui.window.Huisha3D.ThreeStory(ui.window.localStorage);
     assert.equal(rewrapped.state.wellGripOpen,false);assert.ok(rewrapped.state.records.includes('well_grip'));
     ui.key('KeyE');
+    ui.inspect('well_seat');
+    const standingPose={...ui.scene.playerSnapshot()};
+    ui.click('坐下，往井边看');
+    assert.ok(!ui.scene.story.state.records.includes('well_seat_memory'));
+    assert.equal(ui.$('well-seat-remember').hidden,false);ui.$('well-seat-remember').click();assert.match(ui.$('well-seat-view').textContent,/捞到了没/);
+    assert.ok(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).state.records.includes('well_seat_memory'));
+    ui.$('well-seat-remember').click();ui.$('well-seat-leave').click();
+    assert.deepEqual({...ui.scene.playerSnapshot()},standingPose);
     ui.inspect('leak_basin');ui.click('把抹布垫进盆底');
     assert.equal(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).state.leakMuffled,true);
     ui.inspect('rice_bowl');assert.equal(ui.scene.story.state.riceStage,'empty');

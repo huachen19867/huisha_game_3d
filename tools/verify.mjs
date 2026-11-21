@@ -244,6 +244,10 @@ house.createArchitecture(); house.createProps(); await house.loadModels();
     camera.position.set(-3,1.6,-20.6);well.begin();well.release();
     camera.position.set(6.4,1.6,-21.3);well.update(.05);
     assert.ok(cues.includes('safe') && new game.ThreeStory(storage).state.wellEscaped);
+    assert.ok(new game.ThreeStory(storage).state.wellRopeFreed);
+    rig.story.state.bucketParked=true;rig.story.save();
+    well.begin();well.release();well.update(.05);
+    assert.ok(new game.ThreeStory(storage).state.bucketParked,'replaying the chase preserves the settled bucket');
     well.root.removeFromParent();
     console.log('Well cutscene, skip, physical pursuit, return to threshold and saved escape passed.');
 }

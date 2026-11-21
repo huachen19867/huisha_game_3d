@@ -94,8 +94,8 @@
         begin(){
             if(this.phase!=='quiet' || this.house.story.state.memory)return;
             const h=this.house;this.returnPose=h.controls.snapshot();this.time=0;this.phase='film';
-            if(h.story.state.bucketParked){
-                h.story.state.bucketParked=false;h.story.save(this.returnPose);
+            if(!h.story.state.wellRopeFreed){
+                h.story.state.wellRopeFreed=true;h.story.save(this.returnPose);
             }
             this.root.visible=true;h.controls.clear();this.pose(0,true);this.frameFilm();
             h.onWatchEvent?.('film',0);

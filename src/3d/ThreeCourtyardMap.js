@@ -18,6 +18,7 @@
             { id: 'road', title: copyText('courtyardmap.road.title'), mapLabel: copyText('courtyardmap.road.maplabel'), xMin: -1.25, xMax: 1.25, zMin: -46, zMax: -26.5, requiresState: 'waterSolved' }
         ],
         obstacles: [...hall.obstacles,
+            {id:'kitchen-stool',xMin:6.22,xMax:6.57,zMin:-20.49,zMax:-20.11,height:.32},
             { id: 'yard-front-left', xMin: -6.1, xMax: -1.375, zMin: -14.2, zMax: -14 },
             { id: 'yard-front-right', xMin: 1.375, xMax: 6.1, zMin: -14.2, zMax: -14 },
             { id: 'yard-wall-north', xMin: 5.9, xMax: 6.1, zMin: -27.4, zMax: -23.5 },
@@ -33,6 +34,10 @@
                 xMin: side * 4.75 - 0.09, xMax: side * 4.75 + 0.09, zMin: -16 - i * 3.1 - 0.09, zMax: -16 - i * 3.1 + 0.09 })))
         ],
         interactables: [...hall.interactables,
+            {id:'well_seat',title:copyText('well.seat.title'),location:copyText('courtyardmap.kitchen.title'),requiresOpen:true,journal:false,
+                position:{x:6.40,y:.32,z:-20.30},radius:2.15,text:copyText('well.seat.inspect')},
+            {id:'well_seat_memory',title:copyText('well.seat.memoryTitle'),location:copyText('courtyardmap.kitchen.title'),inventoryOnly:true,
+                position:{x:6.40,y:.32,z:-20.30},text:copyText('well.seat.memory')},
             {id:'paper_mask',title:copyText('courtyardmap.paper_mask.title'),area:'yard',location:copyText('courtyardmap.yard.title'),requiresOpen:true,requiresState:'crossedYard',position:{x:5.78,y:.21,z:-19.15},radius:2.1,
                 text:copyText('courtyardmap.paper_mask.text') },
             {id:'mask_strap',title:copyText('courtyardmap.mask_strap.title'),area:'yard',location:copyText('courtyardmap.yard.title'),requiresState:'crossedYard',inventoryOnly:true,position:{x:5.78,y:.21,z:-19.15},

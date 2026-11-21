@@ -338,9 +338,55 @@
 
 `courtyardmap.yard_well.text`
 
-咚。井里的桶又磕了一下。我转了转摇把，转不动。低头一看，提梁卡在井沿底下了。
+桶在井沿底下晃。磕一下，停一停，又磕一下。提梁卡在一块凸出来的石头上。
 
-绳上粘着四条黄纸。我刚伸手，最上面那条就折了下来。
+湿绳上粘着四条黄纸，最上面一条已经耷拉下来了。
+
+`well.seat.title`
+
+灶门口的矮凳
+
+`well.seat.inspect`
+
+矮凳靠里搁着，凳面上有几道菜刀印。
+
+`well.seat.sit`
+
+坐下，往井边看
+
+`well.seat.view`
+
+从这儿看得见摇把。井沿挡着，桶底下有什么就看不见了。
+
+`well.seat.quiet`
+
+木桶搁在井栏上，这下坐着也能看见了。那两下磕碰声也停了。
+
+`well.seat.remember`
+
+想想爸捞球那天
+
+`well.seat.look`
+
+再看看井边
+
+`well.seat.memoryTitle`
+
+等在灶门口
+
+`well.seat.memory`
+
+那天我坐在这儿，两只脚都够不着地。我问了两遍：「爸，捞到了没？」
+
+第二回他才腾出手，把瘪球举过井沿，举得老高。「看见了吧？别跑过来啊，我这儿还得收桶。」
+
+`well.seat.rise`
+
+站起来
+
+`well.seat.back`
+
+回到灶门口
 
 `well.grip.title`
 
@@ -390,7 +436,7 @@
 
 `well.grip.replay`
 
-把桶放回井里，再拉一次绳
+重玩井边追逐
 
 `well.grip.photoInside`
 
@@ -2755,7 +2801,7 @@ E / 点击　〔1〕
 
 `main.inspect.4`
 
-握住提绳，往上拉
+把绳往井心带，拉开卡住的提梁
 
 `main.inspect.5`
 
@@ -3048,6 +3094,10 @@ E / 点击　〔1〕
 `main.words.safe`
 
 我扶着门框听了听。脚步声停了。过了一会儿，井里的桶又磕了一声。
+
+`well.seat.safeQuiet`
+
+脚步声没跟过来。院里只剩雨声。
 
 `main.onscaleevent`
 

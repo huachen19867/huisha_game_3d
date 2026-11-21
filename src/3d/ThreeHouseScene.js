@@ -685,6 +685,10 @@
             if (!this.inspectionReturn) { this.inspectionReturn = this.controls.snapshot(); this.inspectionFov = this.camera.fov; }
             this.inspectionKind = 'water'; this.controls.clear(); this.courtyard.frame(); this.syncState();
         }
+        sitAtWellDoorway() {
+            if (!this.inspectionReturn) { this.inspectionReturn=this.controls.snapshot();this.inspectionFov=this.camera.fov; }
+            this.controls.clear();this.inspectionKind='wellSeat';this.frameInspection();
+        }
         beginPortraitInspection() {
             if (!this.inspectionReturn) { this.inspectionReturn = this.controls.snapshot(); this.inspectionFov = this.camera.fov; }
             const entering = this.inspectionKind !== 'portrait'; this.inspectionKind = 'portrait'; this.controls.clear();
@@ -703,7 +707,10 @@
             if (entering) this.documents.begin(id); else this.documents.frame();
         }
         frameInspection() {
-            if (this.inspectionKind === 'document') this.documents.frame();
+            if (this.inspectionKind === 'wellSeat') {
+                this.camera.position.set(6.40,1.04,-20.30);
+                this.camera.lookAt(-3,1.05,-22);this.camera.fov=49;this.camera.updateProjectionMatrix();
+            } else if (this.inspectionKind === 'document') this.documents.frame();
             else if (this.inspectionKind === 'phone') this.phone.frame();
             else if (this.inspectionKind === 'portrait') this.portrait.frame();
             else if (this.inspectionKind === 'water') this.courtyard.frame(); else this.frameLock();

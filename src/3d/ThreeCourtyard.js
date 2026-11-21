@@ -23,6 +23,13 @@
             h.box('kitchen-right-wall', [0.2, 3.2, 7.4], [11, 1.5, -21.2], m.plaster);
             h.box('kitchen-roof', [5.3, 0.18, 7.7], [8.5, 3.15, -21.2], m.darkWood);
             h.box('kitchen-lintel', [0.28, 0.24, 4], [6, 2.8, -21.5], m.wood);
+            const stool=new THREE.Group();stool.position.set(6.40,0,-20.30);h.scene.add(stool);
+            h.box('stool-top',[.35,.047,.40],[0,.304,0],m.wood,'well_seat',stool);
+            for(const x of [-.126,.126]){
+                for(const z of [-.147,.147])h.box('stool-leg',[.042,.289,.048],[x,.144,z],m.darkWood,'well_seat',stool);
+                h.box('stool-stretcher',[.032,.037,.29],[x,.113,0],m.wood,'well_seat',stool);
+            }
+            for(let i=0;i<4;i++)h.box('knife-mark',[.049+i*.009,.0018,.002],[.048+i*.009,.328,-.055+i*.017],m.darkWood,'well_seat',stool).rotation.y=-.36+i*.19;
             h.label('kitchen-sign', copyText('courtyard.kitchen-sign'), [1.0, 0.32], [5.87, 2.45, -21.4], [0, -Math.PI / 2, 0],undefined,h.scene,'#392d22','#ddbd8a');
             this.buildMask();
             const wetStone = m.paving.clone(); wetStone.color.setHex(0x83887d); wetStone.roughness=.43;
@@ -216,12 +223,14 @@
             const h=this.house,s=h.story.state,phase=h.watch?.phase;
             const near=h.controls && !s.memory && s.opened && h.camera.position.distanceToSquared(this.ropeAnchor)<105;
             const folded=s.wellGripOpen;
-            const target=Number(s.bucketParked);
+            const inPursuit=phase==='film' || phase==='chase';
+            const target=Number(s.bucketParked && !inPursuit);
             if(!immediate && !near && this.pailLift===target && this.gripWasOpen===folded && phase!=='film')return;
             this.gripWasOpen=folded;
             this.rubberFlap.rotation.x=folded?-2.64:-.22;
-            const live=near && !h.isPaused?.() && phase!=='chase' && phase!=='film';
-            if(immediate || h.reducedMotion?.matches)this.pailLift=target;
+            const seated=h.inspectionKind==='wellSeat' && !h.isReading?.();
+            const live=near && (seated || !h.isPaused?.()) && phase!=='chase' && phase!=='film';
+            if(immediate || phase==='film' || h.reducedMotion?.matches)this.pailLift=target;
             else if(!h.isPaused?.())this.pailLift+=THREE.MathUtils.clamp(target-this.pailLift,-delta*.85,delta*.85);
             const lift=this.pailLift, sweep=THREE.MathUtils.smoothstep(lift,.55,.89);
             const last=this.wellBeat;
@@ -229,7 +238,7 @@
             const beat=this.wellBeat;
             const tap=Math.max(0,1-Math.abs(beat-.54)*3.4, .83-Math.abs(beat-1.18)*3.1);
             const tug=phase==='film'?THREE.MathUtils.smoothstep(h.watch.time,0,.7)*(1-THREE.MathUtils.smoothstep(h.watch.time,.78,1.25)):0;
-            const x=-2.75+.085*tap*(1-lift)*(1-tug);
+            const x=-2.75+.085*tap*(1-lift)*(1-tug)-.20*tug;
             this.wellPail.position.set(THREE.MathUtils.lerp(x,-2.48,sweep),
                 .37+.66*THREE.MathUtils.smoothstep(lift,0,.55)-.1215*THREE.MathUtils.smoothstep(lift,.89,1)+.29*tug,
                 THREE.MathUtils.lerp(-22.01,-21.755,sweep));
@@ -239,10 +248,10 @@
             this.gripSite.position.z=-22.15-.211*Math.sin(this.wellCrank.rotation.x);
             this.ropeEnd.set(0,.60,0).applyQuaternion(this.wellPail.quaternion).add(this.wellPail.position);
             this.ropePaper.forEach((strip,i)=>{
-                strip.visible=!s.wellEscaped;
+                strip.visible=phase==='film'?h.watch.time<2.76:!s.wellRopeFreed;
                 if(!strip.visible)return;
                 strip.position.copy(this.ropeAnchor).lerp(this.ropeEnd,.35+i*.14);
-                strip.rotation.x=i===0 && s.records.includes('yard_well') ? .17 : 1.08-i*.23;
+                strip.rotation.x=i===0 ? .17 : 1.08-i*.23;
             });
             this.pailRope.position.copy(this.ropeAnchor).lerp(this.ropeEnd,.5);
             this.ropeEnd.sub(this.ropeAnchor);this.pailRope.scale.y=this.ropeEnd.length();
@@ -250,7 +259,7 @@
             if(live && !target && ((last<.54 && beat>=.54)||(last<1.18 && beat>=1.18))){
                 const dx=x-h.camera.position.x,dz=-22.01-h.camera.position.z,d=Math.hypot(dx,dz);
                 const right=h.camera.matrixWorld.elements;
-                h.onWellKnock?.(.42*(1-Math.min(1,d/10))*(beat<1?1:.68),(dx*right[0]+dz*right[2])/Math.max(1,d));
+                h.onWellKnock?.(.42*(1-Math.min(1,d/12))*(beat<1?1:.68),(dx*right[0]+dz*right[2])/Math.max(1,d));
             }
         }
         dressEaves() {
