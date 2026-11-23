@@ -3,7 +3,8 @@ import {driveBeats, cockpitLayers} from './drive-glass.mjs';
 function subtitles(copy) {
     const cues=[];
     const section=(key,from,to)=>{
-        const paragraphs=copy(key).split(/\n\s*\n/).filter(Boolean);
+        const paragraphs=copy(key).split(/\n\s*\n/).filter(Boolean).flatMap(line=>
+            line.length>30 ? line.match(/[^，。！？]+[，。！？]*|[，。！？]+/gu) || [line] : [line]);
         const weights=paragraphs.map(text=>Math.max(2.3,[...text].length*.15+.9));
         const total=weights.reduce((a,b)=>a+b,0);
         let at=from;
@@ -11,11 +12,12 @@ function subtitles(copy) {
     };
     const b=driveBeats;
     section('drive-intro.playdrive',.55,b.inside);
-    section('drive-intro.playdrive.2',b.inside,b.cut);
-    section('drive-intro.playdrive.3',b.cut,b.scare);
-    cues.push({at:b.scare,text:copy('drive.hit'),shock:true},{at:b.scare+.58,text:copy('drive.brake')},
-        {at:b.impact+.65,text:copy('drive.black')});
+    section('drive-intro.playdrive.2',b.inside,b.cut-.25);
+    cues.push({at:b.cut-.25,text:''});
+    section('drive-intro.playdrive.3',b.cut+.35,b.scare-.25);
+    cues.push({at:b.scare-.25,text:''},{at:b.impact+.12,text:copy('drive.brake')});
     section('drive-intro.playdrive.4',b.wake,b.end-.45);
+    cues.push({at:b.end-.45,text:''});
     return cues;
 }
 export function playDrive(house, video, glass, subtitle, finish, sound) {
@@ -66,9 +68,8 @@ export function playDrive(house, video, glass, subtitle, finish, sound) {
             if(previous<b.impact && t>=b.impact)sound.impact();
             while(index+1<cues.length && t>=cues[index+1].at){
                 index++;subtitle.textContent=cues[index].text;
-                subtitle.toggleAttribute('data-shock',!!cues[index].shock);
             }
-            subtitle.hidden=index<0;
+            subtitle.hidden=index<0||!cues[index].text;
             if(t>=b.end){finish();return;}
         }
         request=window.requestAnimationFrame(frame);
@@ -86,6 +87,6 @@ export function playDrive(house, video, glass, subtitle, finish, sound) {
         video.removeEventListener('playing',startSound);
         video.removeEventListener('ended',finish);video.removeEventListener('error',useLiveScene);
         document.removeEventListener('visibilitychange',visibility);
-        video.pause();scene?.dispose();glass.hidden=true;subtitle.removeAttribute('data-shock');
+        video.pause();scene?.dispose();glass.hidden=true;
     };
 }

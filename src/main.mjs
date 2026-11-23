@@ -1,5 +1,4 @@
 import { parseStoryCopy, applyStoryLabels } from './story-copy.mjs';
-import { wellCloseups } from './well-closeups.mjs';
 import { playDrive } from './drive-intro.mjs';
 import * as THREE from '../vendor/three.module.mjs';
 import { GLTFLoader } from '../vendor/GLTFLoader.mjs';
@@ -41,7 +40,6 @@ const preferences = new game.ThreePreferences();
 const settings = new game.ThreeSettings({ preferences, onChange: applyPreferences });
 const reader = $('reader');
 const audio = new game.ThreeAudio();
-const wellShots=wellCloseups($('well-closeup'));
 const assetErrors = new Set();
 const evidenceJournal = new game.ThreeEvidenceJournal({ story, knownRecords, appendRecordAction(detail,record){
     const label={glass_impression:'mask.openSample',mask_photo:'mask.openPhoto'}[record.id];
@@ -756,7 +754,6 @@ function inspect(item) {
     }
     if(item.id==='well_grip'){inspectWellGrip(item);return;}
     if(item.id==='yard_well'){
-        wellShots.preload();
         const investigate=()=>{close();scene.watch.begin();};
         const s=story.state;
         const text=s.bucketParked?copyText('well.grip.parked'):s.wellRopeFreed?copyText('well.grip.after'):item.text;
@@ -1084,7 +1081,6 @@ window.addEventListener('pagehide', event => {
 });
 window.addEventListener('pageshow', event => { if (event.persisted && mode === 'game') audio.start(); });
 try {
-    if(story.state.opened)wellShots.preload();
     scene = new game.ThreeHouseScene({ root: $('world'), prompt: $('prompt'), focusMarker: $('focus-marker'), story, isPaused, onInspect: inspect,
         getPreferences: () => preferences.values,
         isReading: () => reader.open || document.hidden || mode !== 'game',
@@ -1098,7 +1094,7 @@ try {
         onWatchEvent: (kind, pan) => {
             const panel = $('yard-watch');
             if(kind==='film'){
-                releaseMouse();$('well-closeup').hidden=true;$('well-film').hidden=false;$('skip-well').focus();audio.water('pour');return;
+                releaseMouse();$('well-film').hidden=false;$('skip-well').focus();audio.water('pour');return;
             }
             if(kind==='crease'){audio.paper();return;}
             if(kind==='land'){audio.knock();return;}
@@ -1144,9 +1140,8 @@ try {
             }
             if (scene.inspectionKind === 'portrait' && !reader.open) updatePortrait();
             if (scene.inspectionKind === 'document' && !reader.open) updateDocument();
-            if (!paused && !story.state.memory && story.state.opened && position.z < -15.2 && story.enterCourtyard()){wellShots.preload();updateStatus();}
+            if (!paused && !story.state.memory && story.state.opened && position.z < -15.2 && story.enterCourtyard())updateStatus();
         } });
-    scene.onWellFrame=t=>wellShots.draw(t);
     await scene.start();
     scene.controls.onTap = point => scene.interaction.activate(point, scene.renderer.domElement);
     applyPreferences();

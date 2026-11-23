@@ -9,24 +9,31 @@
             const paper=new T.MeshStandardMaterial({color:0xb9a57d,roughness:.89,flatShading:true,side:T.DoubleSide});
             const bamboo=new T.MeshStandardMaterial({color:0x8c6940,roughness:.68});
             const black=new T.MeshStandardMaterial({color:0x262324,roughness:.72,flatShading:true});
-            const red=new T.MeshStandardMaterial({color:0x923524,roughness:.84});
-            const print=paper.clone();print.color.setHex(0xdfc59a);
+            const red=new T.MeshStandardMaterial({color:0x712923,roughness:.95,side:T.DoubleSide,flatShading:true});
+            const gold=new T.MeshStandardMaterial({color:0xa18249,roughness:.79});
+            const print=paper.clone(),face=paper.clone();
+            print.color.setHex(0xffebe2);face.color.setHex(0xf1ede5);
+            print.alphaTest=.4;face.alphaTest=.4;face.flatShading=false;
             if(h.renderer?.isWebGLRenderer){
-                print.map=new T.TextureLoader().load('assets/art/windscreen-face.webp');
-                print.map.colorSpace=T.SRGBColorSpace;h.textures.push(print.map);
+                const loader=new T.TextureLoader();
+                for(const [material,file] of [[print,'bride-crown-and-robe'],[face,'bride-paper-face']]){
+                    material.map=loader.load('assets/art/'+file+'.webp');
+                    material.map.colorSpace=T.SRGBColorSpace;h.textures.push(material.map);
+                }
             }
             const part=(name,geo,mat,parent=this.root)=>h.mesh(name,geo,mat,[0,0,0],undefined,parent,false);
-            // Printed surfaces use the collar and peonies on the same paper bust as the windscreen shot.
             const printed=(geometry,left,top,right,bottom)=>{
                 const uv=geometry.attributes.uv;
                 for(let i=0;i<uv.count;i++)uv.setXY(i,left+(right-left)*uv.getX(i),1-bottom+(bottom-top)*uv.getY(i));
                 return geometry;
             };
             const shell=(rings,sides)=>new T.LatheGeometry(rings.map(([r,y])=>new T.Vector2(r,y)),sides);
-            this.coat=part('pasted-paper-robe',printed(shell([[.30,.28],[.28,.70],[.23,.91],[.34,1.22],[.22,1.28]],8),.25,.68,.71,.985),print);
+            this.coat=part('pasted-paper-robe',printed(shell([[.37,.09],[.32,.39],[.22,.85],[.22,.99],[.29,1.22],[.14,1.32]],16),.02,.41,.98,.987),print);
             this.coat.scale.z=.68;
-            const bib=part('folded-printed-lapels',printed(new T.PlaneGeometry(.47,.62),.25,.66,.73,.992),print,this.coat);
-            bib.position.set(0,.96,.278);bib.rotation.x=-.12;
+            const overCollar=part('folded-bridal-collar',printed(shell([[.30,1.14],[.31,1.22],[.12,1.34]],16),.04,.85,.97,.98),print,this.coat);
+            overCollar.scale.z=1.02;
+            const neckband=part('high-wedding-collar',printed(shell([[.142,1.275],[.108,1.35],[.087,1.425]],12),.05,.83,.34,.975),print,this.coat);
+            neckband.scale.z=1.14;
             for(const x of [-.074,0,.074]){
                 const splint=part('exposed-bamboo-neck',new T.CylinderGeometry(.009,.014,.20,5),bamboo);
                 splint.position.set(x,1.34,0);splint.rotation.z=x*.7;
@@ -36,13 +43,48 @@
                 rib.rotation.z=1.39;rib.position.set(.27,y,0);
             }
             this.head=new T.Group();this.root.add(this.head);this.head.position.set(0,1.62,.03);
-            const backing=part('pasted-head-shell',shell([[.11,-.21],[.18,-.12],[.201,.055],[.164,.18],[.11,.22]],8),paper,this.head);
-            backing.scale.z=.75;
-            const mask=h.courtyard.mask.clone();mask.name='effigy-painted-face';mask.visible=true;
-            mask.position.set(0,-.003,.103);mask.rotation.set(0,0,0);mask.scale.set(1.23,1.29,1.14);this.head.add(mask);
-            const cap=part('creased-paper-cap',shell([[.193,0],[.183,.066],[.13,.112],[.015,.156]],8),black,this.head);
-            cap.position.y=.145;cap.scale.z=.82;
-            const knot=part('red-cap-knot',new T.IcosahedronGeometry(.037,0),red,this.head);knot.position.y=.30;
+            const backing=part('pasted-head-shell',shell([[.05,-.18],[.12,-.08],[.138,.055],[.11,.16],[.03,.19]],12),black,this.head);
+            backing.scale.z=.81;
+            const curvedPanel=(width,height,bend)=>{
+                const panel=new T.PlaneGeometry(width,height,20,10),points=panel.attributes.position;
+                for(let i=0;i<points.count;i++){
+                    const x=2*points.getX(i)/width;
+                    points.setZ(i,bend*(1-x*x));
+                }
+                panel.computeVertexNormals();return panel;
+            };
+            const mask=part('effigy-painted-face',curvedPanel(.285,.377,.085),face,this.head);
+            mask.position.set(0,-.013,.074);
+            // An open front leaves the painted paper visible beneath the folded bridal veil.
+            const hoodProfile=[[.32,-.54],[.23,-.19],[.157,.09],[.15,.16],[.075,.21],[.008,.23]];
+            const pleats=new T.LatheGeometry(hoodProfile.map(([r,y])=>new T.Vector2(r,y)),32,.78,Math.PI*2-1.56);
+            const folds=pleats.attributes.position;
+            for(let i=0;i<folds.count;i++){
+                const valley=Math.floor(i/hoodProfile.length)%2 && folds.getY(i)<0 ? .88 : 1;
+                folds.setXYZ(i,folds.getX(i)*valley,folds.getY(i),folds.getZ(i)*valley);
+            }
+            pleats.computeVertexNormals();
+            const veil=part('folded-bridal-veil',printed(pleats,.04,.43,.27,.962),print,this.head);
+            veil.scale.z=.94;veil.position.z=-.008;
+            // A corner of the red covering catches under the coronet, leaving one cheek exposed.
+            const kerchief=curvedPanel(.35,.19,.068),edge=kerchief.attributes.position;
+            for(let i=0;i<edge.count;i++){
+                const x=edge.getX(i)/.175,v=(edge.getY(i)+.095)/.19;
+                const hem=.046+x*.065-.075*x*x;
+                edge.setY(i,hem*(1-v)+(.168-.027*x*x)*v);
+            }
+            kerchief.computeVertexNormals();
+            const frontFold=part('turned-bridal-veil',printed(kerchief,.11,.65,.40,.955),print,this.head);
+            frontFold.position.z=.102;
+            const crown=part('phoenix-paper-crown',printed(curvedPanel(.48,.18,.083),0,0,1,.392),print,this.head);
+            crown.position.set(0,.192,.126);
+            for(const side of [-1,1])for(let i=0;i<3;i++){
+                const length=.17+i*.047;
+                const tassel=part('bridal-crown-pendant',new T.CylinderGeometry(.003,.003,length,5),gold,this.head);
+                tassel.position.set(side*(.151+.024*i),.141-length/2,.113-i*.021);
+                const tip=part('folded-tassel',new T.ConeGeometry(.012,.067,5),red,tassel);
+                tip.position.y=-length/2-.026;
+            }
             this.feet=[-1,1].map(side=>{
                 const leg=new T.Group();leg.position.set(side*.12,.38,0);this.root.add(leg);
                 const shin=part('paper-trouser-leg',new T.CylinderGeometry(.060,.075,.31,6),black,leg);shin.position.y=-.15;
@@ -50,8 +92,8 @@
                 return leg;
             });
             this.arms=[-1,1].map(side=>{
-                const upper=part('folded-shoulder',printed(new T.CylinderGeometry(.081,.104,1,7),.61,.78,.74,.96),print);
-                const lower=part('paper-sleeve',printed(new T.CylinderGeometry(.078,.088,1,7),.26,.79,.37,.96),print);
+                const upper=part('folded-shoulder',printed(new T.CylinderGeometry(.115,.089,1,8),.19,.49,.44,.84),print);
+                const lower=part('paper-sleeve',printed(new T.CylinderGeometry(.142,.096,1,8),.03,.57,.31,.987),print);
                 const hand=new T.Group();this.root.add(hand);
                 const palm=part('paper-mitten',new T.BoxGeometry(.10,.044,.11),paper,hand);
                 palm.rotation.z=side*.09;
@@ -72,7 +114,7 @@
             this.coat.rotation.x=climb?.16*crest-.13*land:.14;
             this.feet.forEach((leg,i)=>{leg.rotation.x=climb?.64*(crest-land):.42*Math.sin(t*6+i*Math.PI);});
             this.head.rotation.z=climb?-.12+.24*smooth(t,4.8,5.3):.115;
-            this.head.rotation.x=climb?.48-.56*smooth(t,2.4,5.4):.10+.10*Math.sin(t*4);
+            this.head.rotation.x=climb?.48-.56*smooth(t,2.4,5.4):.09;
             for(const {side,upper,lower,hand} of this.arms){
                 const shoulder=new T.Vector3(side*.22,1.20,.075);
                 const grip=smooth(t,side<0?.25:1.05,side<0?2.7:3.3);
@@ -102,9 +144,10 @@
         }
         frameFilm(){
             const h=this.house,t=this.time;
-            const pull=h.reducedMotion?.matches?1:smooth(t,3.2,8.1);
-            h.camera.position.set(-1.77+.78*pull,1.27+.42*pull,-20.13+1.02*pull);
-            h.camera.lookAt(-3,.80+.31*smooth(t,2.8,6.0),-21.64+.62*smooth(t,5.1,8.1));
+            const pull=h.reducedMotion?.matches?1:smooth(t,3.55,7.75);
+            h.camera.position.set(-2.42+.91*pull,1.25+.43*pull,-20.63+1.44*pull);
+            const rise=T.MathUtils.clamp(this.root.position.y+1.51,.90,1.89);
+            h.camera.lookAt(-3,rise-.23*pull,-21.52+.67*pull);
         }
         release(){
             if(this.phase!=='film')return;
@@ -143,7 +186,6 @@
                 if(previous<2.76 && this.time>=2.76)h.onWatchEvent?.('crease',0);
                 if(previous<7.65 && this.time>=7.65)h.onWatchEvent?.('land',0);
                 this.pose(this.time,true);this.frameFilm();
-                h.onWellFrame?.(this.time);
                 if(this.time>=8.6)this.release();
                 return;
             }
@@ -170,7 +212,7 @@
                 this.root.rotation.y=Math.atan2(dx,dz);
             }
             if(d<=stride+.012)this.route.shift();
-            pos.y=.035*Math.sin(this.time*6)**2;
+            pos.y=.009*Math.sin(this.time*6)**2;
             if((this.step-=dt)<=0){
                 this.step=.44;const right=h.camera.matrixWorld.elements,dx=pos.x-p.x,dz=pos.z-p.z;
                 h.onWatchEvent?.('step',(dx*right[0]+dz*right[2])/Math.max(1,Math.hypot(dx,dz)));

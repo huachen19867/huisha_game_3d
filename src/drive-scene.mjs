@@ -8,12 +8,11 @@ const heading = z => Math.atan(2.3 / 32 * Math.cos(z / 32) + 0.8 / 15 * Math.cos
 export function drivingScene(house) {
     const film = new T.Scene();
     const camera = new T.PerspectiveCamera(57,1,.035,165);
-    film.background = house.nightSky || new T.Color(0x25353d);
-    film.backgroundIntensity=.38;
-    film.fog = new T.FogExp2(0x27353b,.021);
+    film.background = new T.Color(0x172027);
+    film.fog = new T.FogExp2(0x172027,.036);
     film.environment = house.scene.environment;
-    film.add(new T.HemisphereLight(0xc9dbdf,0x56564b,1.42));
-    const moon = new T.DirectionalLight(0xb4d4ea,2.0);
+    film.add(new T.HemisphereLight(0xc9dbdf,0x56564b,.72));
+    const moon = new T.DirectionalLight(0xb4d4ea,.92);
     moon.position.set(-15,18,-9);
     film.add(moon);
     const owned = new Set();
@@ -89,6 +88,16 @@ export function drivingScene(house) {
         }
     }
     batch(box,standard(0x574b40,.94),poles);
+    const lampArms=[],lampBulbs=[];
+    const streetLamps=[-14,-86,-140,-195].map(z=>{
+        const x=laneX(z)-4.8;
+        lampArms.push([x,2.45,z,.12,4.9,.12],[x+.58,4.87,z,1.28,.08,.09]);
+        lampBulbs.push([x+1.1,4.82,z,.38,.075,.18]);
+        const light=new T.PointLight(0xffb969,34,16,1.65);light.position.set(x+1.1,4.64,z);
+        film.add(light);return light;
+    });
+    batch(box,standard(0x3c4242,.53),lampArms);
+    batch(box,basic(0xffdea2),lampBulbs);
     const wireGeo=own(new T.BufferGeometry());wireGeo.setAttribute('position',new T.Float32BufferAttribute(wires,3));
     film.add(new T.LineSegments(wireGeo,own(new T.LineBasicMaterial({color:0x171b19}))));
     const bushes=[];
@@ -116,6 +125,23 @@ export function drivingScene(house) {
         lamp.distance=46;lamp.angle=.49;lamp.intensity=126;lamp.decay=1.25;car.add(lamp.target);
     }
     car.children.filter(o=>o.name==='wiper-pigment').forEach(o=>o.visible=false);
+    const axles=[];
+    car.children.filter(o=>o.name==='windscreen-wiper').forEach(o=>o.visible=false);
+    for(const side of [-1,1])for(const z of [-1.29,1.3]){
+        const axle=new T.Group();axle.position.set(side*1.025,.36,z);
+        car.add(axle);
+        for(const part of [...car.children]){
+            if(part.name==='alloy-spoke' && Math.sign(part.position.x)===side && Math.abs(part.position.z-z)<.25){
+                part.position.sub(axle.position);axle.add(part);
+            }
+        }
+        axles.push(axle);
+    }
+    const sprayGeometry=own(new T.BufferGeometry());
+    const sprayPositions=new T.Float32BufferAttribute(new Float32Array(180*3),3);
+    sprayGeometry.setAttribute('position',sprayPositions);
+    const spray=new T.Points(sprayGeometry,own(new T.PointsMaterial({size:.024,color:0xb3c5c9,transparent:true,opacity:.45,depthWrite:false})));
+    spray.frustumCulled=false;car.add(spray);
     const cabinPart=(name,geo,mat,x,y,z,parent=car)=>{
         const mesh=new T.Mesh(geo,mat);mesh.name=name;mesh.position.set(x,y,z);parent.add(mesh);return mesh;
     };
@@ -159,45 +185,66 @@ export function drivingScene(house) {
     }
     const rainGeo=own(new T.BufferGeometry());rainGeo.setAttribute('position',new T.Float32BufferAttribute(rainPoints,3));
     const rain=new T.LineSegments(rainGeo,own(new T.LineBasicMaterial({color:0x9eadb4,transparent:true,opacity:.28,depthWrite:false})));film.add(rain);
-    const eye=new T.Vector3(),target=new T.Vector3();
+    const eye=new T.Vector3(),target=new T.Vector3(),contact=new T.Vector3();
     return {
         draw(t, beats, reduced) {
             const {inside,cut,scare,impact,wake,end}=beats;
             const aspect=house.root.clientWidth/Math.max(1,house.root.clientHeight);
-            const progress=Math.min(t,impact);
+            const progress=Math.min(t,reduced?scare-.25:impact);
             const z=4-6.9*progress;
-            const dodge=smooth(t,scare+.22,impact);
+            const dodge=reduced?0:smooth(t,scare+.22,impact);
             car.position.set(laneX(z)+1.22-.50*dodge,.012,z);
             car.rotation.set(.006*Math.sin(t*6)+.035*dodge,heading(z)+.20*dodge,reduced?0:-.048*dodge);
             car.updateMatrixWorld(true);
             driver.visible=t<inside;updateFoliage(z);
+            for(const lamp of streetLamps)lamp.intensity=34*(1-smooth(Math.abs(z-lamp.position.z),18,32));
+            for(const axle of axles)axle.rotation.x=-progress*6.9/.36;
+            spray.visible=t<inside;
+            if(spray.visible){
+                for(let i=0;i<sprayPositions.count;i++){
+                    const age=(t*(1.6+(i%7)*.12)+i*.618)%1,side=i%2?1:-1;
+                    sprayPositions.setXYZ(i,side*(.97+age*(.1+i%5*.12)),.035+3*age*(1-age)*(.10+i%9*.045),1.3+age*(1.1+i%6*.16));
+                }
+                sprayPositions.needsUpdate=true;
+            }
             film.environment=house.scene.environment;
-            for(const pivot of wipers)pivot.rotation.z=.10+1.35*(.5-.5*Math.cos(t*4.8));
+            for(const pivot of wipers){pivot.visible=t<inside;pivot.rotation.z=.10+1.35*(.5-.5*Math.cos(t*4.8));}
             radio.visible=t<cut;
             wheel.visible=t<inside;
             const strikeZ=4-6.9*impact;
             const rush=smooth(t,scare,impact);
-            figure.visible=t>cut-.45 && t<=impact-.27;
-            figure.position.set(laneX(strikeZ)+1.05,.025-.22*rush,strikeZ-1.5+.74*rush);
-            figure.rotation.set(-.16*rush,0,.045);if(head)head.rotation.z=-.08-.14*rush;
-            flash.position.set(car.position.x,1.22,z-1.25);flash.intensity=.30+.8*rush;
-            if(t<inside){
-                const u=smooth(t,0,inside);
-                eye.set(-3.1-u*1.1,1.0+u*.48,4.9-u*2.25);target.set(0,.87,-1.35);
+            figure.visible=t>cut-.45 && t<impact;
+            figure.position.set(laneX(strikeZ)+1.05,.025,strikeZ-2.3);
+            const hit=reduced?0:smooth(t,impact-.45,impact-.06);
+            contact.set(-.39,-.19,-.85);car.localToWorld(contact);
+            figure.position.lerp(contact,hit);
+            figure.rotation.set(.04*rush,car.rotation.y*hit,.07*rush);
+            if(head){head.rotation.y=-.85*(1-smooth(t,scare-.45,scare+.24));head.rotation.z=-.06-.15*rush;}
+            flash.position.set(car.position.x-.36,1.32,z-.29);flash.intensity=.30+1.55*rush;
+            if(reduced && t<inside){
+                eye.set(-3.0,1.34,4.9);target.set(0,.87,-1.35);
+            }else if(t<5.65){
+                // A roadside camera holds its ground while the car crosses it.
+                eye.set(laneX(-17)-2.65,.68,-17);
+                target.copy(car.position);target.y=.79;
+            }else if(t<inside){
+                const u=smooth(t,5.65,inside);
+                eye.set(-2.13,.26+u*.12,1.78+u*.57);target.set(-.82,.41,.63-u*.74);
             }else{
                 const gl=smooth(t,inside,inside+2.5);
                 eye.set(-.43,1.39+.01*Math.sin(t*6)*(reduced?0:1),-.20);
                 target.set(.18-.54*gl,1.01+.31*gl,-1.13-gl*5.5);
-                if(t>scare)target.x-=.28*dodge;
+                if(t>scare)target.x-=.54*dodge;
             }
-            car.localToWorld(eye);car.localToWorld(target);
+            if(reduced||t>=5.65){car.localToWorld(eye);car.localToWorld(target);}
             camera.position.copy(eye);camera.lookAt(target);
             camera.aspect=aspect;camera.fov=t<inside?50:69;camera.updateProjectionMatrix();
             rain.position.set(camera.position.x,-(t*3.4%1.3),camera.position.z+1);
             if(t<wake){house.renderer.render(film,camera);return;}
             const lift=smooth(t,wake,end);
-            camera.position.set(.15,1.34+.26*lift,31.1);
-            camera.lookAt(2.7,1.15+.43*lift,21.3);
+            camera.position.set(-2.58,1.24+.15*lift,29.54);
+            target.set(-2.53,.94,28.94).lerp(contact.set(2.84,1.73,20.38),lift);
+            camera.lookAt(target);
             const visible=house.homeRoot.visible;
             house.homeRoot.visible=true;
             try{house.renderer.render(house.scene,camera);}finally{house.homeRoot.visible=visible;}

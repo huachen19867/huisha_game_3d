@@ -914,7 +914,7 @@ for(const match of html.matchAll(/data-copy="([^"]+)"/g)){
 }
 
 for (const url of html.matchAll(/(?:src|href)="([^"#]+)"/g)) {
-    if (!url[1].startsWith('data:')) await access(path.join(root, url[1]));
+    if (!url[1].startsWith('data:')) await access(path.join(root, url[1].split(/[?#]/,1)[0]));
 }
 for (const filename of await readdir(path.join(root, 'vendor'))) {
     if (!filename.endsWith('.mjs')) continue;

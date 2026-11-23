@@ -11,7 +11,7 @@ const dir=new URL('../assets/cinematics/',import.meta.url);
 await mkdir(dir,{recursive:true});
 const temp=fileURLToPath(new URL('drive-'+process.pid+'.mp4',dir));
 const width=1280,height=720,fps=24;
-const browser=await chromium.launch({executablePath:process.env.CHROME_PATH,args:['--enable-unsafe-swiftshader','--use-angle=swiftshader','--no-proxy-server']});
+const browser=await chromium.launch({executablePath:process.env.CHROME_PATH,args:['--enable-unsafe-swiftshader','--no-proxy-server']});
 let ffmpeg;
 try {
     const page=await browser.newPage({viewport:{width,height}});
