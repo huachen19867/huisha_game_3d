@@ -500,8 +500,8 @@ function busEnding() {
         : copyText('main.busending.4'));
     paragraphs.push(copyText('bus.collectCar'));
     const hasKey=story.carried().includes('key');
-    if(records.includes('forwarding_slip'))paragraphs.push(copyText(hasKey?'main.busending.5':'clerk.busThanks'));
-    else if(hasKey && story.state.stripNoteLeft && !heightStripTaken)paragraphs.push(copyText('workorder.bringKey'));
+    if(records.includes('clerk_contact'))paragraphs.push(copyText(hasKey?'main.busending.5':'clerk.busThanks'));
+    else if(hasKey)paragraphs.push(copyText('workorder.bringKey'));
     if(story.state.stripNoteLeft && !heightStripTaken)paragraphs.push(copyText('workorder.bus'));
     return [...paragraphs,copyText('main.busending.6')].join('\n\n');
 }
@@ -554,18 +554,27 @@ function inspectVillage(item) {
         const returnToClerk=()=>inspectVillage(item);
         const leave=[copyText('main.inspectvillage.11'),close];
         const showLetter=[copyText(phase==='letter'?'main.inspectvillage.17':'clerk.showLetter'),()=>{
-            story.record('car_envelope');story.state.clerkKnowsAddress=true;
+            story.state.clerkKnowsAddress=true;
             story.advanceArrival('letter','ledger');story.save();audio.paper();
             open(item.title,copyText('clerk.envelopeShown'),[[copyText('clerk.toWindow'),returnToClerk],leave]);
         }];
-        const slip=game.WORLD_MAP.interactables.find(entry=>entry.id==='forwarding_slip');
         const readSlip=()=>{
-            story.record(slip.id);
-            readRecord(slip,[[copyText('main.inspectvillage.10'),returnToClerk],leave]);
+            const read=(id,choices)=>{
+                const page=game.WORLD_MAP.interactables.find(entry=>entry.id===id);
+                story.record(id);readRecord(page,choices);
+            };
+            const giveBack=[copyText('main.inspectvillage.10'),returnToClerk];
+            const back=[copyText('post.backToSlip'),readSlip];
+            const choices=[[copyText('post.compare'),()=>read('forwarding_slip',[back,giveBack,leave])]];
+            if(!story.state.records.includes('clerk_contact')){
+                choices.push([copyText('post.saveContact'),()=>read('clerk_contact',[back,giveBack,leave])]);
+            }
+            read('post_counterfoil',[...choices,giveBack,leave]);
         };
-        const askAboutPost=story.state.clerkExplainedPost?[copyText('clerk.readSlip'),readSlip]:
+        const seenSlip=story.state.records.some(id=>id==='post_counterfoil'||id==='forwarding_slip');
+        const askAboutPost=story.state.clerkExplainedPost?[copyText(seenSlip?'clerk.readSlip':'main.inspectvillage.9'),readSlip]:
             [copyText('main.inspectvillage.6'),()=>{
-                story.state.clerkKnowsAddress=true;story.state.clerkExplainedPost=true;story.save();
+                story.state.clerkExplainedPost=true;story.save();
                 open(copyText('main.inspectvillage.7'),copyText('main.inspectvillage.8'),[
                     [copyText('main.inspectvillage.9'),readSlip],[copyText('main.inspectvillage.12'),close]]);
             }];
@@ -614,6 +623,9 @@ function inspectVillage(item) {
             }]);
         }
         questions.push(askRoad,[copyText('workorder.read'),inspectWorkOrder]);
+        if(story.state.records.includes('car_envelope') && story.state.clerkExplainedPost){
+            questions.push([copyText('post.askOldKey'),()=>discuss('clerk_old_key')]);
+        }
         if(story.state.records.includes('wardrobe') && !story.state.wardrobeOpen)questions.push([copyText('clerk.workshop.ask'),()=>{
             open(item.title,copyText('clerk.workshop.answer'),[[copyText('main.inspectvillage.13'),returnToClerk],leave]);
         }]);

@@ -19,7 +19,7 @@
                         ? saved.arrival : 'home';
                     this.state.records = [...new Set((Array.isArray(saved.records) ? saved.records : []).filter(id =>
                         (game.WORLD_MAP || game.MAIN_HALL_MAP).interactables.some(item => item.id === id) || id === 'portrait_back'))];
-                    this.state.clerkKnowsAddress=saved.clerkKnowsAddress===true || this.state.records.includes('forwarding_slip');
+                    this.state.clerkKnowsAddress=saved.clerkKnowsAddress===true || (!Object.hasOwn(saved,'clerkKnowsAddress') && this.state.records.includes('forwarding_slip'));
                     this.state.clerkExplainedPost=saved.clerkExplainedPost===true || this.state.records.includes('forwarding_slip');
                     this.state.askedAboutRoad=saved.askedAboutRoad===true;
                     this.state.keyAtBooth=saved.keyAtBooth===true && this.state.arrival==='home' && this.state.records.includes('key_board');
