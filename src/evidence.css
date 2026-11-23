@@ -1,4 +1,24 @@
 .evidence-journal { white-space: normal; }
+#reader-body .family-sheet {
+    --rule: rgba(144, 96, 77, .2);
+    box-sizing: border-box;
+    width: min(100%, 32em);
+    margin: .7rem auto 1.3rem;
+    padding: 1.8em clamp(1rem, 4vw, 2.7rem);
+    color: #3a3028;
+    background-color: #d8c59e;
+    background-image: linear-gradient(91deg, transparent 48%, #8b765531 50%, #fff4 50.6%, transparent 52%),
+        repeating-linear-gradient(transparent 0 calc(2em - 1px), var(--rule) calc(2em - 1px) 2em);
+    background-position: 0 0, 0 1.44em;
+    box-shadow: 0 .25rem .7rem #0005;
+    white-space: pre-wrap;
+    font: 1.04rem/2 KaiTi, STKaiti, FangSong, serif;
+}
+#reader-body .family-sheet.reverse {
+    --rule: rgba(144, 96, 77, .1);
+    color: #253e65;
+    background-color: #deceac;
+}
 .evidence-journal h3 { margin: 18px 0 10px; font-size: 16px; font-weight: normal; letter-spacing: 2px; }
 .evidence-instruction, .evidence-empty { color: var(--muted); font-size: 12px; line-height: 1.8; }
 .evidence-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }

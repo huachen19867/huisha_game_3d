@@ -2,6 +2,10 @@
     const copyText=global.HuishaCopy;
     const game = global.Huisha3D;
     const hall = game.MAIN_HALL_MAP;
+    function letterFace(inkKey, observationKey) {
+        const writing=copyText(inkKey), observation=copyText(observationKey);
+        return {writing, observation, text:writing+'\n\n'+observation};
+    }
     game.WORLD_MAP = {
         ...hall,
         audioZones: [
@@ -55,7 +59,11 @@
             { id: 'water_station', title: copyText('courtyardmap.water_station.title'), location: copyText('courtyardmap.kitchen.title'), position: { x: 8.5, y: 1.25, z: -22 }, radius: 2,
                 requiresOpen: true, text: copyText('courtyardmap.water_station.text') },
             { id: 'medicine_letter', title: copyText('courtyardmap.medicine_letter.title'), location: copyText('courtyardmap.kitchen.title'), position: { x: 8.5, y: 0.63, z: -21.9 }, radius: 1.7,
-                journal:false, requiresOpen: true, requiresWater: true, text: copyText('courtyardmap.medicine_letter.text') },
+                journal:false, requiresOpen:true, requiresWater:true, ...letterFace('family.motherInk','courtyardmap.medicine_letter.text') },
+            { id:'family_reply',title:copyText('family.replyTitle'),location:copyText('courtyardmap.kitchen.title'),area:'kitchen',inventoryOnly:true,
+                position:{x:8.5,y:.63,z:-21.9},requiresOpen:true,requiresWater:true,...letterFace('family.replyInk','family.replyText') },
+            { id:'family_reply_sent',title:copyText('family.sentTitle'),location:copyText('family.sentLocation'),inventoryOnly:true,journal:false,
+                text:copyText('family.sentText') },
             { id:'family_stub',title:copyText('family.stubTitle'),location:copyText('courtyardmap.kitchen.title'),area:'kitchen',inventoryOnly:true,
                 position:{x:8.5,y:.63,z:-21.9},requiresOpen:true,requiresWater:true,text:copyText('family.stub') },
             { id: 'yard_gate', title: copyText('courtyardmap.yard_gate.title'), location: copyText('courtyardmap.yard.title'), position: { x: 0, y: 1.35, z: -27.2 }, radius: 1.8,

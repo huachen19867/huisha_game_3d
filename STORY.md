@@ -594,7 +594,7 @@
 
 `courtyardmap.medicine_letter.title`
 
-没有寄出的家书
+夹着饭钱的家书
 
 `family.packet`
 
@@ -653,6 +653,56 @@
 
 接着读妈的信
 
+`family.turnOver`
+
+拿开两张十块，翻过信纸
+
+`family.turnFront`
+
+翻回妈写的那面
+
+`family.replyTitle`
+
+写在信背面的回话
+
+`family.replyInk`
+
+妈，饭票我已经买了。二十还你。
+蓝的那件扎脖子。你找找灰的，在我床头。
+明
+
+`family.replyText`
+
+这几行蓝圆珠笔字是我写的。星期五小俞回家，我把信和钱一起递给他。他手里拎着一袋脏衣服，腾不出手，叫我塞进他书包前面的小兜。
+
+`family.sendPhoto`
+
+拍下信背，发给小俞
+
+`family.sentTitle`
+
+发给小俞的照片
+
+`family.sentLocation`
+
+手机 · 小俞
+
+`family.sentText`
+
+我拍了张照发给小俞：「刚在家里翻出来的。想不到吧，我妈连这都留着。」
+
+`family.putPhoneAway`
+
+收起手机
+
+`family.busAnswer`
+
+车快到县城，小俞回了条语音：「你回村了？怎么没叫我？」
+
+我按住话筒：「明早有空吗？我把车留村口了，陪我去开一下。」
+
+「行。七点半我到你楼下。」
+
 `family.replace`
 
 把信和单子放回抽屉
@@ -701,11 +751,13 @@
 
 `courtyardmap.medicine_letter.text`
 
-「明，小俞把钱给我了。药钱我留好了，这二十你拿去买饭票。你那件蓝秋衣还没干，下礼拜再给你带。
-宿舍那张相片收到了。你爸拿去给你姑看了。
-妈　九月二十一」
+两张旧十块对折在信纸里。纸薄，背面的蓝字透了过来。大一那年，小俞周末回村，谁家有东西要捎到学校，都去找他。
 
-两张旧十块对折在信纸里。大一刚开学那阵，小俞家里有车，周末回来总替同学捎东西。
+`family.motherInk`
+
+明，小俞把钱给我了。药钱我留好了，这二十你拿去买饭票。你那件蓝秋衣还没干，下礼拜再给你带。
+宿舍那张相片收到了。你爸拿去给你姑看了。
+妈　九月二十一
 
 `courtyardmap.yard_gate.title`
 
@@ -1553,7 +1605,7 @@
 
 `chapter-ui.equipment.familyletter`
 
-未寄出的家书
+写着班级的家书
 
 `chapter-ui.equipment.familyletter.2`
 

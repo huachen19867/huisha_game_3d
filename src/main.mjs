@@ -202,8 +202,19 @@ function familyPacket(inBag=false){
     const read=id=>{
         const item=game.WORLD_MAP.interactables.find(entry=>entry.id===id);
         if(!s.records.includes(id))story.record(id);
+        if(id==='family_reply_sent'){
+            readRecord(item,[[copyText('family.putPhoneAway'),back]]);
+            return;
+        }
         audio.paper();
         const choices=[[copyText('family.fold'),back]];
+        if(id==='medicine_letter')choices.unshift([copyText('family.turnOver'),()=>read('family_reply')]);
+        if(id==='family_reply'){
+            choices.unshift([copyText('family.turnFront'),()=>read('medicine_letter')]);
+            if(!s.memory && !s.records.includes('family_reply_sent')){
+                choices.unshift([copyText('family.sendPhoto'),()=>read('family_reply_sent')]);
+            }
+        }
         if (id === 'medicine_letter' && story.hasDocumentFace('school_postcard','front')) {
             choices.unshift([copyText('family.viewPostcard'), () => {
                 open(copyText('postcard.title'), copyText('postcard.photo'), [[copyText('family.returnLetter'), () => read(id)]]);
@@ -278,7 +289,13 @@ function readRecord(item, actions) {
         choices.unshift([copyText('main.inspect.13'),()=>compareMask(false,()=>readRecord(item,actions))]);
     }
     if (!choices.some(([label]) => label === copyText('main.readrecord'))) choices.push([copyText('main.readrecord'), () => journal(!!scene?.inspectionReturn)]);
-    open(item.title, item.text, choices);
+    open(item.title, item.observation ?? item.text, choices);
+    if(item.writing){
+        const sheet=document.createElement('blockquote');
+        sheet.className='family-sheet'+(item.id==='family_reply'?' reverse':'');
+        sheet.textContent=item.writing;
+        $('reader-body').prepend(sheet);
+    }
     if(item.id==='well_grip')showGripPhoto(true);
     const photographs={letter:'family-new-year',wedding_photo:'silver-wedding',bend_photo:'bridge-bicycle',height_stitch:'height-stitch'};
     if(photographs[item.id]){
@@ -498,7 +515,7 @@ function busEnding() {
     if (heightStripTaken) paragraphs.push(records.includes('height_stitch')
         ? copyText('main.busending.3')
         : copyText('main.busending.4'));
-    paragraphs.push(copyText('bus.collectCar'));
+    paragraphs.push(copyText(records.includes('family_reply_sent')?'family.busAnswer':'bus.collectCar'));
     const hasKey=story.carried().includes('key');
     if(records.includes('clerk_contact'))paragraphs.push(copyText(hasKey?'main.busending.5':'clerk.busThanks'));
     else if(hasKey)paragraphs.push(copyText('workorder.bringKey'));

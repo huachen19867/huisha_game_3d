@@ -638,7 +638,7 @@ try {
     assert.ok(!ui.scene.story.state.records.includes('family_stub'));
     ui.click('离开秤桌');ui.inspect('road_exit');ui.click('坐车下山');
     assert.match(ui.$('reader-body').textContent,/封口还折着/);ui.click('留在现场回看');
-    ui.key('KeyB');ui.click('未寄出的家书');ui.click('展开下面那张单子');
+    ui.key('KeyB');ui.click('写着班级的家书');ui.click('展开下面那张单子');
     assert.ok(ui.scene.story.state.records.includes('family_stub'));
     assert.ok(ui.scene.story.state.records.includes('hospital_fare'));
     ui.click('对一下候诊时说的时间');assert.match(ui.$('reader-body').textContent,/给她约上了/);
@@ -646,8 +646,14 @@ try {
     ui.click('把纸折好');ui.click('抽出信纸');assert.match(ui.$('reader-body').textContent,/九月二十一/);
     ui.click('翻手记，看寄回家的照片');assert.ok(ui.$('reader-body').querySelector('img[src$="school-postcard.webp"]'));
     ui.click('接着读妈的信');assert.match(ui.$('reader-body').textContent,/你姑/);
+    assert.ok(!ui.scene.story.state.records.includes('family_reply'));
+    ui.click('拿开两张十块，翻过信纸');assert.match(ui.$('reader-body').querySelector('.family-sheet.reverse').textContent,/饭票我已经买了/);
     ui.key('KeyE');ui.inspect('road_exit');ui.click('坐车下山');
-    assert.match(ui.$('reader-body').textContent,/信塞回包里/);ui.click('留在现场回看');
+    assert.match(ui.$('reader-body').textContent,/信塞回包里/);
+    assert.doesNotMatch(ui.$('reader-body').textContent,/小俞回了条语音/);ui.click('留在现场回看');
+    ui.key('KeyB');ui.click('写着班级的家书');ui.click('抽出信纸');ui.click('拿开两张十块，翻过信纸');
+    ui.click('拍下信背，发给小俞');assert.ok(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).state.records.includes('family_reply_sent'));
+    ui.click('收起手机');assert.equal(ui.$('reader-title').textContent,'写着我名字的信封');ui.key('KeyE');
     ui.inspect('medicine_letter');ui.click('把信和单子放回抽屉');ui.click('离开秤桌');
     assert.equal(ui.scene.courtyard.packetSite.visible,true);
     const restored=new ui.window.Huisha3D.ThreeStory(ui.window.localStorage);
@@ -655,6 +661,8 @@ try {
     const oldLetterSave=JSON.parse(ui.window.localStorage.getItem(saveKey));delete oldLetterSave.familyLetterTaken;
     assert.ok(new ui.window.Huisha3D.ThreeStory({getItem:()=>JSON.stringify(oldLetterSave)}).carried().includes('familyLetter'));
     ui.inspect('road_exit');ui.click('坐车下山');assert.match(ui.$('reader-body').textContent,/还在灶间抽屉里/);
+    assert.match(ui.$('reader-body').textContent,/七点半我到你楼下/);
+    assert.doesNotMatch(ui.$('reader-body').textContent,/我给朋友发了条语音/);
     ui.click('留在现场回看');
     ui.inspect('memory_album');ui.click('翻入记忆 · '+ui.window.Huisha3D.MEMORIES.hospital.title);
     ui.inspect('hospital_fare');ui.click('想想厨房那张预约条');assert.match(ui.$('reader-body').textContent,/上午九点/);
