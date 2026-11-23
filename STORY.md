@@ -484,6 +484,26 @@
 
 木桶搁在井栏上，这下坐着也能看见了。那两下磕碰声也停了。
 
+`well.seat.returnView`
+
+我坐在门里，隔着院子看井栏。
+
+`well.scrap.look`
+
+凑近看井沿上的红纸
+
+`well.scrap.title`
+
+井沿上的一角裙纸
+
+`well.scrap.text`
+
+一截红纸贴在井沿上，一头已经垂进井里。纸上的金花只剩半朵，下面压着一道黑边。翘起来的一角露着白纸背。
+
+`well.scrap.back`
+
+再看看井桶
+
 `well.seat.remember`
 
 想想爸捞球那天
@@ -3265,11 +3285,11 @@ E / 点击　〔1〕
 
 `main.words.safe`
 
-我扶着门框听了听。脚步声停了。过了一会儿，井里的桶又磕了一声。
+我站住喘了口气。身后那阵急脚步也停了。
 
 `well.seat.safeQuiet`
 
-脚步声没跟过来。院里只剩雨声。
+我贴着门边听了听。脚步声停在外头。
 
 `main.onscaleevent`
 

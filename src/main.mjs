@@ -297,7 +297,7 @@ function readRecord(item, actions) {
         $('reader-body').prepend(sheet);
     }
     if(item.id==='well_grip')showGripPhoto(true);
-    const photographs={letter:'family-new-year',wedding_photo:'silver-wedding',bend_photo:'bridge-bicycle',height_stitch:'height-stitch'};
+    const photographs={letter:'family-new-year',wedding_photo:'silver-wedding',bend_photo:'bridge-bicycle',height_stitch:'height-stitch',well_scrap:'well-skirt-paper'};
     if(photographs[item.id]){
         $('reader-body').prepend(recordPhoto(photographs[item.id],item.title));
     }
@@ -691,11 +691,15 @@ function showGripPhoto(inside){
     photo.setAttribute('aria-label',copyText(inside?'well.grip.photoInside':'well.grip.photoOutside'));
     $('reader-body').prepend(photo);
 }
+function doorwayView(){
+    if(scene.watch?.phase==='retreat'||scene.watch?.phase==='lowering')return copyText('well.seat.returnView');
+    return copyText(story.state.bucketParked?'well.seat.quiet':'well.seat.view');
+}
 function sitAtDoorway(){
     if(reader.open)reader.close();
     releaseMouse();touches.clear();updateTouch();scene.sitAtWellDoorway();
     $('hud').classList.add('inspecting');$('well-seat').hidden=false;
-    $('well-seat-view').textContent=copyText(story.state.bucketParked?'well.seat.quiet':'well.seat.view');
+    $('well-seat-view').textContent=doorwayView();
     $('well-seat-remember').textContent=copyText('well.seat.remember');
     $('well-seat-remember').setAttribute('aria-expanded','false');
     $('well-seat-remember').hidden=!story.state.records.includes('well_grip');
@@ -709,7 +713,7 @@ $('well-seat-remember').addEventListener('click',()=>{
     if(remembering)story.record('well_seat_memory');
     button.setAttribute('aria-expanded',String(remembering));
     button.textContent=copyText(remembering?'well.seat.look':'well.seat.remember');
-    $('well-seat-view').textContent=copyText(remembering?'well.seat.memory':story.state.bucketParked?'well.seat.quiet':'well.seat.view');
+    $('well-seat-view').textContent=remembering?copyText('well.seat.memory'):doorwayView();
     updateStatus();
 });
 function inkStudy(){
@@ -787,7 +791,15 @@ function inspect(item) {
         const s=story.state;
         const text=s.bucketParked?copyText('well.grip.parked'):s.wellRopeFreed?copyText('well.grip.after'):item.text;
         const pull=s.wellEscaped?copyText('well.grip.replay'):s.wellRopeFreed?copyText('main.inspect.3'):copyText('main.inspect.4');
-        readRecord({...item,text},[[pull,investigate],[copyText('main.inspect.5'),close]]);return;
+        const choices=[[pull,investigate],[copyText('main.inspect.5'),close]];
+        if(s.wellEscaped && scene.watch.phase==='quiet'){
+            choices.unshift([copyText('well.scrap.look'),()=>{
+                const scrap=game.WORLD_MAP.interactables.find(entry=>entry.id==='well_scrap');
+                story.record(scrap.id);audio.paper();
+                readRecord(scrap,[[copyText('well.scrap.back'),()=>inspect(item)],[copyText('main.inspect.5'),close]]);
+            }]);
+        }
+        readRecord({...item,text},choices);return;
     }
     if (item.id === 'wall_marks') {
         const taken = story.state.heightStripTaken;
@@ -1122,6 +1134,14 @@ try {
         },
         onWatchEvent: (kind, pan) => {
             const panel = $('yard-watch');
+            if(kind==='submerged'){
+                const distance=scene.camera.position.distanceTo(scene.courtyard.ropeAnchor);
+                if(distance<14)audio.noiseBurst(.24,.14*(1-distance/14),880);
+                if(scene.inspectionKind==='wellSeat' && $('well-seat-remember').getAttribute('aria-expanded')!=='true'){
+                    $('well-seat-view').textContent=doorwayView();
+                }
+                return;
+            }
             if(kind==='film'){
                 releaseMouse();$('well-film').hidden=false;$('skip-well').focus();audio.water('pour');return;
             }

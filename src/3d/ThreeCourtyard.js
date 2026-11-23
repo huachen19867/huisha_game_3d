@@ -173,6 +173,30 @@
             }
             const wall=game.mergeGeometries(blocks);blocks.forEach(g=>g.dispose());stone.dispose();
             h.mesh('well-masonry',wall,m.wellStone||m.paving,[-3,.019,-22],'yard_well');
+            const scrap=new THREE.PlaneGeometry(1,1,24,18);
+            const points=scrap.attributes.position,uv=scrap.attributes.uv;
+            const backingUV=[];
+            for(let i=0;i<points.count;i++){
+                const u=uv.getX(i),v=1-uv.getY(i),end=v===0||v===1;
+                const fray=end ? .006*Math.sin(i*4.17) : 0;
+                const tornEdge=(u===0||u===1) ? .004*Math.cos(i*2.31) : 0;
+                const x=(u-.5)*(.195+.055*v)+.024*v+tornEdge;
+                const crease=.98-.42*u,tail=Math.max(0,(v-crease)*.34);
+                const angle=Math.min(2.72,tail/.025),tip=Math.max(0,tail-.025*angle);
+                const z=-.22+.34*Math.min(v,crease)+.025*Math.sin(angle)+tip*Math.cos(angle)+fray;
+                const sag=Math.max(0,-.15-z)*1.4;
+                const y=.008-sag+.003*Math.sin(25*u-7*v)+.025*(1-Math.cos(angle))+tip*Math.sin(angle);
+                points.setXYZ(i,x,y,z);
+                uv.setXY(i,.21+.23*u,.24-.213*v);
+                backingUV.push(.42+.13*u,.82+.065*v);
+            }
+            scrap.computeVertexNormals();
+            this.scrapPrint=new THREE.MeshStandardMaterial({color:0xb99077,roughness:.82});
+            this.rimScrap=h.mesh('bridal-paper-on-well',scrap,this.scrapPrint,[-3.14,.881,-21.35],'yard_well');
+            const back=scrap.clone();back.setAttribute('uv',new THREE.Float32BufferAttribute(backingUV,2));
+            this.scrapPulp=new THREE.MeshStandardMaterial({color:0xb2a38b,roughness:.96,side:THREE.BackSide});
+            h.mesh('bridal-paper-reverse',back,this.scrapPulp,[0,0,0],'yard_well',this.rimScrap);
+            this.rimScrap.visible=false;
             for(const x of [-3.62,-2.38])h.box('well-windlass-upright',[.115,1.31,.14],[x,1.06,-22.15],m.darkWood,'yard_well');
             const drum=h.cylinder('well-windlass',.105,.105,1.51,[-3,1.61,-22.15],m.wood,'yard_well');drum.rotation.z=Math.PI/2;
             this.wellCrank=new THREE.Group();this.wellCrank.position.set(-2.25,1.61,-22.15);h.scene.add(this.wellCrank);
@@ -221,6 +245,12 @@
         }
         syncWell(immediate,delta){
             const h=this.house,s=h.story.state,phase=h.watch?.phase;
+            this.rimScrap.visible=s.wellEscaped && (phase==='quiet' || (phase==='lowering' && h.watch.time<6.4));
+            if(!this.scrapPrint.map && h.watch?.coat?.material?.map){
+                this.scrapPrint.map=h.watch.coat.material.map;this.scrapPrint.needsUpdate=true;
+                this.scrapPulp.map=h.watch.head.getObjectByName('effigy-painted-face').material.map;
+                this.scrapPulp.needsUpdate=true;
+            }
             const near=h.controls && !s.memory && s.opened && h.camera.position.distanceToSquared(this.ropeAnchor)<105;
             const folded=s.wellGripOpen;
             const inPursuit=phase==='film' || phase==='chase';

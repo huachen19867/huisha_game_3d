@@ -134,7 +134,7 @@
             }
         }
         begin(){
-            if(this.phase!=='quiet' || this.house.story.state.memory)return;
+            if(this.phase==='film' || this.phase==='chase' || this.house.story.state.memory)return;
             const h=this.house;this.returnPose=h.controls.snapshot();this.time=0;this.phase='film';
             if(!h.story.state.wellRopeFreed){
                 h.story.state.wellRopeFreed=true;h.story.save(this.returnPose);
@@ -154,6 +154,7 @@
             const h=this.house,pose=this.returnPose;
             this.pose(8.2,true);
             this.phase='chase';this.time=0;this.step=0;this.plan=0;this.route=[];
+            this.trail=[this.root.position.clone()];
             h.controls.teleport({...pose,yaw:Math.atan2(6.4-pose.x,-21.4-pose.z),pitch:0});
             this.returnPose=null;h.onWatchEvent?.('run',0);
         }
@@ -178,6 +179,45 @@
             const route=[];for(let n=best;n.parent;n=n.parent)route.push({x:n.x*unit,z:n.z*unit});
             return route.reverse();
         }
+        // Save the turns actually walked. A repeated corner cuts a loop out of the return trip.
+        markCorner(){
+            const p=this.root.position;
+            const index=this.trail.findIndex(q=>Math.hypot(p.x-q.x,p.z-q.z)<.015);
+            if(index<0)this.trail.push(p.clone());
+            else this.trail.length=index+1;
+        }
+        retreat(dt){
+            const root=this.root;
+            if(this.phase==='lowering'){
+                this.time-=dt*1.62;
+                this.pose(Math.max(0,this.time),true);
+                const turn=T.MathUtils.euclideanModulo(this.lastHeading-root.rotation.y+Math.PI,2*Math.PI)-Math.PI;
+                root.rotation.y+=turn*smooth(this.time,6.6,8);
+                if(this.time<0)root.position.y+=this.time;
+                if(this.time<=-.85){
+                    this.phase='quiet';root.visible=false;
+                    this.house.onWatchEvent?.('submerged',0);
+                }
+                return;
+            }
+            this.time+=dt;
+            if(this.time<.8)return;
+            const target=this.trail.at(-1),p=root.position;
+            const dx=target.x-p.x,dz=target.z-p.z,d=Math.hypot(dx,dz);
+            if(d>.001){
+                const fraction=Math.min(1,1.75*dt/d);
+                p.x+=dx*fraction;p.z+=dz*fraction;
+                const yaw=Math.atan2(-dx,-dz);
+                const turn=T.MathUtils.euclideanModulo(yaw-root.rotation.y+Math.PI,2*Math.PI)-Math.PI;
+                root.rotation.y+=turn*Math.min(1,dt*5);
+                this.pose(-this.time,false);
+                if(fraction<1)return;
+            }
+            this.trail.pop();
+            if(!this.trail.length){
+                this.phase='lowering';this.time=8;this.lastHeading=root.rotation.y;
+            }
+        }
         update(dt){
             const h=this.house,s=h.story.state,p=h.camera.position;
             if(this.phase==='film'){
@@ -189,35 +229,42 @@
                 if(this.time>=8.6)this.release();
                 return;
             }
-            if(h.isPaused() || !s.opened || s.memory)return;
+            if(!s.opened || s.memory)return;
+            if(this.phase==='retreat' || this.phase==='lowering'){
+                if(!h.isPaused() || (h.inspectionKind==='wellSeat' && !h.isReading?.()))this.retreat(dt);
+                return;
+            }
+            if(h.isPaused())return;
             if(inKitchen(p) && !s.crossedYard){
                 s.crossedYard=true;h.story.save(h.controls.snapshot());h.courtyard.syncMask();
             }
             if(this.phase!=='chase')return;
             if(inKitchen(p)||p.z> -14.25||p.x< -6.12){
-                this.phase='quiet';this.root.visible=false;s.wellEscaped=true;h.story.save(h.controls.snapshot());
+                this.phase='retreat';this.time=0;s.wellEscaped=true;h.story.save(h.controls.snapshot());
                 h.onWatchEvent?.('safe',0);return;
             }
             this.time+=dt;this.pose(this.time,false);
-            if(this.time<1.9)return;
+            if(this.time<.6)return;
             this.plan-=dt;
             if(this.plan<=0){
+                this.markCorner();
                 this.route=this.pathTo(p);this.plan=.57;
             }
             const pos=this.root.position,target=this.route[0]||p;
-            const dx=target.x-pos.x,dz=target.z-pos.z,d=Math.hypot(dx,dz),stride=Math.min(d,dt*2.72);
+            const speed=1.1+1.62*smooth(this.time,.6,1.9);
+            const dx=target.x-pos.x,dz=target.z-pos.z,d=Math.hypot(dx,dz),stride=Math.min(d,dt*speed);
             if(d>.001){
                 const x=pos.x+dx/d*stride,z=pos.z+dz/d*stride;
                 if(h.controls.canOccupy(x,z)){pos.x=x;pos.z=z;}
                 this.root.rotation.y=Math.atan2(dx,dz);
             }
-            if(d<=stride+.012)this.route.shift();
+            if(d<=stride+.012){this.markCorner();this.route.shift();}
             pos.y=.009*Math.sin(this.time*6)**2;
             if((this.step-=dt)<=0){
                 this.step=.44;const right=h.camera.matrixWorld.elements,dx=pos.x-p.x,dz=pos.z-p.z;
                 h.onWatchEvent?.('step',(dx*right[0]+dz*right[2])/Math.max(1,Math.hypot(dx,dz)));
             }
-            if(Math.hypot(pos.x-p.x,pos.z-p.z)<.56){
+            if(this.time>=1.9 && Math.hypot(pos.x-p.x,pos.z-p.z)<.56){
                 this.phase='quiet';this.root.visible=false;h.controls.teleport({x:0,z:-14.75,yaw:Math.PI,pitch:0});
                 h.story.save(h.controls.snapshot());h.onWatchEvent?.('caught',0);
             }

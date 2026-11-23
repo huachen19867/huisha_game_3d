@@ -52,6 +52,8 @@
                 text:copyText('courtyardmap.mask_transfer.text') },
             { id: 'yard_well', title: copyText('courtyardmap.yard_well.title'), location: copyText('courtyardmap.yard.title'), position: { x: -3, y: 0.92, z: -21.5 }, radius: 2,
                 requiresOpen: true, text: copyText('courtyardmap.yard_well.text') },
+            { id:'well_scrap',title:copyText('well.scrap.title'),location:copyText('courtyardmap.yard.title'),inventoryOnly:true,
+                position:{x:-3.14,y:.881,z:-21.36},text:copyText('well.scrap.text') },
             { id:'well_grip', title:copyText('well.grip.title'), area:'yard', location:copyText('courtyardmap.yard.title'),
                 position:{x:-2.09,y:1.47,z:-22.12}, radius:1.75, requiresOpen:true, journal:false, text:copyText('well.grip.memory') },
             { id: 'kitchen_note', title: copyText('courtyardmap.kitchen_note.title'), location: copyText('courtyardmap.kitchen.title'), position: { x: 9.45, y: .899, z: -22.204 }, radius: 1.8,

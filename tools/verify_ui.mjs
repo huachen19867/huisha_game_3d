@@ -336,6 +336,8 @@ try {
     ui.inspect('altar');ui.click('借供烛点香');ui.key('KeyE');
     assert.deepEqual([...ui.scene.story.state.offerings], ['incense']);
     ui.inspect('matchbox');ui.click('拿走火柴盒');
+    ui.inspect('yard_well');assert.doesNotMatch(ui.$('reader-actions').textContent,/井沿上的红纸/);
+    assert.ok(!ui.scene.story.state.records.includes('well_scrap'));ui.key('KeyE');
     ui.inspect('well_seat');ui.click('坐下，往井边看');
     assert.ok(ui.$('well-seat-remember').hidden);
     ui.key('KeyE');assert.ok(ui.$('well-seat').hidden);
