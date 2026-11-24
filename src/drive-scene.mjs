@@ -241,14 +241,26 @@ export function drivingScene(house) {
             camera.aspect=aspect;camera.fov=t<inside?50:69;camera.updateProjectionMatrix();
             rain.position.set(camera.position.x,-(t*3.4%1.3),camera.position.z+1);
             if(t<wake){house.renderer.render(film,camera);return;}
-            const lift=smooth(t,wake,end);
-            camera.position.set(-2.58,1.24+.15*lift,29.54);
-            target.set(-2.53,.94,28.94).lerp(contact.set(2.84,1.73,20.38),lift);
-            camera.lookAt(target);
-            const visible=house.homeRoot.visible;
-            house.homeRoot.visible=true;
-            try{house.renderer.render(house.scene,camera);}finally{house.homeRoot.visible=visible;}
+            drawRoadsideWake(house,camera,t,beats,reduced);
         },
         dispose(){for(const resource of owned)resource.dispose();}
     };
+}
+
+// Match the playable camera at the end, including its lens and the parked car's position.
+export function drawRoadsideWake(house,camera,t,beats,reduced){
+    const start=house.map.roadStart,eye=house.map.playerStart.y;
+    const handle=house.map.interactables.find(item=>item.id==='wagon_handle').position;
+    const lift=reduced?1:smooth(t,beats.wake+.9,beats.end-.65);
+    const yaw=T.MathUtils.lerp(Math.atan2(handle.x-start.x,handle.z-start.z)+2*Math.PI,start.yaw,lift);
+    const pitch=T.MathUtils.lerp(Math.atan2(handle.y-eye,Math.hypot(handle.x-start.x,handle.z-start.z)),start.pitch,lift);
+    camera.position.set(start.x,eye,start.z);
+    camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw-Math.PI,0);
+    camera.aspect=house.root.clientWidth/Math.max(1,house.root.clientHeight);
+    camera.fov=house.camera.fov;camera.near=house.camera.near;camera.far=house.camera.far;camera.updateProjectionMatrix();
+    const visible=house.homeRoot.visible,rain=house.laneRain,wet=rain.visible,oldY=rain.position.y,light=house.hemisphere.intensity;
+    house.homeRoot.visible=true;rain.visible=true;house.hemisphere.intensity=.79;
+    if(!reduced)rain.position.y=-((t-beats.wake)*4.8%1.3);
+    try{house.renderer.render(house.scene,camera);}
+    finally{house.homeRoot.visible=visible;rain.visible=wet;rain.position.y=oldY;house.hemisphere.intensity=light;}
 }

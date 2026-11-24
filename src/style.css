@@ -37,6 +37,9 @@
 .drive-dialog{position:absolute;inset:auto 5% 5%;display:flex;align-items:center;justify-content:center;gap:10px}
 .drive-dialog #drive-caption{white-space:pre-line;position:static;transform:none;width:auto;max-width:58ch}
 .drive-dialog{pointer-events:none}.drive-dialog #drive-caption{margin:auto;padding:.25em .55em;background:transparent;color:#faf7ef;text-shadow:0 1px 3px #000,0 1px 7px #000,0 0 2px #000}
+#arrival-controls{position:absolute;bottom:1.1rem;left:50%;transform:translateX(-50%);margin:0;width:max-content;max-width:90vw;padding:.5rem .85rem;background:#111811db;color:#ede7d8;font:14px/1.6 system-ui,sans-serif;text-align:center;white-space:pre-line}
+#hud:has(#arrival-controls:not([hidden])) .help{display:none}
+@media(pointer:coarse){#arrival-controls{bottom:9.25rem;font-size:13px}}
 #well-film{position:fixed;inset:0;z-index:3;pointer-events:none;border-block:clamp(15px,5vh,56px) solid #060808}
 #skip-well{position:absolute;right:3vw;top:8px;pointer-events:auto}
 body:has(#well-film:not([hidden])) :is(#hud,#acquisitions){visibility:hidden}

@@ -91,7 +91,13 @@
             for(const pillar of [.33,1.04]){
                 bar('door-pillar',[side*.94,.96,pillar],[side*.775,1.52,pillar+.045],.035,rubber);
                 bar('door-shut-line',[side*.95,.46,pillar],[side*.95,.929,pillar+.02],.009,rubber);
-                h.box('recessed-handle',[.035,.045,.14],[side*.96,.86,pillar-.12],trim,undefined,car);
+                if(side===1 && pillar===1.04){
+                    const z=pillar-.12;
+                    h.box('rear-handle-recess',[.025,.093,.225],[.956,.847,z],rubber,'wagon_handle',car);
+                    const pivot=new THREE.Group();pivot.name='rear-handle-hinge';pivot.position.set(.974,.886,z);
+                    car.add(pivot);h.rearHandle=pivot;
+                    h.box('lift-handle',[.034,.054,.169],[.01,-.026,0],trim,'wagon_handle',pivot);
+                }else h.box('recessed-handle',[.035,.045,.14],[side*.96,.86,pillar-.12],trim,undefined,car);
             }
             h.box('car-rub-strip',[.04,.06,3.65],[side*.958,.61,.08],rubber,'car_envelope',car);
             h.box('side-mirror',[.24,.12,.21],[side*1.025,1.04,-.62],body,'car_envelope',car);

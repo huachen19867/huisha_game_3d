@@ -1,4 +1,5 @@
 import {driveBeats, cockpitLayers} from './drive-glass.mjs';
+import {drawRoadsideWake} from './drive-scene.mjs';
 
 function subtitles(copy) {
     const cues=[];
@@ -14,9 +15,9 @@ function subtitles(copy) {
     section('drive-intro.playdrive',.55,b.inside);
     section('drive-intro.playdrive.2',b.inside,b.cut-.25);
     cues.push({at:b.cut-.25,text:''});
-    section('drive-intro.playdrive.3',b.cut+.35,b.scare-.25);
-    cues.push({at:b.scare-.25,text:''},{at:b.impact+.12,text:copy('drive.brake')});
-    section('drive-intro.playdrive.4',b.wake,b.end-.45);
+    section('drive-intro.playdrive.3',b.cut+.35,b.scare-.6);
+    cues.push({at:b.scare-.6,text:''},{at:b.impact+.38,text:copy('drive.brake')},{at:b.wake+.74,text:''});
+    section('drive-intro.playdrive.4',b.wake+1.15,b.end-.45);
     cues.push({at:b.end-.45,text:''});
     return cues;
 }
@@ -24,11 +25,11 @@ export function playDrive(house, video, glass, subtitle, finish, sound) {
     const cues=subtitles(window.HuishaCopy), b=driveBeats;
     let request,active=true,started=false,live=false,scene,paint,last=null,t=0,index=-1;
     const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    let lastProgress=null;
+    let lastProgress=null,wakeCamera;
     const startSound=()=>{if(!started){started=true;sound.start();}};
     async function useLiveScene() {
-        if(!active||live)return;
-        live=true;video.pause();video.hidden=true;glass.hidden=false;last=null;
+        if(!active||live||wakeCamera)return;
+        live=true;video.pause();video.hidden=true;glass.hidden=false;glass.style.backgroundColor='';last=null;
         const {drivingScene}=await import('./drive-scene.mjs');
         if(!active)return;
         scene=drivingScene(house);
@@ -40,7 +41,7 @@ export function playDrive(house, video, glass, subtitle, finish, sound) {
     function visibility() {
         last=null;lastProgress=null;
         if(document.hidden)video.pause();
-        else if(!live)playVideo();
+        else if(!live && !wakeCamera)playVideo();
     }
     function frame(now) {
         if(!active)return;
@@ -48,7 +49,7 @@ export function playDrive(house, video, glass, subtitle, finish, sound) {
         if(!document.hidden){
             if(live && scene){
                 startSound();
-                if(last!==null)t+=(now-last)/1000;
+                if(last!==null)t+=Math.min(.15,(now-last)/1000);
                 last=now;
                 scene.draw(t,b,reduced);
                 const w=house.renderer.domElement.width,h=house.renderer.domElement.height;
@@ -57,10 +58,25 @@ export function playDrive(house, video, glass, subtitle, finish, sound) {
                 ctx.clearRect(0,0,w,h);
                 paint?.(ctx,w,h,t,reduced);
             }else if(!live){
-                t=video.currentTime;
-                if(t!==previous || lastProgress===null)lastProgress=now;
-                else if(now-lastProgress>6000)useLiveScene();
-                if(t>0)startSound();
+                if(wakeCamera){
+                    if(last!==null)t+=Math.min(.15,(now-last)/1000);
+                    last=now;
+                }else{
+                    t=video.currentTime;
+                    if(t!==previous || lastProgress===null)lastProgress=now;
+                    else if(now-lastProgress>6000)useLiveScene();
+                    if(t>0)startSound();
+                    if(t>=b.wake){
+                        wakeCamera=house.camera.clone();
+                        t=b.wake;last=now;video.pause();video.hidden=true;glass.hidden=false;
+                        glass.getContext('2d').clearRect(0,0,glass.width,glass.height);
+                    }
+                }
+                if(wakeCamera){
+                    drawRoadsideWake(house,wakeCamera,t,b,reduced);
+                    const opacity=1-Math.min(1,(t-b.wake)/1.3);
+                    glass.style.backgroundColor='rgba(5,8,10,'+opacity+')';
+                }
             }
             if(t>=b.inside && t<b.scare && Math.floor(t*4.8/(2*Math.PI))>Math.floor(previous*4.8/(2*Math.PI)))sound.wiper();
             if(previous<b.cut && t>=b.cut)sound.cut();
@@ -87,6 +103,6 @@ export function playDrive(house, video, glass, subtitle, finish, sound) {
         video.removeEventListener('playing',startSound);
         video.removeEventListener('ended',finish);video.removeEventListener('error',useLiveScene);
         document.removeEventListener('visibilitychange',visibility);
-        video.pause();scene?.dispose();glass.hidden=true;
+        video.pause();scene?.dispose();glass.hidden=true;glass.style.backgroundColor='';
     };
 }

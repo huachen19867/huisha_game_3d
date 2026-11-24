@@ -738,6 +738,11 @@
             const elapsed=this.clock.getDelta();
             const delta = Math.min(elapsed, 0.05);
             if (this.showingFilm) return;
+            if(this.handleTime>0){
+                this.handleTime=Math.max(0,this.handleTime-delta);
+                const t=.76-this.handleTime;
+                this.rearHandle.rotation.z=1.05*THREE.MathUtils.smoothstep(t,0,.21)*(1-THREE.MathUtils.smoothstep(t,.49,.76));
+            }
             this.laneRain.visible = this.camera.position.z > 3.8 && !this.story.state.memory;
             this.hemisphere.intensity = this.laneRain.visible ? .79 : 1.8;
             if (this.laneRain.visible && !this.reducedMotion?.matches) this.laneRain.position.y = -((-this.laneRain.position.y+delta*4.8)%1.3);

@@ -176,7 +176,7 @@
             const wagon=new THREE.Group();wagon.name='crashed-wagon';root.add(wagon);
             wagon.position.set(-2.65,-.045,0);wagon.rotation.order='YXZ';wagon.rotation.set(-.075,Math.PI/2,.025);
             for (const part of h.villageCar.children) {
-                if((!part.isMesh && part.name!=='wagon-headlamp') || part.name==='wiper-pigment' || part.name==='driver-window-glass') continue;
+                if((!part.isMesh && part.name!=='wagon-headlamp' && part.name!=='rear-handle-hinge') || part.name==='wiper-pigment' || part.name==='driver-window-glass') continue;
                 const copy=part.clone();copy.traverse(child=>{child.userData.item='crash_belt';});wagon.add(copy);
                 if(part.name==='front-bumper') {copy.rotation.z=-.13;copy.position.y-=.08;}
             }

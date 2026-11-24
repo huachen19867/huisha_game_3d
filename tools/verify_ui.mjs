@@ -155,8 +155,8 @@ try {
     ui.destroy(); ui = await boot(null, savedPreferences);
     assert.equal(ui.scene.renderer.toneMappingExposure, 1.57, 'production boot reapplies saved brightness');
     ui.$('begin').click(); assert.equal(ui.$('drive').hidden, false);
-    ui.key('Escape'); assert.equal(ui.$('reader-title').textContent,'下车');
-    ui.click('开始探索'); assert.equal(ui.scene.controls.snapshot().z,31.1);
+    ui.key('Escape');assert.ok(!ui.$('reader').open && !ui.$('arrival-controls').hidden);
+    assert.match(ui.$('arrival-controls').textContent,/WASD/);assert.equal(ui.scene.controls.snapshot().z,31.1);
     const movement = ui.scene.controls;
     const roadPose = movement.snapshot();
     movement.teleport({x:0,z:17.12,yaw:Math.PI,pitch:0});
@@ -182,6 +182,12 @@ try {
     assert.doesNotMatch(ui.$('reader-actions').textContent,/正厅那口棺|给周师傅看左袖/);
     assert.match(ui.$('reader-body').textContent,/从前是几号/);
     assert.doesNotMatch(ui.$('reader-actions').textContent,/刚看过的车头|手记上的红印/);
+    assert.doesNotMatch(ui.$('reader-actions').textContent,/看见我下车/);
+    ui.inspect('wagon_handle');ui.key('KeyE');assert.ok(!ui.scene.story.state.records.includes('wagon_handle'));
+    ui.inspect('wagon_handle');ui.click('拉一下把手');assert.ok(!ui.$('reader').open);
+    assert.ok(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).state.records.includes('wagon_handle'));
+    ui.inspect('clerk');ui.click('问周叔有没有看见我下车');assert.match(ui.$('reader-body').textContent,/右后门/);
+    assert.ok(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).state.records.includes('clerk_arrival'));ui.key('KeyE');
     ui.inspect('car_front');assert.match(ui.$('reader-body').textContent,/保险杠/);ui.key('KeyE');
     ui.inspect('clerk');ui.click('说说刚看过的车头');ui.click('问刚才路上的人');
     assert.ok(!ui.scene.story.state.records.includes('bridge_call'));

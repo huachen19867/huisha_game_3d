@@ -113,6 +113,7 @@ function resumeWorld() {
     restoreMouse = false;
 }
 function open(title, text, actions = [], eyebrow = copyText('main.open')) {
+    $('arrival-controls').hidden=true;
     if (!reader.open) {
         lastFocus = document.activeElement;
         if (mode === 'game' && scene?.controls) story.save(scene.playerSnapshot());
@@ -665,6 +666,11 @@ function inspectVillage(item) {
             }]);
         }
         questions.push(askRoad,[copyText('workorder.read'),inspectWorkOrder]);
+        if(records.includes('wagon_handle'))questions.push([copyText('arrival.ask'),()=>{
+            const witness=game.WORLD_MAP.interactables.find(entry=>entry.id==='clerk_arrival');
+            story.record(witness.id);
+            readRecord(witness,[[copyText('main.inspectvillage.13'),returnToClerk],leave]);
+        }]);
         if(records.includes('car_front'))questions.push([copyText('bridge.mentionFront'),()=>{
             open(item.title,copyText('bridge.frontReply'),[askRoad,[copyText('main.inspectvillage.13'),returnToClerk],leave]);
         }]);
@@ -814,6 +820,16 @@ function inspectWellGrip(item,firstLook=false){
     showGripPhoto(s.wellGripOpen);
 }
 function inspect(item) {
+    if(item.id==='wagon_handle'){
+        const known=story.state.records.includes(item.id);
+        const pull=()=>{
+            close();scene.handleTime=.76;audio.latch();story.record(item.id);
+            showToast(copyText('arrival.pullResult'));
+        };
+        const actions=[[copyText('arrival.pull'),pull],[copyText('chapter-ui.household'),close]];
+        if(known)readRecord(item,actions);else open(item.title,copyText('arrival.firstLook'),actions);
+        return;
+    }
     if(item.id==='repair_order'){inspectWorkOrder();return;}
     if(story.toggleDoor(item.id)){
         audio.swingDoor(story.state.closedDoors.includes(item.id));
@@ -1030,9 +1046,11 @@ function leaveDrive() {
     scene.controls.teleport(scene.map.roadStart);
     // Commit the checkpoint and the roadside pose together, including when the player skips.
     story.state.position = scene.playerSnapshot();
-    enterWorld(); story.advanceArrival('intro','letter');
     restoreMouse = !!window.matchMedia?.('(pointer:fine)').matches;
-    open(copyText('main.leavedrive'), inputGuide, [[copyText('main.leavedrive.2'), close]], copyText('main.leavedrive.3'));
+    enterWorld(); story.advanceArrival('intro','letter');
+    const controls=$('arrival-controls');
+    controls.textContent=copyText(window.matchMedia?.('(pointer:coarse)').matches?'arrival.touch':'arrival.keys');
+    controls.hidden=false;
 }
 $('skip-well').addEventListener('click',()=>scene.watch.release());
 $('skip-drive').addEventListener('click', leaveDrive);
@@ -1042,7 +1060,7 @@ function startDrive() {
     stopDrive = playDrive(scene, $('drive-film'), $('drive-glass'), $('drive-caption'), leaveDrive, {
         start:()=>audio.startEngine(), wiper:()=>audio.noiseBurst(.19,.052,920,'bandpass'),
         cut:()=>audio.silenceRadio(), brake:()=>audio.brake(),
-        impact:()=>{audio.stopEngine();audio.knock();audio.noiseBurst(.30,.43,410);audio.tone(53,.6,.65);}
+        impact:()=>{audio.stopEngine();audio.noiseBurst(.085,.31,620);audio.paper();}
     });
 }
 $('replay-drive').addEventListener('click', () => {replayOnly = true; startDrive();});
@@ -1077,13 +1095,17 @@ document.querySelectorAll('[data-wheel]').forEach(button => button.addEventListe
 $('lock-leave').addEventListener('click', () => leaveInspection());
 $('lock-records').addEventListener('click', () => journal(true));
 $('lock-hint').addEventListener('click', () => guidance(0, true));
+let toastTimer;
+function showToast(message){
+    clearTimeout(toastTimer);$('toast').textContent=message;$('toast').hidden=false;
+    toastTimer=setTimeout(()=>{$('toast').hidden=true;},5000);
+}
 $('lock-attempt').addEventListener('click', () => {
     if (reader.open || scene.inspectionKind !== 'lock') return;
     scene.syncState(true);
     if (!story.unlock()) { audio.knock(); updateLock(copyText('main.text.6')); return; }
     scene.syncState(); audio.latch(); leaveInspection();
-    $('toast').textContent = copyText('main.text.7'); $('toast').hidden = false;
-    setTimeout(() => { $('toast').hidden = true; }, 5000);
+    showToast(copyText('main.text.7'));
 });
 document.querySelectorAll('[data-bucket]').forEach(button => button.addEventListener('click', () => waterAction(`bucket${button.dataset.bucket}`)));
 for (const action of ['fill', 'empty', 'pour', 'weigh']) $(`water-${action}`).addEventListener('click', () => waterAction(action));
@@ -1245,6 +1267,7 @@ try {
             }
             audio.update(position, paused, story.state.memory || 'house');
             if (!paused) {
+                if(!$('arrival-controls').hidden && Math.hypot(position.x-scene.map.roadStart.x,position.z-scene.map.roadStart.z)>4)$('arrival-controls').hidden=true;
                 story.visitPosition(position);
                 const headline=scene.watch?.phase==='chase'?copyText('main.headline.onframe'):story.headline(position);
                 if($('objective').textContent!==headline) $('objective').textContent=headline;

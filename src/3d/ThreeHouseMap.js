@@ -6,7 +6,7 @@
     game.MAIN_HALL_MAP = {
         id: 'homecoming',
         playerStart: { x: 0, y: 1.6, z: 3.4, yaw: Math.PI },
-        roadStart: { x: 0.15, z: 31.1, yaw: 3.13, pitch: -0.035 },
+        roadStart: { x: 0.15, z: 31.1, yaw: 2.89, pitch: .008 },
         playerRadius: 0.25,
         door: { handleX:1.17,handleZ:.30,hingeX: -1.17, hingeZ: -11.5, width: 2.34, thickness: 0.18, frontDepth: 0.6, openAngle: Math.PI / 2 },
         extraDoors: [{ id:'front', handleX:1.45,handleZ:.17,stateField:'arrival', openValue:'home', hingeX:-1, hingeZ:4.42, width:2, thickness:.2, frontDepth:.15, openAngle:Math.PI/2 }],
@@ -36,6 +36,10 @@
             { id: 'pillar_right', xMin: 3.85, xMax: 4.35, zMin: -1.75, zMax: -1.25 }
         ],
         interactables: [
+            { id:'wagon_handle',title:copyText('arrival.door'),area:'lane',location:copyText('housemap.wiper_print.location'),journal:false,
+                position:{x:-1.15,y:.86,z:30.62},radius:2.05,text:copyText('arrival.tried') },
+            { id:'clerk_arrival',title:copyText('arrival.witness'),area:'lane',location:copyText('housemap.clerk_holdall.location'),inventoryOnly:true,
+                position:{x:3.2,y:1.64,z:20.38},text:copyText('arrival.answer') },
             { id:'car_front',title:copyText('bridge.carTitle'),area:'lane',location:copyText('housemap.wiper_print.location'),
                 position:{x:-2.15,y:.55,z:27.475},radius:1.95,text:copyText('bridge.carText') },
             { id:'bridge_parking',title:copyText('bridge.parkingTitle'),inventoryOnly:true,area:'lane',location:copyText('housemap.clerk_holdall.location'),
