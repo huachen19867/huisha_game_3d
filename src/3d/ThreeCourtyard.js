@@ -194,8 +194,40 @@
             this.scrapPrint=new THREE.MeshStandardMaterial({color:0xb99077,roughness:.82});
             this.rimScrap=h.mesh('bridal-paper-on-well',scrap,this.scrapPrint,[-3.14,.881,-21.35],'yard_well');
             const back=scrap.clone();back.setAttribute('uv',new THREE.Float32BufferAttribute(backingUV,2));
-            this.scrapPulp=new THREE.MeshStandardMaterial({color:0xb2a38b,roughness:.96,side:THREE.BackSide});
+            this.scrapPulp=new THREE.MeshStandardMaterial({color:0xf4ead5,roughness:.96,side:THREE.BackSide});
             h.mesh('bridal-paper-reverse',back,this.scrapPulp,[0,0,0],'yard_well',this.rimScrap);
+            // Follow the curved underside so the binding disappears behind the print.
+            const underside=(column,row,depth)=>{
+                const index=row*25+column;
+                return new THREE.Vector3().fromBufferAttribute(points,index).addScaledVector(
+                    new THREE.Vector3().fromBufferAttribute(scrap.attributes.normal,index),-depth);
+            };
+            const splint=[],fibres=[];
+            for(let col=4;col<=20;col++){
+                const taper=col===20?.26:col===4?.12:0;
+                for(const edge of [.23+taper,.40+taper/2,.62,.80-taper/2]){
+                    const p=underside(col,8,.0016).lerp(underside(col,9,.0016),edge);
+                    splint.push(p.x,p.y,p.z);
+                    const fiber=new THREE.Color(edge<.4?0x94663c:edge<.61?0xdeb875:edge<.7?0xc79d60:0x9d7648);
+                    fiber.multiplyScalar(.95+.045*Math.cos(col*.9));fibres.push(fiber.r,fiber.g,fiber.b);
+                }
+            }
+            const bamboo=new THREE.BufferGeometry(),triangles=[];
+            for(let col=0;col<16;col++)for(let strip=0;strip<3;strip++){
+                const i=4*col+strip;triangles.push(i,i+1,i+4,i+1,i+5,i+4);
+            }
+            bamboo.setAttribute('position',new THREE.Float32BufferAttribute(splint,3));
+            bamboo.setAttribute('color',new THREE.Float32BufferAttribute(fibres,3));
+            bamboo.setIndex(triangles);bamboo.computeVertexNormals();
+            h.mesh('split-bamboo',bamboo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.93,side:THREE.DoubleSide}),[0,0,0],'yard_well',this.rimScrap,false);
+            const stitches=[underside(11,8,0),underside(11,8,.0027),underside(12,9,.0027),underside(12,9,0)];
+            h.mesh('red-cotton-stitch',new THREE.TubeGeometry(new THREE.CatmullRomCurve3(stitches),14,.00135,7,false),
+                new THREE.MeshStandardMaterial({color:0x87221f,roughness:1}),[0,0,0],'yard_well',this.rimScrap,false);
+            const eye=new THREE.MeshStandardMaterial({color:0x443329,roughness:1,side:THREE.DoubleSide});
+            for(const [col,row] of [[11,8],[12,9]]){
+                const hole=h.mesh('stitch-hole',new THREE.CircleGeometry(.0022,12),eye,underside(col,row,.0004).toArray(),'yard_well',this.rimScrap,false);
+                hole.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),new THREE.Vector3().fromBufferAttribute(scrap.attributes.normal,row*25+col).negate());
+            }
             this.rimScrap.visible=false;
             for(const x of [-3.62,-2.38])h.box('well-windlass-upright',[.115,1.31,.14],[x,1.06,-22.15],m.darkWood,'yard_well');
             const drum=h.cylinder('well-windlass',.105,.105,1.51,[-3,1.61,-22.15],m.wood,'yard_well');drum.rotation.z=Math.PI/2;
@@ -245,7 +277,7 @@
         }
         syncWell(immediate,delta){
             const h=this.house,s=h.story.state,phase=h.watch?.phase;
-            this.rimScrap.visible=s.wellEscaped && (phase==='quiet' || (phase==='lowering' && h.watch.time<6.4));
+            this.rimScrap.visible=s.wellEscaped && !s.wellScrapTaken && (phase==='quiet' || h.watch?.hemTorn===true);
             if(!this.scrapPrint.map && h.watch?.coat?.material?.map){
                 this.scrapPrint.map=h.watch.coat.material.map;this.scrapPrint.needsUpdate=true;
                 this.scrapPulp.map=h.watch.head.getObjectByName('effigy-painted-face').material.map;

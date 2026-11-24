@@ -42,7 +42,7 @@ const reader = $('reader');
 const audio = new game.ThreeAudio();
 const assetErrors = new Set();
 const evidenceJournal = new game.ThreeEvidenceJournal({ story, knownRecords, appendRecordAction(detail,record){
-    const label={glass_impression:'mask.openSample',mask_photo:'mask.openPhoto'}[record.id];
+    const label={glass_impression:'mask.openSample',mask_photo:'mask.openPhoto',well_scrap:'well.scrap.review',scrap_binding:'well.scrap.review',scrap_and_mask:'well.scrap.review'}[record.id];
     if(!label)return;
     const button=document.createElement('button');button.type='button';button.textContent=copyText(label);
     const back=()=>journal(!!scene?.inspectionReturn);
@@ -250,7 +250,7 @@ function backpack() {
         return equipment[id][1];
     };
     const choices=story.carried().map(id=>[equipment[id][0],id==='envelope'?pocketLetter:id==='uniform'?inspectUniform:id==='roadPhoto'?showBridgePhoto:
-        id==='familyLetter'?()=>familyPacket(true):id==='heightStrip'?lookAtHeightStrip:()=>open(equipment[id][0],description(id),[[copyText('main.pocketletter'),backpack],[copyText('main.backpack.3'),close]],copyText('main.backpack.4'))]);
+        id==='wellScrap'?()=>heldSkirtPaper(backpack):id==='familyLetter'?()=>familyPacket(true):id==='heightStrip'?lookAtHeightStrip:()=>open(equipment[id][0],description(id),[[copyText('main.pocketletter'),backpack],[copyText('main.backpack.3'),close]],copyText('main.backpack.4'))]);
     open(copyText('main.backpack.5'),choices.length?'':copyText('main.backpack.6'),[...choices,[copyText('main.backpack.7'),close]],copyText('main.backpack.8'));
 }
 function knownRecords() {
@@ -297,7 +297,16 @@ function readRecord(item, actions) {
         $('reader-body').prepend(sheet);
     }
     if(item.id==='well_grip')showGripPhoto(true);
-    const photographs={car_front:'wagon-front',letter:'family-new-year',wedding_photo:'silver-wedding',wedding_sitting:'silver-wedding',bend_photo:'bridge-bicycle',height_stitch:'height-stitch',well_scrap:'well-skirt-paper'};
+    if(item.id==='scrap_and_mask'){
+        const pair=document.createElement('div');pair.className='mask-comparison scrap-comparison';
+        for(const [src,title] of [['skirt-binding.jpg','well.scrap.backTitle'],['paper-mask-back.webp','courtyardmap.mask_strap.title']]){
+            const figure=document.createElement('figure'),picture=document.createElement('img'),caption=document.createElement('figcaption');
+            picture.src='assets/art/'+src;picture.alt=caption.textContent=copyText(title);
+            figure.append(picture,caption);pair.append(figure);
+        }
+        $('reader-body').prepend(pair);
+    }
+    const photographs={car_front:'wagon-front',letter:'family-new-year',wedding_photo:'silver-wedding',wedding_sitting:'silver-wedding',bend_photo:'bridge-bicycle',height_stitch:'height-stitch',well_scrap:'well-skirt-paper',scrap_binding:'skirt-binding'};
     if(photographs[item.id]){
         $('reader-body').prepend(recordPhoto(photographs[item.id],item.title));
     }
@@ -775,6 +784,17 @@ function compareMask(atDoor,back,side){
     }
     $('reader-body').prepend(study);
 }
+function heldSkirtPaper(back,reverse=false){
+    const stow=[copyText('well.scrap.stow'),back];
+    if(reverse){
+        const binding=game.WORLD_MAP.interactables.find(entry=>entry.id==='scrap_binding');
+        story.record(binding.id);audio.paper();
+        readRecord(binding,[[copyText('main.lookatheightstrip.3'),()=>heldSkirtPaper(back)],stow]);
+    }else{
+        open(copyText('well.scrap.name'),copyText('well.scrap.held'),[[copyText('well.scrap.flip'),()=>heldSkirtPaper(back,true)],stow]);
+        $('reader-body').prepend(recordPhoto('skirt-front',copyText('well.scrap.name')));
+    }
+}
 function inspectWellGrip(item,firstLook=false){
     const s=story.state,known=s.records.includes(item.id);
     const actions=[];
@@ -819,11 +839,17 @@ function inspect(item) {
         const text=s.bucketParked?copyText('well.grip.parked'):s.wellRopeFreed?copyText('well.grip.after'):item.text;
         const pull=s.wellEscaped?copyText('well.grip.replay'):s.wellRopeFreed?copyText('main.inspect.3'):copyText('main.inspect.4');
         const choices=[[pull,investigate],[copyText('main.inspect.5'),close]];
-        if(s.wellEscaped && scene.watch.phase==='quiet'){
+        if(s.wellEscaped && scene.watch.phase==='quiet' && s.wellScrapTaken){
+            choices.unshift([copyText('well.scrap.replace'),()=>{
+                s.wellScrapTaken=false;story.save();scene.syncState();audio.paper();inspect(item);
+            }]);
+        }else if(s.wellEscaped && scene.watch.phase==='quiet'){
             choices.unshift([copyText('well.scrap.look'),()=>{
                 const scrap=game.WORLD_MAP.interactables.find(entry=>entry.id==='well_scrap');
                 story.record(scrap.id);audio.paper();
-                readRecord(scrap,[[copyText('well.scrap.back'),()=>inspect(item)],[copyText('main.inspect.5'),close]]);
+                readRecord(scrap,[[copyText('well.scrap.take'),()=>{
+                    s.wellScrapTaken=true;story.save();scene.syncState();audio.paper();heldSkirtPaper(close);
+                }],[copyText('well.scrap.back'),()=>inspect(item)],[copyText('main.inspect.5'),close]]);
             }]);
         }
         readRecord({...item,text},choices);return;
@@ -853,7 +879,13 @@ function inspect(item) {
                 const hang=()=>{
                     story.state.maskHung=true;scene.courtyard.syncMask();close();
                 };
-                show('mask_strap',[[copyText('main.lookatheightstrip.3'),()=>inspect(item)],...(!story.state.maskHung?[[copyText('main.inspect.11'),hang]]:[]),leave]);
+                const actions=[[copyText('main.lookatheightstrip.3'),()=>inspect(item)]];
+                if(story.state.wellScrapTaken)actions.push([copyText('well.scrap.compare'),()=>{
+                    story.record('scrap_binding');
+                    show('scrap_and_mask',[[copyText('main.inspect.14'),flip],leave]);
+                }]);
+                if(!story.state.maskHung)actions.push([copyText('main.inspect.11'),hang]);
+                show('mask_strap',[...actions,leave]);
             };
             actions.push([copyText('main.inspect.12'),flip]);
             const photographed=records.includes('mask_photo');

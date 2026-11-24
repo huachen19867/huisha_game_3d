@@ -547,6 +547,20 @@ try {
     ui.click('挂到门边的木钉上');assert.equal(JSON.parse(ui.window.localStorage.getItem(saveKey)).maskHung,true);
     assert.equal(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).state.maskHung,true);
     ui.inspect('paper_mask');ui.click('翻看背面');assert.doesNotMatch(ui.$('reader-actions').textContent,/挂到/);ui.key('KeyE');
+    ui.scene.story.state.wellEscaped=true;
+    ui.scene.watch={phase:'lowering',time:4,hemTorn:true};
+    ui.inspect('yard_well');assert.doesNotMatch(ui.$('reader-actions').textContent,/井沿上的红纸/);ui.key('KeyE');
+    ui.scene.watch.phase='quiet';
+    ui.inspect('yard_well');ui.click('凑近看井沿上的红纸');ui.click('顺着翘角揭下来');ui.click('夹进手记');
+    assert.ok(!ui.scene.story.state.records.includes('scrap_binding'));
+    ui.inspect('paper_mask');ui.click('翻看背面');ui.click('把裙纸放到纸脸旁边');
+    assert.equal(ui.document.querySelectorAll('.scrap-comparison img').length,2);
+    assert.ok(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).carried().includes('wellScrap'));ui.key('KeyE');
+    ui.inspect('yard_well');ui.click('把裙纸放回井沿');ui.key('KeyE');
+    ui.inspect('paper_mask');ui.click('翻看背面');assert.doesNotMatch(ui.$('reader-actions').textContent,/把裙纸放到/);ui.key('KeyE');
+    ui.$('map').click();ui.document.querySelector('[data-map-record="scrap_and_mask"]').click();
+    assert.ok(ui.document.querySelector('.scrap-comparison'));assert.ok(!ui.scene.story.carried().includes('wellScrap'));ui.key('KeyE');
+    delete ui.scene.watch;
     for (const id of ['hospital', 'crash']) {
         ui.inspect('memory_album'); ui.click(`翻入记忆 · ${ui.window.Huisha3D.MEMORIES[id].title}`);
         const definition = ui.window.Huisha3D.MEMORY_CASES[id];

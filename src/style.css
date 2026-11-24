@@ -27,6 +27,8 @@
 .ink-paper img{display:block;width:68%;height:auto}
 .mask-comparison{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:12px;margin:auto auto 1rem;max-width:540px}
 .mask-comparison figure{min-width:0;text-align:center;margin:0}.mask-comparison figcaption{color:#deceb0;font-size:.87rem;margin-top:.5rem}
+.scrap-comparison img{display:block;width:100%;height:clamp(130px,27vh,230px);object-fit:contain}
+@media(max-width:480px){.scrap-comparison{grid-template-columns:1fr}.scrap-comparison img{height:145px}}
 .mask-reference{position:relative;width:min(100%,27vh);margin:auto;cursor:pointer}.mask-reference img{display:block;width:100%;height:auto}
 .mask-reference[data-cheek]::after{content:"";position:absolute;border:2px dashed #ffe8ab;border-radius:50%;box-shadow:0 0 2px #413422;pointer-events:none}
 .mask-reference[data-cheek=left]::after{left:10%;top:49%;width:18%;height:17%}

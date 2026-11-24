@@ -35,8 +35,23 @@
                 fabric.setXYZ(i,x*pleat,y+.009*fullness*Math.sin(5*angle),z*pleat);
                 bodice.attributes.uv.setY(i,(y-.06)/1.255);
             }
+            // Put the lower panel caught on the stone last in the index buffer. Removing
+            // only those triangles leaves the printed pattern either side of the tear intact.
+            const fixed=[],snag=[];
+            const indices=bodice.index.array;
+            for(let i=0;i<indices.length;i+=3){
+                const [a,b,c]=indices.subarray(i,i+3);
+                const x=fabric.getX(a)+fabric.getX(b)+fabric.getX(c);
+                const z=fabric.getZ(a)+fabric.getZ(b)+fabric.getZ(c);
+                const angle=Math.atan2(x,z),height=(fabric.getY(a)+fabric.getY(b)+fabric.getY(c))/3;
+                const edge=Math.abs(angle+2.22);
+                (edge<.45 && height<.33-.14*edge/.45?snag:fixed).push(a,b,c);
+            }
+            this.tornIndexCount=fixed.length;
+            bodice.setIndex(fixed.concat(snag));
             bodice.computeVertexNormals();
             this.coat=part('pasted-paper-robe',printed(bodice,.02,.41,.98,.987),print);
+            this.setHemTorn(h.story.state.wellEscaped);
             this.coat.scale.z=.69;
             // The two pasted jacket fronts overlap diagonally, from throat to the side fastening.
             const lapel=new T.PlaneGeometry(1,1,4,16), edge=lapel.attributes.position;
@@ -127,9 +142,14 @@
                 hand.position.copy(palm);
             }
         }
+        setHemTorn(torn){
+            this.hemTorn=torn;
+            this.coat.geometry.setDrawRange(0,torn?this.tornIndexCount:Infinity);
+        }
         begin(){
             if(this.phase==='film' || this.phase==='chase' || this.house.story.state.memory)return;
             const h=this.house;this.returnPose=h.controls.snapshot();this.time=0;this.phase='film';
+            this.setHemTorn(h.story.state.wellEscaped);
             if(!h.story.state.wellRopeFreed){
                 h.story.state.wellRopeFreed=true;h.story.save(this.returnPose);
             }
@@ -185,6 +205,10 @@
             if(this.phase==='lowering'){
                 this.time-=dt*1.62;
                 this.pose(Math.max(0,this.time),true);
+                if(!this.hemTorn && this.time<6.4){
+                    this.setHemTorn(true);
+                    this.house.onWatchEvent?.('crease',0);
+                }
                 const turn=T.MathUtils.euclideanModulo(this.lastHeading-root.rotation.y+Math.PI,2*Math.PI)-Math.PI;
                 root.rotation.y+=turn*smooth(this.time,6.6,8);
                 if(this.time<0)root.position.y+=this.time;

@@ -1,5 +1,6 @@
 const copyText=window.HuishaCopy;
 export const equipment = {
+    wellScrap: [copyText('well.scrap.name'),copyText('well.scrap.held')],
     envelope: [copyText('housemap.car_envelope.title'),copyText('chapter-ui.equipment.envelope')],
     lunchbox: [copyText('chapter-ui.equipment.lunchbox'),copyText('chapter-ui.equipment.lunchbox.2')],
     key: [copyText('chapter-ui.equipment.key'),copyText('chapter-ui.equipment.key.2')],

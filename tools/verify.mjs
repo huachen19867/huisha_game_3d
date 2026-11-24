@@ -263,10 +263,12 @@ house.createArchitecture(); house.createProps(); await house.loadModels();
     assert.deepEqual(camera.position.toArray(),[6.4,1.6,-21.3]);
     for(let i=0;i<130;i++)well.update(.05);
     assert.ok(well.phase==='quiet' && !well.root.visible && cues.includes('submerged'));
+    assert.ok(well.hemTorn && well.coat.geometry.drawRange.count<well.coat.geometry.index.count);
     rig.isPaused=()=>false;rig.inspectionKind=null;
-    rig.story.state.bucketParked=true;rig.story.save();
+    rig.story.state.bucketParked=true;rig.story.state.wellScrapTaken=true;rig.story.save();
     well.begin();well.release();well.update(.05);
     assert.ok(new game.ThreeStory(storage).state.bucketParked,'replaying the chase preserves the settled bucket');
+    assert.ok(well.hemTorn && new game.ThreeStory(storage).carried().includes('wellScrap'));
     well.root.removeFromParent();
     console.log('Well cutscene, skip, physical pursuit, return to threshold and saved escape passed.');
 }
