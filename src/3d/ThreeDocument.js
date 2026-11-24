@@ -79,8 +79,9 @@
                 this.house.textures.push(texture);
                 return new THREE.MeshBasicMaterial({map: texture, side: THREE.BackSide, toneMapped: false});
             }
-            if(definition.style==='torn'){
-                this.drawDraft(ctx,face,data.lines);
+            if(definition.style==='handover' || definition.style==='torn'){
+                if(definition.style==='handover')this.drawHandover(ctx,data);
+                else this.drawDraft(ctx,face,data.lines);
                 const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
                 this.house.textures.push(texture);
                 return new THREE.MeshBasicMaterial({map:texture,toneMapped:false,side:face==='front'?THREE.FrontSide:THREE.BackSide});
@@ -99,6 +100,26 @@
             const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace; this.house.textures.push(texture);
             if (medical) return new THREE.MeshBasicMaterial({ map: texture, toneMapped: false, side: face === 'front' ? THREE.FrontSide : THREE.BackSide });
             return new THREE.MeshStandardMaterial({ map: texture, roughness: 0.95, side: face === 'front' ? THREE.FrontSide : THREE.BackSide });
+        }
+        drawHandover(ctx,data) {
+            ctx.fillStyle='#dfdfce';ctx.fillRect(0,0,768,1024);
+            ctx.fillStyle='#334c46';ctx.textAlign='center';ctx.font='bold 57px "SimSun",serif';
+            ctx.fillText(data.title,384,148,650);
+            ctx.fillRect(60,178,648,4);
+            const rows=data.text.split('\n').filter(Boolean);
+            const rowHeight=Math.min(108,720/Math.max(1,rows.length)),top=232;
+            ctx.lineWidth=2;ctx.strokeStyle='#84998d';
+            ctx.strokeRect(60,top,648,rows.length*rowHeight);
+            rows.forEach((row,i)=>{
+                const gap=row.search(/[　：:]/);
+                const y=top+rowHeight*i;
+                if(i>0){ctx.fillStyle='#84998d';ctx.fillRect(60,y,648,2);}
+                ctx.textAlign='left';ctx.fillStyle='#354f49';ctx.font='32px "SimSun",serif';
+                if(gap<0){ctx.fillText(row,78,y+rowHeight*.61,612);return;}
+                ctx.fillRect(218,y,1,rowHeight);ctx.fillText(row.slice(0,gap),78,y+rowHeight*.61,126);
+                ctx.fillStyle='#283c56';ctx.font='39px "KaiTi","STKaiti",serif';
+                ctx.fillText(row.slice(gap+1).trim(),239,y+rowHeight*.62,448);
+            });
         }
         drawPostcardBack(ctx) {
             ctx.fillStyle = '#ece5cd';

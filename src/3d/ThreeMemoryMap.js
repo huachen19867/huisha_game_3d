@@ -16,6 +16,10 @@
             text: copyText('memorymap.recording.text') }
     };
     game.DOCUMENTS = {
+        crash_report: { title:copyText('memorymap.crash.5'),style:'handover',space:'crash',position:[2.03,1.023,-4.5],previouslyReadWhole:true,faces:{
+            front:{title:copyText('handover.effectsTitle'),text:copyText('handover.effects')},
+            back:{title:copyText('handover.patientTitle'),text:copyText('handover.patient',copyText('memorymap.handover.quote'))}
+        } },
         school_notice: { title: copyText('memorymap.school_notice.title'), space: 'school', position: [-2, 0.954, 1], faces: {
             front: { title: copyText('memorymap.school_notice.title.2'), lines: [copyText('school.college'), copyText('memorymap.school_notice.title'), copyText('memorymap.school_notice.lines'), copyText('memorymap.school_notice.lines.2')], text: copyText('memorymap.school_notice.text') },
             back: { title: copyText('memorymap.school_notice.title.3'), lines: [copyText('memorymap.school_notice.lines.3'), copyText('memorymap.school_notice.lines.4'), copyText('memorymap.school_notice.lines.5')],
@@ -60,10 +64,11 @@
                 { id: 'clock', record: 'hospital_clock', title: copyText('memorymap.clock.title'), quote: copyText('memorymap.clock.quote'), dated: false }
             ], timelineOrder: ['diagnosis', 'plan'],
             conclusion: copyText('memorymap.hospital.conclusion') },
-        crash: { title: copyText('memorymap.crash.title.2'), records: ['crash_report', 'crash_phone'],
+        crash: { title: copyText('memorymap.crash.title.2'), records: ['crash_report', 'crash_phone'], requiredFaces:{crash_report:['back']},
+            preliminaryChoices:[copyText('handover.guesses'),copyText('handover.guesses.2'),copyText('handover.guesses.3')],
             choices: [copyText('memorymap.crash.choices'), copyText('memorymap.crash.choices.2'), copyText('memorymap.crash.choices.3')], answer: 0,
             facts: [
-                { id: 'handover', record: 'crash_report', title: copyText('memorymap.handover.title'), quote: copyText('memorymap.handover.quote') },
+                { id: 'handover', record: 'crash_report', documentFace:'back', title: copyText('memorymap.handover.title'), quote: copyText('memorymap.handover.quote') },
                 { id: 'call', record: 'crash_phone', phonePage: 'calls', title: copyText('memorymap.call.title'), quote: copyText('memorymap.calls.text') },
                 { id: 'voice', record: 'crash_phone', phonePage: 'recording', title: copyText('memorymap.voice.title'), quote: copyText('memorymap.voice.quote') }
             ], timelineOrder: ['voice', 'call', 'handover'],
@@ -114,7 +119,7 @@
     add('crash','crash_belt',copyText('memorymap.crash'),-2.53,1.0,.97,copyText('memorymap.crash.2'));
     add('crash','bridge_post',copyText('memorymap.crash.3'),-3.17,.89,4,copyText('memorymap.crash.4'));
     add('crash', 'crash_report', copyText('memorymap.crash.5'), 2.03, 1.05, -4.5,
-        copyText('memorymap.crash.6'), { deduction: 'crash' });
+        Object.values(game.DOCUMENTS.crash_report.faces).map(face=>face.text).join('\n\n'), { deduction:'crash',journal:false });
     add('crash', 'crash_phone', copyText('memorymap.crash.7'), 1.285, 1.04, -4.5,
         Object.values(game.PHONE_PAGES).map(page=>page.text).join('\n\n'), { deduction: 'crash', journal: false });
     add('crash', 'crash_return', copyText('memorymap.crash.8'), 0, 1.3, 6.8,

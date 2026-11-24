@@ -26,6 +26,7 @@
                 const container = document.getElementById('reader-body');
                 const originals=[...definition.records];
                 if (id === 'hospital') originals.push('hospital_fare');
+                if (id === 'crash') originals.push('bridge_driver_time');
                 if(id==='school' && this.story.hasDocumentFace('school_draft','front')) originals.push('school_draft');
                 for (const record of this.knownRecords().filter(record => originals.includes(record.id))) {
                     const detail = document.createElement('details'), summary = document.createElement('summary'), text = document.createElement('p');
@@ -58,7 +59,9 @@
             }
             const label = document.createElement('label'); label.textContent = copyText('memoryjournal.show.13');
             const interpretation = document.createElement('select'); interpretation.append(option('', copyText('memoryjournal.show.14')));
-            definition.choices.forEach((choice, index) => interpretation.append(option(String(index), choice)));
+            const choices=definition.preliminaryChoices && !definition.facts.every(fact=>this.story.knowsFact(fact))
+                ? definition.preliminaryChoices : definition.choices;
+            choices.forEach((choice, index) => interpretation.append(option(String(index), choice)));
             interpretation.value = draft.interpretation === null ? '' : String(draft.interpretation);
             label.append(interpretation); form.append(label);
             const status = document.createElement('p'); status.className = 'memory-feedback'; status.setAttribute('role', 'status'); form.append(status);

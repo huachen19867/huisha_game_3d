@@ -73,7 +73,7 @@ async function boot(saved, preferences) {
                         const school = new THREE.Group(); school.position.x = game.MEMORIES.school.center[0]; school.userData.memorySpace = 'school'; this.scene.add(school);
                         this.documents = new game.ThreeDocument(this); this.documents.build(school);
                         const hospital = new THREE.Group(); hospital.position.x = game.MEMORIES.hospital.center[0]; hospital.userData.memorySpace = 'hospital'; this.scene.add(hospital);
-                        this.documents.build(hospital);
+                        this.documents.build(hospital);this.documents.build(crash);
                         this.controls = new game.ThreeControls({ camera: this.camera, domElement: canvas, map: this.map,
                             story: this.story, isPaused: this.isPaused, getPreferences: this.getPreferences });
                         this.interaction = new game.ThreeInteraction({ camera: this.camera, map: this.map, scene: this.scene,
@@ -555,6 +555,17 @@ try {
             if (Object.hasOwn(ui.window.Huisha3D.DOCUMENTS, record)) {
                 assert.equal(ui.scene.story.state.records.includes(record), false);
                 ui.$('document-read').click(); ui.expandReading('document');
+                if(record==='crash_report'){
+                    const story=ui.scene.story,fact=definition.facts.find(f=>f.id==='handover');
+                    assert.match(ui.$('reader-body').textContent,/两件同袋/);
+                    assert.doesNotMatch(story.documentText(record),/李明|21:18|睁眼/);
+                    assert.equal(story.knowsFact(fact),false);
+                    ui.click('整理这段记忆');assert.doesNotMatch(ui.$('reader-body').textContent,/仍有呼吸|21:18|呼名反应/);
+                    ui.click('回查手记');ui.click('回到纸张');ui.$('document-flip').click();ui.scene.documents.update(1);ui.scene.onFrame(ui.scene.camera.position,true);
+                    assert.equal(story.knowsFact(fact),false);
+                    ui.$('document-read').click();ui.expandReading('document');assert.match(ui.$('reader-body').textContent,/李明（据驾驶证）/);
+                    assert.equal(story.knowsFact(fact),true);
+                }
                 if (record === 'hospital_plan') {
                     assert.doesNotMatch(ui.$('reader-body').textContent, /邻居/);
                     ui.click('整理这段记忆'); const medicalFields = [...ui.document.querySelectorAll('.memory-draft select')];
@@ -633,7 +644,8 @@ try {
     assert.match(ui.$('reader-body').textContent,/问您个事/);
     assert.ok(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).state.records.includes('bridge_driver'));
     assert.ok(!ui.scene.story.state.records.includes('bridge_driver_time'));
-    ui.click('问老吴九点十二分在哪儿');assert.match(ui.$('reader-body').textContent,/九点半才接的车/);
+    assert.doesNotMatch(ui.scene.story.conclusionFor('crash'),/老吴/);
+    ui.click('问老吴九点十二分在哪儿');assert.match(ui.scene.story.conclusionFor('crash'),/九点半他才接过车钥匙/);assert.match(ui.$('reader-body').textContent,/九点半才接的车/);
     ui.click('回到车门口');ui.click('坐车下山');assert.equal(ui.scene.story.state.departure,'leave');
     assert.match(ui.$('reader-body').textContent,/明早能陪我再来趟村口/);
     assert.doesNotMatch(ui.$('reader-body').textContent,/周叔/);

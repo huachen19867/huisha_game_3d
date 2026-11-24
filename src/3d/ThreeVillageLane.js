@@ -69,7 +69,7 @@
         const rim=new THREE.TorusGeometry(.099,.004,5,28);
         const bulb=new THREE.SphereGeometry(1,14,8);
         function headlamp(side){
-            const housing=new THREE.Group();housing.position.set(side*.576,.67,-2.19);
+            const housing=new THREE.Group();housing.name='wagon-headlamp';housing.position.set(side*.576,.67,-2.19);
             housing.rotation.y=-side*.09;car.add(housing);
             const pieces=(name,geo,mat,pos)=>h.mesh(name,geo,mat,pos,'car_front',housing,false);
             h.box('lamp-seal',[.492,.155,.069],[0,0,.007],rubber,'car_front',housing);

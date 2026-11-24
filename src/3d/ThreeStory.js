@@ -93,6 +93,7 @@
                     else if (!this.state.records.includes('crash_phone')) this.state.records.push('crash_phone');
                     for (const [id, document] of Object.entries(game.DOCUMENTS)) {
                         const hadWholeRecord = this.state.records.includes(id) && (!Object.hasOwn(saved, 'documentViews')
+                            || (document.previouslyReadWhole && !Object.hasOwn(saved.documentViews || {}, id))
                             || (document.introducedRevision === 2 && !(saved.reasoningRevision >= 2) && !Object.hasOwn(saved.documentViews || {}, id)));
                         this.state.documentViews[id] = !this.state.waterSolved ? [] : hadWholeRecord
                             ? Object.keys(document.faces) : [...new Set((Array.isArray(saved.documentViews?.[id]) ? saved.documentViews[id] : [])
@@ -341,6 +342,7 @@
             const base=game.MEMORY_CASES[id].conclusion;
             if (id === 'hospital' && this.state.records.includes('hospital_fare'))
                 return base + copyText('story.conclusionfor');
+            if(id==='crash' && this.state.records.includes('bridge_driver_time'))return base+'\n\n'+copyText('handover.driverRecall');
             if(id!=='school' || !this.hasDocumentFace('school_draft','front')) return base;
             return base+copyText('story.conclusionfor.2');
         }
@@ -450,6 +452,9 @@
                 if (record === 'crash_phone') {
                     if (this.state.phoneViews.length < 2) return direction + copyText('story.memorytask');
                 } else if (game.DOCUMENTS[record]) {
+                    if(record==='crash_report' && !this.hasDocumentFace(record,'back')){
+                        return this.hasDocumentFace(record,'front')?copyText('handover.turnHint'):direction;
+                    }
                     const needed = game.MEMORY_CASES[id].requiredFaces[record];
                     if (needed.some(face => !this.hasDocumentFace(record, face)))
                         return direction + (needed.length === 1 ? copyText('story.memorytask.2') : copyText('story.memorytask.3'));

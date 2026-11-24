@@ -285,7 +285,7 @@ for (const [id, paper] of house.documents.papers) {
     }
     const p = paper.root.getWorldPosition(new THREE.Vector3());
     const desk = house.memories.rooms[definition.space].children.find(object => {
-        if (!['SchoolDesk_01', 'clinic-countertop'].includes(object.name)) return false;
+        if (!['SchoolDesk_01', 'clinic-countertop','handover-clipboard'].includes(object.name)) return false;
         const bounds = new THREE.Box3().setFromObject(object); return p.x >= bounds.min.x && p.x <= bounds.max.x && p.z >= bounds.min.z && p.z <= bounds.max.z;
     });
     const gap = new THREE.Box3().setFromObject(paper.root).min.y - new THREE.Box3().setFromObject(desk).max.y;
@@ -804,6 +804,10 @@ const inherited = new game.ThreeStory({ getItem: () => JSON.stringify({version: 
 assert.ok(inherited.truthSolved());
 assert.equal(inherited.hasDocumentFace('school_postcard','back'), false);
 assert.match(inherited.conclusionFor('school'), /缝纫机/);
+const oldHandover=new game.ThreeStory({getItem:()=>JSON.stringify({version:1,reasoningRevision:3,opened:true,waterSolved:true,
+    records:['crash_report','crash_phone'],phoneViews:['calls','recording'],documentViews:{},deductions:{crash:true}})});
+assert.deepEqual([...oldHandover.state.documentViews.crash_report],['front','back']);
+assert.equal(oldHandover.state.deductions.crash,true);
 const malformedDocument = new game.ThreeStory({ getItem: () => JSON.stringify({ version: 1, opened: true, waterSolved: true,
     documentViews: { school_notice: ['front', 'front', '__proto__', {}], school_postcard: [] }, records: ['school_notice', 'school_postcard'] }), setItem() {} });
 assert.deepEqual([...malformedDocument.state.documentViews.school_notice], ['front']); assert.equal(malformedDocument.state.records.includes('school_postcard'), false);

@@ -176,8 +176,8 @@
             const wagon=new THREE.Group();wagon.name='crashed-wagon';root.add(wagon);
             wagon.position.set(-2.65,-.045,0);wagon.rotation.order='YXZ';wagon.rotation.set(-.075,Math.PI/2,.025);
             for (const part of h.villageCar.children) {
-                if(!part.isMesh || part.name==='wiper-pigment' || part.name==='driver-window-glass') continue;
-                const copy=part.clone();copy.userData.item='crash_belt';wagon.add(copy);
+                if((!part.isMesh && part.name!=='wagon-headlamp') || part.name==='wiper-pigment' || part.name==='driver-window-glass') continue;
+                const copy=part.clone();copy.traverse(child=>{child.userData.item='crash_belt';});wagon.add(copy);
                 if(part.name==='front-bumper') {copy.rotation.z=-.13;copy.position.y-=.08;}
             }
             // Both cut ends remain attached, one to the upper guide and one to the buckle.
@@ -210,8 +210,9 @@
             h.box('driving-licence-cover',[.091,.009,.126],[.119,.009,.05],m.cloth,'crash_phone',effects,false);
             h.label('driving-licence-title',copyText('memoryscenes.licence'),[.079,.026],[.119,.014,.043],[-Math.PI/2,0,0],'crash_phone',effects,'#302c26','#c4aa70');
             h.phone = new game.ThreePhone(h); h.phone.build(effects);
-            h.label('handover-sheet', copyText('memoryscenes.handover-sheet'), [0.53, 0.41], [2.03, 1.014, -4.5], [-Math.PI / 2, 0, 0], 'crash_report', root,'#c9c6ae','#294344');
-            h.box('clipboard-clip',[.18,.022,.047],[2.03,1.027,-4.69],m.stone,'crash_report',root);
+            h.box('handover-clipboard',[.405,.018,.57],[2.03,1.009,-4.5],m.darkWood,'crash_report',root);
+            h.documents.build(root);
+            h.box('clipboard-clip',[.18,.022,.047],[2.03,1.037,-4.75],m.stone,'crash_report',root);
             const bed=new THREE.PlaneGeometry(.62,1.81,12,20);
             bed.rotateX(-Math.PI/2);
             const fabric=bed.attributes.position;
