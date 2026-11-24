@@ -297,7 +297,7 @@ function readRecord(item, actions) {
         $('reader-body').prepend(sheet);
     }
     if(item.id==='well_grip')showGripPhoto(true);
-    const photographs={letter:'family-new-year',wedding_photo:'silver-wedding',wedding_sitting:'silver-wedding',bend_photo:'bridge-bicycle',height_stitch:'height-stitch',well_scrap:'well-skirt-paper'};
+    const photographs={car_front:'wagon-front',letter:'family-new-year',wedding_photo:'silver-wedding',wedding_sitting:'silver-wedding',bend_photo:'bridge-bicycle',height_stitch:'height-stitch',well_scrap:'well-skirt-paper'};
     if(photographs[item.id]){
         $('reader-body').prepend(recordPhoto(photographs[item.id],item.title));
     }
@@ -521,7 +521,10 @@ function busEnding() {
     if (heightStripTaken) paragraphs.push(records.includes('height_stitch')
         ? copyText('main.busending.3')
         : copyText('main.busending.4'));
-    paragraphs.push(copyText(records.includes('family_reply_sent')?'family.busAnswer':'bus.collectCar'));
+    let pickup='bus.collectCar';
+    if(records.includes('bridge_parking'))pickup='bridge.pickup';
+    if(records.includes('family_reply_sent'))pickup='family.busAnswer';
+    paragraphs.push(copyText(pickup));
     const hasKey=story.carried().includes('key');
     if(records.includes('clerk_contact'))paragraphs.push(copyText(hasKey?'main.busending.5':'clerk.busThanks'));
     else if(hasKey)paragraphs.push(copyText('workorder.bringKey'));
@@ -606,22 +609,29 @@ function inspectVillage(item) {
             story.record(id);
             readRecord(account,[[copyText('main.inspectvillage.13'),()=>inspectVillage(item)],[copyText('main.inspectvillage.11'),close]]);
         };
-        const driverAnswered=story.state.records.includes('bridge_driver');
-        const askRoad=[copyText(driverAnswered?'clerk.bridgeReported':'clerk.askRoad'),()=>{
-            const back=[copyText('main.inspectvillage.13'),returnToClerk];
-            if(driverAnswered){
-                open(item.title,copyText(story.state.records.includes('bridge_call')?'clerk.bridgeReplyAfterCall':'clerk.bridgeReply'),[back,leave]);
-                return;
+        const records=story.state.records;
+        const driverAnswered=records.includes('bridge_driver'),parked=records.includes('bridge_parking');
+        const roadTopic=parked?'bridge.readPlate':driverAnswered?'clerk.bridgeReported':'clerk.askRoad';
+        const askRoad=[copyText(roadTopic),()=>{
+            const back=[copyText('main.inspectvillage.13'),returnToClerk],actions=[];
+            const called=records.includes('bridge_call'),arrived=story.state.busCalled;
+            let answer;
+            if(parked){
+                const note=game.WORLD_MAP.interactables.find(entry=>entry.id==='bridge_parking');
+                readRecord(note,[back,leave]);return;
+            }else if(driverAnswered){
+                answer=copyText(called?'clerk.bridgeReplyAfterCall':'clerk.bridgeReply');
+                actions.push([copyText('bridge.leavePlate'),()=>{discuss('bridge_parking');scene.syncState();}]);
+            }else{
+                answer=copyText(story.state.askedAboutRoad?'clerk.repeatRoad':'clerk.road');
+                if(!story.state.askedAboutRoad){story.state.askedAboutRoad=true;story.save();}
+                const topic=arrived?'bridge.whereDriver':called?'clerk.bridgeFollowUp':'clerk.checkBridge';
+                actions.push([copyText(topic),()=>{
+                    if(arrived || called)open(item.title,copyText(arrived?'clerk.bridgeArrived':'clerk.bridgePending'),[back,leave]);
+                    else discuss('bridge_call');
+                }]);
             }
-            const answer=copyText(story.state.askedAboutRoad?'clerk.repeatRoad':'clerk.road');
-            if(!story.state.askedAboutRoad){story.state.askedAboutRoad=true;story.save();}
-            const called=story.state.records.includes('bridge_call');
-            const followUp=()=>{
-                if(story.state.busCalled || called){
-                    open(item.title,copyText(story.state.busCalled?'clerk.bridgeArrived':'clerk.bridgePending'),[back,leave]);
-                }else discuss('bridge_call');
-            };
-            open(item.title,answer,[[copyText(called?'clerk.bridgeFollowUp':'clerk.checkBridge'),followUp],back,leave]);
+            open(item.title,answer,[...actions,back,leave]);
         }];
         const questions=[];
         if(phase==='letter' || (phase==='ledger' && !story.state.clerkKnowsAddress)){
@@ -646,6 +656,13 @@ function inspectVillage(item) {
             }]);
         }
         questions.push(askRoad,[copyText('workorder.read'),inspectWorkOrder]);
+        if(records.includes('car_front'))questions.push([copyText('bridge.mentionFront'),()=>{
+            open(item.title,copyText('bridge.frontReply'),[askRoad,[copyText('main.inspectvillage.13'),returnToClerk],leave]);
+        }]);
+        if(records.includes('glass_impression'))questions.push([copyText('bridge.showInk'),()=>{
+            open(item.title,copyText('bridge.inkReply'),[askRoad,[copyText('main.inspectvillage.13'),returnToClerk],leave]);
+            $('reader-body').prepend(inkStudy());
+        }]);
         if(story.state.records.includes('car_envelope') && story.state.clerkExplainedPost){
             questions.push([copyText('post.askOldKey'),()=>discuss('clerk_old_key')]);
         }
@@ -660,6 +677,10 @@ function inspectVillage(item) {
     else if (item.id === 'duty_book') {
         if(phase==='letter' || phase==='ledger')story.advanceArrival(phase,'keys');
         const actions = [[copyText('chapter-ui.household'),close]];
+        if(story.state.records.includes('bridge_parking'))actions.push([copyText('bridge.readPlate'),()=>{
+            const note=game.WORLD_MAP.interactables.find(entry=>entry.id==='bridge_parking');
+            readRecord(note,[[copyText('chapter-ui.household'),close]]);
+        }]);
         if (story.state.arrival === 'keys') actions.unshift([copyText('main.inspectvillage.14'),()=>inspectVillage(game.WORLD_MAP.interactables.find(entry=>entry.id==='key_board'))]);
         readRecord(presentRecord(item),actions); return true;
     }
@@ -912,7 +933,13 @@ function inspect(item) {
             const account=game.WORLD_MAP.interactables.find(entry=>entry.id==='bridge_driver');
             const opening=copyText(story.state.records.includes('bridge_call')?'bus.bridgeAsked':'bus.bridgeDirect');
             story.record(account.id);
-            readRecord({...account,text:opening+'\n\n'+account.text},[[copyText('bus.backToDoor'),()=>inspect(item)],[copyText('main.inspect.51'),close]]);
+            const back=[[copyText('bus.backToDoor'),()=>inspect(item)],[copyText('main.inspect.51'),close]];
+            const actions=[...back];
+            if(story.state.phoneViews.includes('calls'))actions.unshift([copyText('bridge.askTime'),()=>{
+                const time=game.WORLD_MAP.interactables.find(entry=>entry.id==='bridge_driver_time');
+                story.record(time.id);readRecord(time,back);
+            }]);
+            readRecord({...account,text:opening+'\n\n'+account.text},actions);
         };
         open(item.title,copyText('main.inspect.49'),[[copyText('bus.bridgeAsk'),askDriver],[copyText('main.inspect.52'),()=>ending('leave')],[copyText('main.inspect.51'),close]]);
         return;

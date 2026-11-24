@@ -59,6 +59,29 @@
         }
         h.box('dash',[1.64,.16,.32],[0,1.02,-.67],inside,undefined,car);
         h.mesh('steering-wheel',new THREE.TorusGeometry(.172,.021,9,30),rubber,[-.45,1.145,-.49],undefined,car).rotation.x=-.5;
+        const reflectorMat=new THREE.MeshStandardMaterial({color:0xc5beb0,metalness:.65,roughness:.27,side:THREE.DoubleSide,
+            emissive:0xffce82,emissiveIntensity:.30,flatShading:true});
+        const filament=new THREE.MeshBasicMaterial({color:0xffebbb});
+        const indicator=new THREE.MeshStandardMaterial({color:0xaa541c,roughness:.39,emissive:0x9a4617,emissiveIntensity:.27});
+        const lensMat=new THREE.MeshStandardMaterial({color:0xe6e2cc,metalness:.09,roughness:.18,transparent:true,opacity:.13,depthWrite:false});
+        const reflector=new THREE.LatheGeometry([[.012,0],[.047,.009],[.082,.023],[.099,.044]].map(([r,y])=>new THREE.Vector2(r,y)),20);
+        reflector.rotateX(-Math.PI/2);
+        const rim=new THREE.TorusGeometry(.099,.004,5,28);
+        const bulb=new THREE.SphereGeometry(1,14,8);
+        function headlamp(side){
+            const housing=new THREE.Group();housing.position.set(side*.576,.67,-2.19);
+            housing.rotation.y=-side*.09;car.add(housing);
+            const pieces=(name,geo,mat,pos)=>h.mesh(name,geo,mat,pos,'car_front',housing,false);
+            h.box('lamp-seal',[.492,.155,.069],[0,0,.007],rubber,'car_front',housing);
+            for(const x of [-.114,.088]){
+                const center=x*side;
+                pieces('fluted-reflector',reflector,reflectorMat,[center,0,-.026]).scale.y=.65;
+                pieces('reflector-lip',rim,trim,[center,0,-.071]).scale.y=.65;
+                pieces('halogen-bulb',bulb,filament,[center,0,-.045]).scale.set(.027,.016,.021);
+            }
+            h.box('corner-indicator',[.044,.118,.032],[side*.209,0,-.038],indicator,'car_front',housing);
+            h.box('headlight-lens',[.475,.143,.008],[0,0,-.077],lensMat,'car_front',housing,false);
+        }
         for (const side of [-1,1]) {
             h.mesh('arched-fender',wing,body,[side*.926,0,0],undefined,car).rotation.y=-Math.PI/2;
             for(const [a,b] of [
@@ -87,13 +110,13 @@
             const beam=new THREE.SpotLight(0xffebbc,24,12,.31,.78,1.45);
             beam.position.set(side*.65,.66,-2.21);beam.target.position.set(side*.92,-.27,-9.2);
             car.add(beam,beam.target);
-            h.box('headlight',[.48,.15,.05],[side*.57,.67,-2.17],new THREE.MeshBasicMaterial({color:0xffe6a6}),'car_envelope',car);
+            headlamp(side);
             h.box('rear-light',[.31,.18,.05],[side*.67,.71,2.14],new THREE.MeshBasicMaterial({color:0xb54032}),'car_envelope',car);
         }
         for (let slot=0;slot<4;slot++) h.box('grille-louvre',[.66,.017,.037],[0,.57+slot*.04,-2.183],rubber,undefined,car);
         for (const side of [-1,1]) {
             bar('windscreen-wiper',[side*.67,1.034,-.814],[side*.11,1.08,-.77],.012,rubber);
-            h.label('wagon-registration',copyText('villagelane.wagon-registration'),[.46,.13],[0,.54,side*2.215],[0,side>0?0:Math.PI,0],undefined,car,'#20394a','#c8cebd');
+            h.label('wagon-registration',copyText('villagelane.wagon-registration'),[.46,.13],[0,.54,side*(side>0?2.215:2.231)],[0,side>0?0:Math.PI,0],side>0?undefined:'car_front',car,'#20394a','#c8cebd');
         }
         h.box('rear-bumper',[1.75,.11,.12],[0,.44,2.14],rubber,'car_envelope',car);
         const ink=new THREE.MeshStandardMaterial({transparent:true,roughness:.84,depthWrite:false,side:THREE.DoubleSide});
@@ -105,7 +128,9 @@
         dab.rotation.set(-2.25,0,Math.PI);
         dab.scale.x=-1; // The mark seen from outside the car is reversed by the first contact.
         h.wiperInk=ink;
-        h.box('front-bumper',[1.76,.12,.11],[0,.45,-2.16],rubber,'car_envelope',car);
+        h.box('front-plate-mount',[.484,.143,.03],[0,.54,-2.215],rubber,'car_front',car);
+        for(const x of [-.208,.208])h.mesh('number-plate-screw',bulb,trim,[x,.577,-2.232],'car_front',car,false).scale.set(.005,.005,.0025);
+        h.box('front-bumper',[1.76,.12,.11],[0,.45,-2.16],rubber,'car_front',car);
         return car;
     }
 
@@ -241,6 +266,8 @@
         h.repairNote=h.label('carpenter-note',copyText('workorder.noteTag'),[.27,.18],[2.87,1.087,20.24],[-Math.PI/2,0,Math.PI/2+.06],'repair_order',undefined,'#e2d7bd','#34342e');
         h.box('work-order-clip',[.04,.015,.14],[3.09,1.085,20.22],m.brass,'repair_order');
         h.box('logbook-cover',[.56,.025,.84],[2.99,1.063,21.1],m.cloth,'duty_book');
+        h.parkingNote=h.label('parking-handover',copyText('bridge.parkingWriting',copyText('villagelane.wagon-registration')),
+            [.28,.13],[3.11,1.048,21.69],[-Math.PI/2,0,Math.PI/2-.08],'duty_book',undefined,'#dbcdac','#30302d');
         h.cylinder('tea-mug',.074,.068,.14,[3.22,1.12,21.73],m.paper,'duty_book');
         h.mesh('mug-handle',new THREE.TorusGeometry(.048,.011,7,16),m.paper,[3.22,1.13,21.81],'duty_book').rotation.y=Math.PI/2;
         const phone=new THREE.Group();phone.position.set(3.18,1.046,19.92);phone.rotation.y=-.24;h.scene.add(phone);

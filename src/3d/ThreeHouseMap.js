@@ -36,6 +36,10 @@
             { id: 'pillar_right', xMin: 3.85, xMax: 4.35, zMin: -1.75, zMax: -1.25 }
         ],
         interactables: [
+            { id:'car_front',title:copyText('bridge.carTitle'),area:'lane',location:copyText('housemap.wiper_print.location'),
+                position:{x:-2.15,y:.55,z:27.475},radius:1.95,text:copyText('bridge.carText') },
+            { id:'bridge_parking',title:copyText('bridge.parkingTitle'),inventoryOnly:true,area:'lane',location:copyText('housemap.clerk_holdall.location'),
+                position:{x:3.12,y:1.05,z:21.64}, text:copyText('bridge.parkingText'),writing:copyText('bridge.parkingWriting',copyText('villagelane.wagon-registration')) },
             { id:'wiper_print',title:copyText('housemap.wiper_print.title'),area:'lane',location:copyText('housemap.wiper_print.location'),position:{x:-1.71,y:1.095,z:28.90},radius:2.1,
                 text:copyText('housemap.wiper_print.text') },
             {id:'glass_impression',title:copyText('mask.sampleTitle'),inventoryOnly:true,area:'lane',location:copyText('housemap.wiper_print.location'),

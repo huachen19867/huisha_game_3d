@@ -613,6 +613,7 @@
         }
         syncState(immediate = false, delta = 0) {
             const s = this.story.state;
+            this.parkingNote.visible=s.records.includes('bridge_parking');
             this.wiperInk.opacity = s.records.includes('glass_impression') ? 0.49 : 0.90;
             this.documents?.syncTear();
             game.syncStoreys(this,s,this.storeysReady && !immediate ? delta : undefined);this.storeysReady=true;
