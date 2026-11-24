@@ -343,14 +343,26 @@
             this.uniform=new THREE.Group();this.uniform.position.set(0,.405,.64);this.scene.add(this.uniform);
             const twill=(m.denim||m.cloth).clone();twill.color.setHex(0x304265);
             const fold=this.mesh('folded-school-jacket',new THREE.SphereGeometry(1,24,12),twill,[0,.012,0],'coffin',this.uniform);
-            fold.scale.set(.35,.052,.235);
-            for(const side of [-1,1]){
-                const sleeve=new THREE.Group();sleeve.position.set(side*.19,.046,-.014);sleeve.rotation.y=side*.24;this.uniform.add(sleeve);
-                const cloth=this.mesh('folded-sleeve',new THREE.SphereGeometry(1,20,12),twill,[0,0,0],'coffin',sleeve);
-                cloth.scale.set(.071,.037,.205);
-                for(const offset of [-.018,.018]) this.box('school-stripe',[.012,.006,.306],[offset,.034,0],m.paper,'coffin',sleeve);
-                if(side===-1) for(const z of [-.125,-.04,.045]) this.cylinder('sleeve-snap',.013,.013,.008,[-.039,.03,z],m.brass,'coffin',sleeve);
+            fold.scale.set(.34,.048,.213);
+            const jacket=new THREE.PlaneGeometry(.76,.49,40,30);
+            const surface=jacket.attributes.position;
+            for(let i=0;i<surface.count;i++){
+                const x=surface.getX(i),z=-surface.getY(i);
+                const edge=Math.max(Math.abs(x)/.38,Math.abs(z)/.245);
+                const sleeveOffset=(Math.abs(x)-(.25-.18*z))/.081,collarOffset=(z+.182)/.038;
+                const sleeve=Math.exp(-sleeveOffset*sleeveOffset);
+                const neck=Math.exp(-collarOffset*collarOffset-(x/.14)**2);
+                const y=.065+.035*sleeve+.036*neck-.081*THREE.MathUtils.smoothstep(edge,.77,1);
+                surface.setXYZ(i,x,y,z);
             }
+            jacket.computeVertexNormals();
+            const jacketMaterial=new THREE.MeshStandardMaterial({color:0x324362,roughness:.95,alphaTest:.35,side:THREE.DoubleSide});
+            if(this.renderer?.isWebGLRenderer){
+                jacketMaterial.map=new THREE.TextureLoader().load('assets/art/uniform-folded.webp');
+                jacketMaterial.color.setHex(0xffffff);jacketMaterial.map.colorSpace=THREE.SRGBColorSpace;
+                this.textures.push(jacketMaterial.map);
+            }
+            this.mesh('uniform-sleeves-and-zip',jacket,jacketMaterial,[0,0,0],'coffin',this.uniform);
             this.offeringRice = game.ThreeKitchen.bowl(this,altar,[-.66,1.09,.14],'altar');
             this.offeringRice.rotation.y=Math.PI;
             this.offeredPork=this.offeringRice.getObjectByName('braised-pork');
@@ -632,8 +644,10 @@
             this.paperAsh.visible = s.offerings.includes('paper');
             this.caughtSleeve.visible=!s.coffinOpen;
             this.coffinPadlock.visible=!s.oldCoffinLatch && !s.coffinOpen;
-            this.coffinLid.rotation.x = s.coffinOpen ? -1.37 : 0;
-            this.uniform.visible = s.coffinOpen && !s.records.includes('uniform_collar');
+            if(immediate || !s.coffinOpen || this.reducedMotion?.matches)this.coffinLift=Number(s.coffinOpen);
+            else if(!this.isPaused?.())this.coffinLift=Math.min(1,(this.coffinLift??0)+delta/.95);
+            this.coffinLid.rotation.x=-1.37*THREE.MathUtils.smoothstep(this.coffinLift??0,0,1);
+            this.uniform.visible = s.coffinOpen && !s.uniformTaken;
             this.swingLeaf('front_gate',this.frontHinge,this.frontDoorSpec,s.arrival==='home',delta,immediate);
             this.repairNote.visible=s.stripNoteLeft;
             this.heightStrip.visible = !s.heightStripTaken;

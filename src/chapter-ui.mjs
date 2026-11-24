@@ -160,8 +160,10 @@ export function household(context,item) {
         if (!offered('paper')) offer('paper',copyText('chapter-ui.household.55'),copyText('chapter-ui.household.paper'));
         open(copyText('chapter-ui.household.67'), lines.join('\n\n'), [...actions,back]);
     } else if(item.id==='coffin' && s.opened) {
-        const lookInside=()=>open(copyText('chapter-ui.household.68'),s.records.includes('uniform_collar')?copyText('chapter-ui.household.69'):copyText('chapter-ui.household.70'),[
-            [s.records.includes('uniform_collar')?copyText('chapter-ui.household.71'):copyText('chapter-ui.household.72'),inspectUniform],back]);
+        const lookInside=()=>open(copyText('chapter-ui.household.68'),copyText(s.uniformTaken?'chapter-ui.household.69':'chapter-ui.household.70'),
+            s.uniformTaken?[back]:[[copyText('chapter-ui.household.72'),()=>{
+                s.uniformTaken=true;story.save();scene.syncState();audio.paper();inspectUniform();
+            }],back]);
         if (s.coffinOpen) { lookInside(); return true; }
         story.record(item.id);
         const checkSeam = [copyText('coffin.touch'), () => {
@@ -178,7 +180,7 @@ export function household(context,item) {
         } else {
             open(copyText('chapter-ui.household.75'),copyText(s.oldCoffinLatch ? 'chapter-ui.household.77' : 'chapter-ui.household.76'),[
                 [copyText('chapter-ui.household.78'),()=>{
-                    s.coffinOpen=true; redraw(); audio.knock(); lookInside();
+                    s.coffinOpen=true;story.save();scene.syncState();audio.knock();close();
                 }],checkSeam,back]);
         }
     } else return false;

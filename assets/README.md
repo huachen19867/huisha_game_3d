@@ -1,5 +1,17 @@
 # 3D 美术与许可
 
+## 0.22.18 旧校服与姓名布
+
+[折起的校服](art/uniform-folded.webp)是透明 WebP，1050 × 700。棺里的曲面和背包里的道具共用这张图。[衣领近景](art/uniform-name.jpg)是 1152 × 768 的 JPEG，翻开领口才看见。两幅均由内置 ImageGen 为《回煞》生成。
+
+<details><summary>生成提示词</summary>
+
+Create a single cutout game inventory prop photographed straight overhead, appropriately folded to fit in a shallow canvas holdall. An old dark navy-blue Chinese junior middle school tracksuit jacket (circa 2005), folded into a soft short broad horizontal rectangle, around 42cm wide and 25cm deep. Both short lengths of sleeve lie folded on top alongside the torso with two narrow faded ivory sports stripes running down each sleeve to the cuffs. A dulled central metal zipper, upper end slightly turned under; tucked-in stand collar hides the inside back of the neck completely. Three small dark press studs along the outer seam of the left sleeve barely catch the light. Washed navy polycotton twill, natural wrinkles, slightly rubbed cuffs and loose thread; no embroidery, no writing, no logo, no numbers. Neutral softly directional light suitable for PBR base color texture. Whole isolated garment seen in one frame, fills most of a landscape 3:2 frame edge-to-edge with small margins, accurate physical silhouette with real transparent background. No bag, table, hands or people, no cast ground shadows outside garment.
+
+Photorealistic horizontal 3:2 game item inspection photograph for a Chinese rural family story. Extreme close view looking slightly down inside the turned back stand collar of a worn dark navy blue Chinese middle school tracksuit jacket from around 2005. Warm side light from a domestic lamp, faded blue polycotton twill, muted two narrow off-white sleeve stripes out of focus at one edge. Central off-white homesewn oblong cotton name tape attached inside the neck with uneven little white stitches. On the tape, clearly legible handwritten simplified Chinese in faded blue-black ballpoint, exactly four characters in one horizontal line: “李明　初二”. Realistic careful teenager handwriting, slightly crooked. Tiny round needle tear near the 月 part of 明. Intimate tactile closeup, enough light to read, no people, no hands, no other text, no brand, no screen interface. Horizontal composition with the label large and entirely in the central third; original asset.
+
+</details>
+
 ## 0.22.16 裙纸正反面
 
 [金花正面](art/skirt-front.jpg)和[竹篾背面](art/skirt-binding.jpg)用井沿上同一个游戏模型单独布光拍摄。篾片、穿孔和红线贴合纸背的弧度。并排观察时，右图沿用灶门边[纸面具的背面](art/paper-mask-back.webp)。

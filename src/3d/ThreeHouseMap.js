@@ -75,7 +75,7 @@
             { id: 'altar', title: copyText('housemap.altar.title'), position: { x: -2.75, y: 1.18, z: -2.7 }, radius: 1.8,
                 text: copyText('housemap.altar.text') },
             { id:'uniform_collar', title:copyText('housemap.uniform_collar.title'), area:'hall', location:copyText('evidencejournal.location.2'), inventoryOnly:true, position:{x:0,y:.82,z:.65},
-                text:copyText('housemap.uniform_collar.text',copyText('main.inspectuniform')) },
+                text:copyText('housemap.uniform_collar.text') },
             { id:'uniform_cuff', title:copyText('housemap.uniform_cuff.title'), area:'hall', location:copyText('housemap.uniform_cuff.location'), inventoryOnly:true, position:{x:0,y:.82,z:.65},
                 text:copyText('housemap.uniform_cuff.text') },
             { id:'clerk_holdall', title:copyText('housemap.clerk_holdall.title'), area:'lane', location:copyText('housemap.clerk_holdall.location'), inventoryOnly:true, position:{x:3.2,y:1.64,z:20.38},

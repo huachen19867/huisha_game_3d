@@ -4,7 +4,7 @@
     const SAVE_KEY = 'huisha.3d.homecoming.v1';
     const symbols = [copyText('story.symbols'), copyText('story.symbols.2'), copyText('story.symbols.3'), copyText('story.symbols.4')];
     const freshState = () => ({ clerkKnowsAddress:false, clerkExplainedPost:false, askedAboutRoad:false, stripNoteLeft:false, keyAtBooth:false, closedDoors: [], arrival: 'intro', chapterEdition: 2, basketDown:false, cellarOpen:false, filterClear:false, sumpDrained:false, oldCoffinLatch:false, gear: [], wardrobeOpen: false, chestOpen: false, cardiganPlace: 'chest', calibrated: false, offerings: [], coffinCordsAside: false, coffinOpen: false, photoFiled:false, busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
-        courtyard: false, crossedYard: false, wellEscaped:false, wellScrapTaken:false, wellRopeFreed:false, bucketParked:false, wellGripOpen:false, maskHung:false, formJoined:false, buckets: [0, 0], waterSolved: false, departure: null, rememberPlace:null, position: null, lamp: 'altar', shielded: false,
+        uniformTaken:false, courtyard: false, crossedYard: false, wellEscaped:false, wellScrapTaken:false, wellRopeFreed:false, bucketParked:false, wellGripOpen:false, maskHung:false, formJoined:false, buckets: [0, 0], waterSolved: false, departure: null, rememberPlace:null, position: null, lamp: 'altar', shielded: false,
         memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, fareTinOpen: false, familyLetterTaken:false, heightStripTaken: false, riceStage:'covered', porkOnRice:false, leakMuffled:false, stoveLit:false, legacySchoolSolved: false, reasoningRevision: 3, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
     class ThreeStory {
@@ -83,6 +83,7 @@
                             if(!this.state.records.includes(id)) this.state.records.push(id);
                     }
                     this.state.photoFiled=this.state.coffinOpen && this.state.records.includes('bend_photo') && (hadPhoto || saved.photoFiled===true);
+                    this.state.uniformTaken=this.state.coffinOpen && (saved.uniformTaken===true || this.state.records.includes('uniform_collar'));
                     if (this.state.waterSolved) this.state.buckets[1] = 4;
                     if (!this.state.waterSolved) this.state.records = this.state.records.filter(id =>
                         !(game.WORLD_MAP || game.MAIN_HALL_MAP).interactables.find(item => item.id === id)?.requiresWater);
@@ -274,7 +275,7 @@
                 if(id==='weight' && s.calibrated || s.offerings.includes(id)) continue;
                 ids.push(id);
             }
-            if(s.records.includes('uniform_collar')) ids.push('uniform');
+            if(s.uniformTaken) ids.push('uniform');
             if(s.heightStripTaken) ids.push('heightStrip');
             if(s.wellScrapTaken) ids.push('wellScrap');
             if(s.records.includes('bend_photo') && !s.photoFiled) ids.push('roadPhoto');
@@ -427,7 +428,7 @@
                 wake: copyText('story.objective.wake'), remember: copyText('story.objective.remember') }[this.state.departure];
             if(this.state.waterSolved && this.state.coffinOpen && !this.state.photoFiled && !this.state.busCalled) {
                 if(this.state.records.includes('bend_photo')) return copyText('story.objective.6');
-                return this.state.records.includes('uniform_collar')?copyText('story.objective.7'):copyText('story.objective.8');
+                return this.state.uniformTaken?copyText('story.objective.7'):copyText('story.objective.8');
             }
             if(this.state.waterSolved && !this.state.coffinOpen && !this.state.records.includes('bus_notice') && !this.state.busCalled)
                 return this.state.oldCoffinLatch || this.state.gear.includes('coffinKey') ? copyText('story.objective.9')

@@ -42,7 +42,7 @@ const reader = $('reader');
 const audio = new game.ThreeAudio();
 const assetErrors = new Set();
 const evidenceJournal = new game.ThreeEvidenceJournal({ story, knownRecords, appendRecordAction(detail,record){
-    const label={glass_impression:'mask.openSample',mask_photo:'mask.openPhoto',well_scrap:'well.scrap.review',scrap_binding:'well.scrap.review',scrap_and_mask:'well.scrap.review'}[record.id];
+    const label={uniform_collar:'uniform.turnCollar',glass_impression:'mask.openSample',mask_photo:'mask.openPhoto',well_scrap:'well.scrap.review',scrap_binding:'well.scrap.review',scrap_and_mask:'well.scrap.review'}[record.id];
     if(!label)return;
     const button=document.createElement('button');button.type='button';button.textContent=copyText(label);
     const back=()=>journal(!!scene?.inspectionReturn);
@@ -176,15 +176,23 @@ function showBridgePhoto(){
 }
 function inspectUniform(){
     const collar=game.WORLD_MAP.interactables.find(item=>item.id==='uniform_collar');
-    if(!story.state.records.includes(collar.id)){story.record(collar.id);scene.syncState();audio.paper();}
     const found=story.state.records.includes('bend_photo');
-    const text=found?copyText('housemap.uniform_collar.text',copyText('main.inspectuniform.2')):collar.text;
+    const stow=[copyText('main.inspectuniform.4'),close];
+    const lookCollar=()=>{
+        story.record(collar.id);audio.paper();
+        readRecord(collar,[[copyText('uniform.spreadAgain'),inspectUniform],stow]);
+    };
     const inspectCuff=()=>{
         const cuff=game.WORLD_MAP.interactables.find(item=>item.id==='uniform_cuff');
         story.record(cuff.id);
-        readRecord(cuff,[[copyText('main.inspectuniform.3'),inspectUniform],[copyText('main.inspectuniform.4'),close]]);
+        readRecord(cuff,[[copyText('uniform.spreadAgain'),inspectUniform],stow]);
     };
-    readRecord({...collar,text},[...(!found?[[copyText('main.inspectuniform.5'),showBridgePhoto]]:[]),[copyText('main.inspectuniform.6'),inspectCuff],[copyText('main.inspectuniform.4'),close]]);
+    open(equipment.uniform[0],copyText('uniform.folded')+' '+copyText(found?'main.inspectuniform.2':'main.inspectuniform'),[
+        [copyText('uniform.turnCollar'),lookCollar],[copyText('main.inspectuniform.6'),inspectCuff],
+        ...(!found?[[copyText('main.inspectuniform.5'),showBridgePhoto]]:[]),stow]);
+    const jacket=document.createElement('img');
+    jacket.className='record-photo';jacket.src='assets/art/uniform-folded.webp';jacket.alt=equipment.uniform[0];
+    $('reader-body').prepend(jacket);
 }
 function lookAtHeightStrip() {
     const back = game.WORLD_MAP.interactables.find(item => item.id === 'height_stitch');
@@ -307,7 +315,7 @@ function readRecord(item, actions) {
         }
         $('reader-body').prepend(pair);
     }
-    const photographs={car_front:'wagon-front',letter:'family-new-year',wedding_photo:'silver-wedding',wedding_sitting:'silver-wedding',bend_photo:'bridge-bicycle',height_stitch:'height-stitch',well_scrap:'well-skirt-paper',scrap_binding:'skirt-binding'};
+    const photographs={uniform_collar:'uniform-name',car_front:'wagon-front',letter:'family-new-year',wedding_photo:'silver-wedding',wedding_sitting:'silver-wedding',bend_photo:'bridge-bicycle',height_stitch:'height-stitch',well_scrap:'well-skirt-paper',scrap_binding:'skirt-binding'};
     if(photographs[item.id]){
         $('reader-body').prepend(recordPhoto(photographs[item.id],item.title));
     }
@@ -349,7 +357,7 @@ function album() {
 }
 function enterMemory(id) {
     if(id==='crash' && !story.state.photoFiled){
-        const note=story.state.records.includes('uniform_collar')?copyText('main.entermemory'):copyText('main.entermemory.2');
+        const note=story.state.uniformTaken?copyText('main.entermemory'):copyText('main.entermemory.2');
         open(copyText('main.entermemory.3'),note,[[copyText('main.entermemory.4'),album],[copyText('chapter-ui.household'),close]]);return;
     }
     leaveInspection(false);

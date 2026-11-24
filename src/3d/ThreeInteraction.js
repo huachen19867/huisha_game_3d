@@ -89,7 +89,7 @@
                 }
                 if (this.current.id === 'coffin' && this.story.state.coffinCordsAside) title = copyText('coffin.seamTitle');
                 if (this.current.id === 'coffin' && this.story.state.coffinOpen) {
-                    observed = this.story.state.records.includes('uniform_collar');
+                    observed = this.story.state.uniformTaken;
                     title = observed ? copyText('interaction.showprompt.5') : copyText('interaction.showprompt.6');
                 }
                 if (this.current.id === 'portrait' && this.story.state.portrait) title = copyText('interaction.showprompt.7');

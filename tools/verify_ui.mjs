@@ -397,10 +397,15 @@ try {
     ui.inspect('cellar_door');ui.click('打开地下室');ui.inspect('sump_pump');ui.click('压动手柄');assert.equal(ui.scene.story.state.sumpDrained,false);ui.key('KeyE');
     ui.inspect('sump_grate');ui.click('提起棉纱，清掉树叶');ui.inspect('sump_pump');ui.click('压动手柄');ui.key('KeyE');
     ui.inspect('cellar_keyring');ui.click('拿走梅花铜钥匙');
-    ui.inspect('coffin');ui.click('轻轻拉一下布角');ui.click('看看棺盖');ui.click('把盖上的三根红绳拨到地上');ui.click('推开棺盖');ui.key('KeyE');
+    ui.inspect('coffin');ui.click('轻轻拉一下布角');ui.click('看看棺盖');ui.click('把盖上的三根红绳拨到地上');ui.click('推开棺盖');assert.ok(!ui.$('reader').open);
     assert.ok(new ui.window.Huisha3D.ThreeStory(ui.window.localStorage).state.coffinOpen);
     ui.inspect('altar');ui.click('烧纸');ui.click('摆饭');ui.key('KeyE');assert.ok(!ui.scene.story.carried().includes('uniform'));
-    ui.inspect('coffin');ui.click('拿起校服，翻开衣领');ui.key('KeyE');
+    ui.inspect('coffin');ui.click('从布兜里拿出外套');ui.key('KeyE');
+    const coatBeforeReading=new ui.window.Huisha3D.ThreeStory(ui.window.localStorage);
+    assert.ok(coatBeforeReading.carried().includes('uniform') && !coatBeforeReading.state.records.includes('uniform_collar'));
+    ui.key('KeyB');ui.click('旧校服');ui.click('把衣领翻出来');assert.ok(ui.document.querySelector('img[src$="uniform-name.jpg"]'));ui.key('KeyE');
+    const previousCoatSave=JSON.parse(ui.window.localStorage.getItem(saveKey));delete previousCoatSave.uniformTaken;
+    assert.ok(new ui.window.Huisha3D.ThreeStory({getItem:()=>JSON.stringify(previousCoatSave)}).carried().includes('uniform'));
     assert.ok(ui.scene.story.carried().includes('uniform'));assert.ok(!ui.scene.story.state.records.includes('bend_photo'));
     ui.inspect('clerk');ui.click('正厅那口棺是谁的？');ui.click('再问一句');
     assert.doesNotMatch(ui.$('reader-actions').textContent,/给周师傅看左袖/);
