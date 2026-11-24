@@ -847,15 +847,15 @@
 
 `westroom.wedding_photo.2`
 
-两个人挤在照相馆的小凳上。相框底下的小牌上印着「2011.06　结婚二十五周年」。背面写着他俩的名字。
+爸穿着深蓝外套，妈穿一件领口绣花的枣红开衫。两个人的肩膀挨在一块儿。相框下面的小牌上印着「结婚二十五周年　2011年6月」。
 
 `westroom.wedding_chest`
 
-床尾的樟木箱
+樟木箱
 
 `westroom.wedding_chest.2`
 
-母亲收衣裳的箱子。四位数字锁旁压着半张红双喜。小时候她叫我来拿棉被，教过我一遍：「转到我跟你爸结婚那年。」
+母亲收衣裳的箱子。锁扣旁还贴着个双喜字。小时候她叫我来拿棉被，教过我一遍：「转到我跟你爸结婚那年。」
 
 `westroom.brass_weight`
 
@@ -1681,11 +1681,73 @@
 
 `chapter-ui.household.10`
 
-箱底只剩一小截麻绳。
+右手边的小木格空了，格底有一道钥匙齿划出来的印子。
 
 `chapter-ui.household.11`
 
-衣服底下压着把钥匙，木牌上刻着储水间的小水桶。
+右手边隔了个小木格，里面躺着把铜钥匙。钥匙拴着块小木牌，上面刻了个水桶。
+
+`cardigan.folded`
+
+左边叠着件枣红开衫，最上面露着一颗扣子。
+
+`cardigan.name`
+
+枣红开衫
+
+`cardigan.bag`
+
+毛衣还叠着。床尾有地方可以摊开。
+
+`cardigan.take`
+
+把开衫从箱里拿出来
+
+`cardigan.replace`
+
+把开衫放回箱里
+
+`cardigan.bed`
+
+床尾的被面
+
+`cardigan.bedText`
+
+我把叠好的开衫搁在臂弯里。床尾的被子铺得挺平。
+
+`cardigan.spread`
+
+把开衫摊在床上
+
+`cardigan.inspect`
+
+领口两边都绣了粉色小花。靠着扣眼的那一枝长些，一直垂到头一颗扣子边上。
+
+`cardigan.fold`
+
+把开衫叠好带走
+
+`cardigan.compare`
+
+对照合影里的衣领
+
+`cardigan.memoryTitle`
+
+照相前理过的衣领
+
+`cardigan.memory`
+
+合影里也是这件。领口底下露出一圈米色的秋衣。
+
+拍那张照片的时候，妈坐下又站起来：「明，你帮我掏一下，后脖子那儿卷进去了。」我伸手替她把秋衣领翻出来。师傅还在等，她坐回去就喊：「好了，拍吧。」
+
+`cardigan.reviewPhoto`
+
+再看一眼合影上的日期
+
+`cardigan.backToLock`
+
+回到箱锁
 
 `chapter-ui.household.12`
 

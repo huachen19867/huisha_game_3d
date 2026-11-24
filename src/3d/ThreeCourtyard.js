@@ -188,7 +188,7 @@
                 const y=.008-sag+.003*Math.sin(25*u-7*v)+.025*(1-Math.cos(angle))+tip*Math.sin(angle);
                 points.setXYZ(i,x,y,z);
                 uv.setXY(i,.21+.23*u,.24-.213*v);
-                backingUV.push(.42+.13*u,.82+.065*v);
+                backingUV.push(.45+.06*u,.485+.026*v);
             }
             scrap.computeVertexNormals();
             this.scrapPrint=new THREE.MeshStandardMaterial({color:0xb99077,roughness:.82});

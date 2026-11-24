@@ -3,7 +3,7 @@
     const game = global.Huisha3D || (global.Huisha3D = {});
     const SAVE_KEY = 'huisha.3d.homecoming.v1';
     const symbols = [copyText('story.symbols'), copyText('story.symbols.2'), copyText('story.symbols.3'), copyText('story.symbols.4')];
-    const freshState = () => ({ clerkKnowsAddress:false, clerkExplainedPost:false, askedAboutRoad:false, stripNoteLeft:false, keyAtBooth:false, closedDoors: [], arrival: 'intro', chapterEdition: 2, basketDown:false, cellarOpen:false, filterClear:false, sumpDrained:false, oldCoffinLatch:false, gear: [], wardrobeOpen: false, chestOpen: false, calibrated: false, offerings: [], coffinCordsAside: false, coffinOpen: false, photoFiled:false, busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
+    const freshState = () => ({ clerkKnowsAddress:false, clerkExplainedPost:false, askedAboutRoad:false, stripNoteLeft:false, keyAtBooth:false, closedDoors: [], arrival: 'intro', chapterEdition: 2, basketDown:false, cellarOpen:false, filterClear:false, sumpDrained:false, oldCoffinLatch:false, gear: [], wardrobeOpen: false, chestOpen: false, cardiganPlace: 'chest', calibrated: false, offerings: [], coffinCordsAside: false, coffinOpen: false, photoFiled:false, busCalled: false, records: [], pinnedRecords: [], visitedAreas: [], wheels: [0, 0, 0], opened: false, portrait: false, portraitBackRead: false, ending: false,
         courtyard: false, crossedYard: false, wellEscaped:false, wellRopeFreed:false, bucketParked:false, wellGripOpen:false, maskHung:false, formJoined:false, buckets: [0, 0], waterSolved: false, departure: null, rememberPlace:null, position: null, lamp: 'altar', shielded: false,
         memory: null, memoryReturn: null, phoneViews: [], documentViews: {}, fareTinOpen: false, familyLetterTaken:false, heightStripTaken: false, riceStage:'covered', porkOnRice:false, leakMuffled:false, stoveLit:false, legacySchoolSolved: false, reasoningRevision: 3, deductions: { school: false, hospital: false, crash: false }, drafts: {} });
     const validPose = pose => pose && [pose.x, pose.z, pose.yaw, pose.pitch].every(Number.isFinite);
@@ -51,6 +51,7 @@
                     this.state.oldCoffinLatch = saved.oldCoffinLatch === true || legacy || (saved.chapterEdition===1 && saved.vigil>0);
                     this.state.wardrobeOpen = this.state.opened && saved.wardrobeOpen === true;
                     this.state.chestOpen = this.state.opened && saved.chestOpen === true;
+                    this.state.cardiganPlace=this.state.chestOpen && ['carried','bed'].includes(saved.cardiganPlace) ? saved.cardiganPlace : 'chest';
                     this.state.gear = [...new Set((Array.isArray(saved.gear) ? saved.gear : []).filter(id => ['weight','rice','matches','paper','cellarKey','coffinKey'].includes(id)))];
                     this.state.cellarOpen = this.state.wardrobeOpen && saved.cellarOpen===true;
                     this.state.filterClear = this.state.cellarOpen && saved.filterClear===true;
@@ -266,6 +267,7 @@
             if(!s.keyAtBooth && (s.arrival === 'gate' || (s.arrival === 'home' && s.records.includes('key_board')))) ids.push('key');
             if(['lit','out'].includes(s.lamp)) ids.push('lamp');
             if(s.familyLetterTaken) ids.push('familyLetter');
+            if(s.cardiganPlace==='carried')ids.push('cardigan');
             for(const id of s.gear) {
                 if(id==='weight' && s.calibrated || s.offerings.includes(id)) continue;
                 ids.push(id);

@@ -170,7 +170,7 @@ export function drivingScene(house) {
     radio.scale.set(.132,.016,.004);
     const figure=house.watch.root.clone();
     film.add(figure);
-    const head=figure.getObjectByName('pasted-head-shell')?.parent;
+    const head=figure.getObjectByName('bridal-head');
     // The well rig normally poses these loose joints in its chase update.
     figure.children.filter(o=>o.name==='folded-shoulder'||o.name==='paper-sleeve'||o.children.some(c=>c.name==='paper-mitten')).forEach((o,i)=>{
         const side=i<3?-1:1, part=i%3;
@@ -219,7 +219,7 @@ export function drivingScene(house) {
             contact.set(-.39,-.19,-.85);car.localToWorld(contact);
             figure.position.lerp(contact,hit);
             figure.rotation.set(.04*rush,car.rotation.y*hit,.07*rush);
-            if(head){head.rotation.y=-.85*(1-smooth(t,scare-.45,scare+.24));head.rotation.z=-.06-.15*rush;}
+            if(head){head.rotation.y=-.85*(1-smooth(t,scare-.45,scare+.24));head.rotation.z=-.018-.026*rush;}
             flash.position.set(car.position.x-.36,1.32,z-.29);flash.intensity=.30+1.55*rush;
             if(reduced && t<inside){
                 eye.set(-3.0,1.34,4.9);target.set(0,.87,-1.35);

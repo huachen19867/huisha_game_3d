@@ -23,6 +23,9 @@
     site('wardrobe',copyText('westroom.wardrobe'),'west_room',-11.72,1.28,-18,copyText('westroom.wardrobe.2'));
     site('wedding_photo',copyText('westroom.wedding_photo'),'west_room',-9.35,1.52,-20.83,copyText('westroom.wedding_photo.2'));
     site('wedding_chest',copyText('westroom.wedding_chest'),'west_room',-7.92,.82,-15.78,copyText('westroom.wedding_chest.2'));
+    site('cardigan_bed',copyText('cardigan.bed'),'west_room',-9.35,.71,-19.89,copyText('cardigan.bedText'),{journal:false});
+    site('cardigan_detail',copyText('cardigan.name'),'west_room',-9.35,.71,-19.89,copyText('cardigan.inspect'),{inventoryOnly:true});
+    site('wedding_sitting',copyText('cardigan.memoryTitle'),'west_room',-9.35,1.52,-20.83,copyText('cardigan.memory'),{inventoryOnly:true});
     site('brass_weight',copyText('westroom.brass_weight'),'workshop',-16.52,1.09,-19.47,copyText('westroom.brass_weight.2'),{requiresState:'wardrobeOpen'});
     site('matchbox',copyText('westroom.matchbox'),'workshop',-16.52,1.04,-17.58,copyText('westroom.matchbox.2'),{requiresState:'wardrobeOpen'});
     site('rice_bowl',copyText('westroom.rice_bowl'),'kitchen',10,1.08,-18.65,copyText('westroom.rice_bowl.2'),{journal:false});
@@ -84,8 +87,56 @@
         h.wardrobe = new THREE.Group(); h.wardrobe.position.set(-12.14,0,-18);h.scene.add(h.wardrobe);
         h.wardrobeSite=world.interactables.find(item=>item.id==='wardrobe');
         for(const z of [-18.65,-17.35]) box('wardrobe-track',[.5,.026,2.35],[-12.11,.013,z+.82],m.stone);
-        box('chest-body',[1.15,.68,.65],[-7.92,.34,-15.42],m.wood,'wedding_chest');
-        h.westLid=box('chest-lid',[1.19,.12,.68],[-7.92,.74,-15.42],m.darkWood,'wedding_chest');
+        const chest=new THREE.Group();chest.position.set(-7.92,0,-15.42);h.scene.add(chest);
+        const plank=(name,size,pos,mat=m.wood)=>box(name,size,pos,mat,'wedding_chest',chest);
+        plank('chest-bottom',[1.13,.09,.64],[0,.055,0]);
+        for(const z of [-.30,.30])plank('chest-long-wall',[1.15,.61,.045],[0,.375,z]);
+        for(const x of [-.55,.55])plank('chest-end-wall',[.05,.61,.56],[x,.375,0]);
+        plank('chest-tray',[.30,.04,.53],[-.35,.44,0]);plank('chest-tray-lip',[.035,.12,.56],[-.19,.48,0]);
+        h.westLid=new THREE.Group();chest.add(h.westLid);h.westLid.position.set(0,.68,.32);
+        box('chest-lid',[1.19,.08,.68],[0,.04,-.32],m.darkWood,'wedding_chest',h.westLid);
+        h.chestKey=new THREE.Group();chest.add(h.chestKey);h.chestKey.position.set(-.34,.473,-.055);
+        h.chestKey.rotation.y=-.35;
+        h.mesh('key-bow',new THREE.TorusGeometry(.036,.007,8,24),m.brass,[0,0,0],'wedding_chest',h.chestKey).rotation.x=Math.PI/2;
+        box('key-shank',[.014,.012,.11],[0,0,.084],m.brass,'wedding_chest',h.chestKey);
+        for(const z of [.10,.13])box('key-tooth',[.035,.014,.012],[.012,0,z],m.brass,'wedding_chest',h.chestKey);
+        box('key-tag',[.082,.014,.12],[0,0,-.08],m.wood,'wedding_chest',h.chestKey);
+        const stamp=new THREE.Shape();
+        stamp.moveTo(-.021,.014);stamp.lineTo(.021,.014);stamp.lineTo(.016,-.018);
+        stamp.lineTo(-.016,-.018);stamp.closePath();
+        const stampAt=[0,.0072,-.08];
+        h.mesh('bucket-on-key-tag',new THREE.ShapeGeometry(stamp),m.darkWood,stampAt,'wedding_chest',h.chestKey).rotation.x=-Math.PI/2;
+        const handle=new THREE.TorusGeometry(.017,.002,5,12,Math.PI);
+        h.mesh('stamped-pail-handle',handle,m.darkWood,[0,.0073,-.094],'wedding_chest',h.chestKey).rotation.x=-Math.PI/2;
+        const knit=new THREE.MeshStandardMaterial({roughness:.97,color:0xe7d9d5,alphaTest:.5,side:THREE.DoubleSide});
+        if(h.renderer?.isWebGLRenderer){
+            knit.map=new THREE.TextureLoader().load('assets/art/west-cardigan.webp');
+            knit.map.colorSpace=THREE.SRGBColorSpace;h.textures.push(knit.map);
+        }
+        h.foldedCardigan=new THREE.Group();chest.add(h.foldedCardigan);
+        h.foldedCardigan.position.set(.17,.47,0);
+        const wool=new THREE.MeshStandardMaterial({color:0x612e3b,roughness:.98});
+        for(let i=0;i<3;i++){
+            const fold=h.mesh('knitted-fold',new THREE.SphereGeometry(1,28,10),wool,[0,.026*i,0],'wedding_chest',h.foldedCardigan);
+            fold.scale.set(.285,.036,.205);
+        }
+        const top=new THREE.PlaneGeometry(.47,.33,20,14);top.rotateX(-Math.PI/2);
+        const tu=top.attributes.uv,tv=top.attributes.position;
+        for(let i=0;i<tu.count;i++){
+            tv.setY(i,.073+.025*(1-(2*tu.getX(i)-1)**2)*(1-(2*tu.getY(i)-1)**2));
+            tu.setXY(i,.31+.38*tu.getX(i),.41+.38*tu.getY(i));
+        }
+        top.computeVertexNormals();h.mesh('folded-button-band',top,knit,[0,0,0],'wedding_chest',h.foldedCardigan);
+        const spread=new THREE.PlaneGeometry(1.16,.79,32,24);spread.rotateX(-Math.PI/2);
+        const fabric=spread.attributes.position;
+        for(let i=0;i<fabric.count;i++){
+            const x=fabric.getX(i),z=fabric.getZ(i);
+            fabric.setY(i,.012*Math.cos(x*14+z*7)+.007*Math.sin(z*22)-.5*Math.max(0,z-.29));
+        }
+        spread.computeVertexNormals();
+        h.cardiganBedSite=new THREE.Group();h.scene.add(h.cardiganBedSite);
+        world.interactables.find(item=>item.id==='cardigan_bed').targetObject=h.cardiganBedSite;
+        h.spreadCardigan=h.mesh('cardigan-on-quilt',spread,knit,[-9.34,.691,-19.97],'cardigan_bed',h.cardiganBedSite);
         h.label('chest-lock',copyText('westroom.chest-lock'),[.19,.17],[-7.92,.55,-15.76],[0,Math.PI,0],'wedding_chest');
         box('repair-table',[.86,.12,2.9],[-17,.91,-18.65],m.wood);
         for(const z of [-19.86,-17.4]) box('bench-legs',[.76,.87,.12],[-17,.43,z],m.darkWood);

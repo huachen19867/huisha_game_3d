@@ -618,7 +618,11 @@
             game.syncStoreys(this,s,this.storeysReady && !immediate ? delta : undefined);this.storeysReady=true;
             this.wardrobe.position.z = s.wardrobeOpen ? -16.01 : -18;
             this.wardrobeSite.position.z = this.wardrobe.position.z;
-            this.westLid.rotation.x = s.chestOpen ? -1.05 : 0;
+            this.westLid.rotation.x = s.chestOpen ? 1.36 : 0;
+            this.chestKey.visible=s.chestOpen && !s.gear.includes('cellarKey');
+            this.foldedCardigan.visible=s.cardiganPlace==='chest';
+            this.cardiganBedSite.visible=s.cardiganPlace!=='chest';
+            this.spreadCardigan.visible=s.cardiganPlace==='bed';
             this.spareWeight.visible = !s.gear.includes('weight');
             this.matchTin.visible = !s.gear.includes('matches');
             this.offeringRice.visible = s.offerings.includes('rice');

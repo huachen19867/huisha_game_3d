@@ -512,7 +512,10 @@ assert.ok(outside, 'door opening must make the ending area physically reachable'
 camera.position.set(0, 1.6, -12.9); camera.lookAt(new THREE.Vector3(0, 1.25, -13.9)); camera.updateMatrixWorld(true);
 interaction.update(); assert.equal(interaction.current?.id, 'threshold');
 interaction.activate(); assert.ok(story.state.records.includes('threshold')); assert.equal(story.state.ending, false, 'reaching or reading the threshold must not auto-finish');
-for (const item of game.WORLD_MAP.interactables.filter(item => item.requiresOpen && !item.requiresState && !item.requiresWater)) verifyReachable(item, yardPoints);
+assert.equal(house.cardiganBedSite.visible,false);
+story.state.chestOpen=true;story.state.cardiganPlace='carried';house.syncState(true);house.scene.updateMatrixWorld(true);
+for (const item of game.WORLD_MAP.interactables.filter(item => !item.inventoryOnly && item.requiresOpen && !item.requiresState && !item.requiresWater)) verifyReachable(item, yardPoints);
+story.state.chestOpen=false;story.state.cardiganPlace='chest';house.syncState(true);
 story.state.crossedYard=true;
 for(const hung of [false,true]){
     story.state.maskHung=hung;house.courtyard.syncMask();house.scene.updateMatrixWorld(true);

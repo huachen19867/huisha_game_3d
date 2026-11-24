@@ -297,9 +297,15 @@ function readRecord(item, actions) {
         $('reader-body').prepend(sheet);
     }
     if(item.id==='well_grip')showGripPhoto(true);
-    const photographs={letter:'family-new-year',wedding_photo:'silver-wedding',bend_photo:'bridge-bicycle',height_stitch:'height-stitch',well_scrap:'well-skirt-paper'};
+    const photographs={letter:'family-new-year',wedding_photo:'silver-wedding',wedding_sitting:'silver-wedding',bend_photo:'bridge-bicycle',height_stitch:'height-stitch',well_scrap:'well-skirt-paper'};
     if(photographs[item.id]){
         $('reader-body').prepend(recordPhoto(photographs[item.id],item.title));
+    }
+    if(item.id==='cardigan_detail'){
+        const image=document.createElement('img');
+        image.className='record-photo';image.alt=item.title;
+        image.src='assets/art/west-cardigan.webp';
+        $('reader-body').prepend(image);
     }
     if(item.id==='glass_impression')$('reader-body').prepend(inkStudy());
     if(['paper_mask','mask_strap','mask_photo'].includes(item.id)){
@@ -775,7 +781,7 @@ function inspect(item) {
     item = presentRecord(item);
     ['lock', 'water_station'].includes(item.id) ? audio.knock() : audio.paper();
     if (['car_envelope','clerk','duty_book','key_board','front_gate'].includes(item.id) && inspectVillage(item)) return;
-    if (household({story,scene,open,close,audio,inspectUniform},item)) return;
+    if (household({story,scene,open,close,audio,inspectUniform,readRecord},item)) return;
     if(item.id==='well_grip' || item.id==='yard_well' || item.id==='well_seat'){
         if(scene.watch?.phase==='chase'){
             open(item.title,copyText('main.inspect'),[[copyText('main.inspect.2'),close]]);return;

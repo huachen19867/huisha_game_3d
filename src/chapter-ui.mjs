@@ -9,6 +9,7 @@ export const equipment = {
     matches: [copyText('chapter-ui.equipment.matches'),copyText('chapter-ui.equipment.matches.2')],
     rice: [copyText('chapter-ui.equipment.rice'),copyText('chapter-ui.equipment.rice.2')],
     paper: [copyText('chapter-ui.equipment.paper'),copyText('chapter-ui.equipment.paper.2')],
+    cardigan:[copyText('cardigan.name'),copyText('cardigan.bag')],
     cellarKey:[copyText('chapter-ui.equipment.cellarkey'),copyText('chapter-ui.equipment.cellarkey.2')],
     coffinKey:[copyText('chapter-ui.equipment.coffinkey'),copyText('chapter-ui.equipment.coffinkey.2')],
     familyLetter: [copyText('chapter-ui.equipment.familyletter'),copyText('chapter-ui.equipment.familyletter.2')],
@@ -17,7 +18,7 @@ export const equipment = {
 };
 
 export function household(context,item) {
-    const {story,scene,open,close,audio,inspectUniform}=context;
+    const {story,scene,open,close,audio,inspectUniform,readRecord}=context;
     const s=story.state, back=[copyText('chapter-ui.household'),close];
     const redraw=()=>{story.save();scene.syncState(true);};
     function obtain(id) {
@@ -31,18 +32,59 @@ export function household(context,item) {
                 const pose=scene.controls.snapshot();
                 if(!scene.controls.canOccupy(pose.x,pose.z)) scene.controls.teleport({...pose,x:-11.27});
                 redraw();audio.latch();close();}],back]);
-    } else if(item.id==='wedding_chest') {
-        if(s.chestOpen) open(copyText('chapter-ui.household.9'),s.gear.includes('cellarKey')?copyText('chapter-ui.household.10'):copyText('chapter-ui.household.11'),s.gear.includes('cellarKey')?[back]:[[copyText('chapter-ui.household.12'),()=>obtain('cellarKey')],back]);
-        else {
+    } else if(['wedding_chest','cardigan_bed','wedding_photo'].includes(item.id)) {
+        const find=id=>scene.map.interactables.find(entry=>entry.id===id);
+        const move=place=>{s.cardiganPlace=place;redraw();audio.paper();};
+        const carry=()=>{move('carried');close();};
+        function compare(){
+            story.record('wedding_sitting');
+            readRecord(find('wedding_sitting'),[back]);
+        }
+        function bed(){
+            if(s.cardiganPlace==='carried'){
+                open(item.title,item.text,[[copyText('cardigan.spread'),()=>{move('bed');bed();}],back]);
+                return;
+            }
+            if(s.cardiganPlace!=='bed'){close();return;}
+            story.record('cardigan_detail');
+            const actions=[[copyText('cardigan.fold'),carry],back];
+            if(s.records.includes('wedding_photo'))actions.unshift([copyText('cardigan.compare'),compare]);
+            readRecord(find('cardigan_detail'),actions);
+        }
+        function lock(guess=''){
             function unlock(){
-                if(input.value!=='1986'){ feedback.textContent=copyText('chapter-ui.unlock'); input.select(); return; }
+                if(input.value!=='1986'){feedback.textContent=copyText('chapter-ui.unlock');input.select();return;}
                 s.chestOpen=true;redraw();audio.latch();household(context,item);
             }
-            open(item.title,item.text,[[copyText('chapter-ui.household.13'),unlock],back]);
-            const input=document.createElement('input'), feedback=document.createElement('p');
-            input.type='text';input.inputMode='numeric';input.maxLength=4;input.placeholder=copyText('chapter-ui.household.14');input.setAttribute('aria-label',copyText('chapter-ui.household.15'));
+            const actions=[[copyText('chapter-ui.household.13'),unlock]];
+            if(s.records.includes('wedding_photo'))actions.push([copyText('cardigan.reviewPhoto'),()=>{
+                const previous=input.value;
+                readRecord(find('wedding_photo'),[[copyText('cardigan.backToLock'),()=>lock(previous)],back]);
+            }]);
+            open(item.title,item.text,[...actions,back]);
+            const input=document.createElement('input'),feedback=document.createElement('p');
+            input.type='text';input.inputMode='numeric';input.maxLength=4;input.value=guess;
+            input.placeholder=copyText('chapter-ui.household.14');input.setAttribute('aria-label',copyText('chapter-ui.household.15'));
             feedback.setAttribute('role','status');document.getElementById('reader-body').append(input,feedback);
             input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();unlock();}};input.focus();
+        }
+        if(item.id==='wedding_photo'){
+            const actions=[back];
+            if(s.cardiganPlace==='bed')actions.unshift([copyText('cardigan.compare'),compare]);
+            readRecord(item,actions);
+        }else if(item.id==='cardigan_bed')bed();
+        else if(!s.chestOpen)lock();
+        else{
+            const hasKey=s.gear.includes('cellarKey'),actions=[];
+            let text=copyText(hasKey?'chapter-ui.household.10':'chapter-ui.household.11');
+            if(!hasKey)actions.push([copyText('chapter-ui.household.12'),()=>obtain('cellarKey')]);
+            if(s.cardiganPlace==='chest'){
+                text+='\n\n'+copyText('cardigan.folded');
+                actions.push([copyText('cardigan.take'),carry]);
+            }else if(s.cardiganPlace==='carried'){
+                actions.push([copyText('cardigan.replace'),()=>{move('chest');household(context,item); }]);
+            }
+            open(copyText('chapter-ui.household.9'),text,[...actions,back]);
         }
     } else if(item.id==='attic_winch'){
         if(!s.basketDown) open(item.title,item.text,[[copyText('chapter-ui.household.16'),()=>{
