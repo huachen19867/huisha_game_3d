@@ -40,6 +40,8 @@
         interactables: [...hall.interactables,
             {id:'well_seat',title:copyText('well.seat.title'),location:copyText('courtyardmap.kitchen.title'),requiresOpen:true,journal:false,
                 position:{x:6.40,y:.32,z:-20.30},radius:2.15,text:copyText('well.seat.inspect')},
+            {id:'well_doorway_call',title:copyText('well.call.title'),location:copyText('courtyardmap.kitchen.title'),inventoryOnly:true,
+                position:{x:6.40,y:.32,z:-20.30},text:copyText('well.call.seen')},
             {id:'well_seat_memory',title:copyText('well.seat.memoryTitle'),location:copyText('courtyardmap.kitchen.title'),inventoryOnly:true,
                 position:{x:6.40,y:.32,z:-20.30},text:copyText('well.seat.memory')},
             {id:'paper_mask',title:copyText('courtyardmap.paper_mask.title'),area:'yard',location:copyText('courtyardmap.yard.title'),requiresOpen:true,requiresState:'crossedYard',position:{x:5.78,y:.21,z:-19.15},radius:2.1,

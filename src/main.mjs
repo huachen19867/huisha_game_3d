@@ -750,12 +750,21 @@ function sitAtDoorway(){
     releaseMouse();touches.clear();updateTouch();scene.sitAtWellDoorway();
     $('hud').classList.add('inspecting');$('well-seat').hidden=false;
     $('well-seat-view').textContent=doorwayView();
+    $('well-seat-call').hidden=!scene.watch?.canCallFromDoorway?.();
     $('well-seat-remember').textContent=copyText('well.seat.remember');
     $('well-seat-remember').setAttribute('aria-expanded','false');
     $('well-seat-remember').hidden=!story.state.records.includes('well_grip');
     $('well-seat-leave').focus();
 }
 $('well-seat-leave').addEventListener('click',()=>leaveInspection());
+$('well-seat-call').addEventListener('click',()=>{
+    if(!scene.watch?.callFromDoorway())return;
+    $('well-seat-call').hidden=true;
+    $('well-seat-remember').setAttribute('aria-expanded','false');
+    $('well-seat-remember').textContent=copyText('well.seat.remember');
+    $('well-seat-view').textContent=copyText('well.call.said');
+    $('well-seat-leave').focus();
+});
 $('well-seat-remember').addEventListener('click',()=>{
     if(scene.inspectionKind!=='wellSeat' || !story.state.records.includes('well_grip'))return;
     const button=$('well-seat-remember');
@@ -1229,6 +1238,12 @@ try {
         },
         onWatchEvent: (kind, pan) => {
             const panel = $('yard-watch');
+            if(kind==='glance'){
+                if(scene.inspectionKind==='wellSeat' && !reader.open && $('well-seat-remember').getAttribute('aria-expanded')!=='true'){
+                    story.record('well_doorway_call');$('well-seat-view').textContent=copyText('well.call.seen');
+                }
+                return;
+            }
             if(kind==='submerged'){
                 const distance=scene.camera.position.distanceTo(scene.courtyard.ropeAnchor);
                 if(distance<14)audio.noiseBurst(.24,.14*(1-distance/14),880);
@@ -1241,7 +1256,11 @@ try {
                 releaseMouse();$('well-film').hidden=false;$('skip-well').focus();audio.water('pour');return;
             }
             if(kind==='crease'){audio.paper();return;}
-            if(kind==='land'){audio.knock();return;}
+            if(kind==='land'){
+                audio.noiseBurst(.21,.12,1650,'bandpass');
+                if(!audio.sample('impactWood_light_001',.27))audio.noiseBurst(.07,.18,380);
+                return;
+            }
             if(kind==='step'){if(!audio.sample('impactWood_light_000',.58,pan))audio.watchStep(pan,true);return;}
             if(kind==='run'){
                 $('well-film').hidden=true;restoreMouse=!!window.matchMedia?.('(pointer:fine)').matches;resumeWorld();
@@ -1268,6 +1287,7 @@ try {
         },
         onAssetError: name => { assetErrors.add(name); updateLoadStatus(); },
         onFrame: (position, paused) => {
+            if(scene?.inspectionKind==='wellSeat')$('well-seat-call').hidden=!scene.watch?.canCallFromDoorway?.();
             if(mode==='game'){
                 const phase=scene.watch?.phase;
                 const music=phase==='film'?null:phase==='chase'?'chase':story.state.memory?'memory':position.z>4.5?'road':'home';

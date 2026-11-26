@@ -1,6 +1,7 @@
 (function(global){
     const game=global.Huisha3D,T=global.THREE;
     const smooth=(t,a,b)=>T.MathUtils.smoothstep(t,a,b);
+    const upperLength=.365,lowerLength=.35;
     const inKitchen=p=>p.x>6.12 && p.z>-23.5 && p.z< -19.5;
     class ThreeWellChase {
         constructor(h){
@@ -102,44 +103,74 @@
             });
             this.arms=[-1,1].map(side=>{
                 const upper=part('folded-shoulder',printed(new T.CylinderGeometry(.115,.089,1,8),.19,.49,.44,.84),print);
-                const lower=part('paper-sleeve',printed(new T.CylinderGeometry(.142,.096,1,8),.03,.57,.31,.987),print);
+                const sleeve=shell([[.088,-.50],[.090,-.26],[.11,.25],[.117,.48],[.116,.50],[.105,.50],[.104,.40]],14);
+                const lower=part('paper-sleeve',printed(sleeve,.03,.57,.31,.987),print);
+                const lining=part('inside-cuff',new T.CircleGeometry(.104,14),black,lower);
+                lining.position.y=.39;lining.rotation.x=-Math.PI/2;
                 const hand=new T.Group();this.root.add(hand);
-                const palm=part('paper-mitten',new T.BoxGeometry(.10,.044,.11),paper,hand);
-                palm.rotation.z=side*.09;
+                const palm=part('paper-mitten',new T.SphereGeometry(1,12,6),paper,hand);
+                palm.scale.set(.047,.015,.060);
+                const sliver=part('split-cane-wrist',new T.BoxGeometry(.009,.004,.079),bamboo,hand);
+                sliver.position.set(side*.021,.012,-.032);sliver.rotation.y=side*.08;
+                const fingers=new T.Group();fingers.position.z=.039;hand.add(fingers);
                 for(let i=0;i<4;i++){
-                    const digit=part('folded-paper-finger',new T.CylinderGeometry(.011,.016,.071,4),i===3?bamboo:paper,hand);
-                    digit.position.set(side*(i-1.5)*.024,-.023,.053);digit.rotation.x=-.63;
+                    const length=[.067,.076,.070,.053][i];
+                    const finger=shell([[.007,0],[.009,length*.25],[.008,length*.56],[.005,length*.91],[.002,length]],7);
+                    const points=finger.attributes.position;
+                    for(let j=0;j<points.count;j++){
+                        const along=points.getY(j);
+                        points.setXYZ(j,points.getX(j),-points.getZ(j)*.65-.021*smooth(along,length*.45,length),along);
+                    }
+                    finger.computeVertexNormals();
+                    const digit=part('folded-paper-finger',finger,paper,fingers);
+                    digit.position.set(side*(i-1.5)*.019,-.003,0);digit.rotation.y=side*(i-1.5)*.055;
                 }
-                return {side,upper,lower,hand};
+                const thumb=part('pasted-thumb',new T.CylinderGeometry(.008,.014,.054,5),paper,hand);
+                thumb.position.set(-side*.046,-.002,.009);thumb.rotation.set(.94,0,side*.64);
+                return {side,upper,lower,hand,fingers,shoulder:new T.Vector3(side*.22,1.20,.075)};
             });
             this.up=new T.Vector3(0,1,0);
+            this.wrist=new T.Vector3();this.stone=new T.Vector3();this.axis=new T.Vector3();
+            this.bend=new T.Vector3();this.elbow=new T.Vector3();this.segment=new T.Vector3();
         }
         pose(t,climb){
-            const root=this.root, reach=smooth(t,.4,3.9), crest=smooth(t,3.6,6.6),land=smooth(t,6.5,8.0);
+            const root=this.root, reach=smooth(t,.18,1.78),rise=smooth(t,2.65,4.14);
+            const crest=smooth(t,4.88,6.62),land=smooth(t,7.15,7.96);
             if(climb){
-                root.position.set(-3,-1.35+1.18*reach+.94*crest-.77*land,-21.84+.19*reach+.37*crest+.63*land);
-                root.rotation.y=.09+.37*smooth(t,4.9,6.3);
+                root.position.set(-3,-1.48+.59*reach+.70*rise+1.12*crest-.93*land,
+                    -21.95+.20*reach+.10*rise+.26*crest+.74*smooth(t,6.32,7.69));
+                root.rotation.y=.06+.37*smooth(t,5.46,6.74);
             }
             this.coat.rotation.x=climb?.085*crest-.07*land:.025;
             this.feet.forEach((leg,i)=>{leg.rotation.x=climb?.64*(crest-land):.14*Math.sin(t*6+i*Math.PI);});
             this.head.rotation.z=climb?-.035+.05*smooth(t,4.9,5.7):.018;
-            this.head.rotation.x=climb?.43-.49*smooth(t,3.8,5.4):.035;
-            for(const {side,upper,lower,hand} of this.arms){
-                const shoulder=new T.Vector3(side*.22,1.20,.075);
-                const grip=smooth(t,side<0?.25:1.05,side<0?2.7:3.3);
-                const release=smooth(t,5.4+(side+1)*.32,7.85);
-                const palm=climb ? new T.Vector3(side*.26,
-                    T.MathUtils.lerp(.62+grip*.305-root.position.y,.70,release),
-                    T.MathUtils.lerp(-21.36-root.position.z,.28,release))
-                    : new T.Vector3(side*.23,.69+.016*Math.cos(t*4+side),.12+.029*Math.sin(t*4+side));
-                // The hands come out separately, hold the rim while the body rises, then release.
-                if(climb)palm.y-=.78*(1-grip);
-                const elbow=shoulder.clone().lerp(palm,.48);elbow.x+=side*(climb?.075:.032);elbow.z-=.125;
+            this.head.rotation.x=climb?.53-.55*smooth(t,4.20,4.76):.035;
+            this.head.rotation.y=climb?-.38+.66*smooth(t,4.27,4.73)-.28*crest:0;
+            for(const {side,upper,lower,hand,fingers,shoulder} of this.arms){
+                const grip=smooth(t,side<0?.30:1.38,side<0?1.74:2.47);
+                const release=smooth(t,side<0?5.16:5.42,side<0?5.85:6.09);
+                const palm=this.wrist.set(side*.265,.60,.17);
+                if(climb){
+                    const contact=this.stone.set(-3+side*.25,.897,-21.41);
+                    root.worldToLocal(contact);
+                    palm.lerp(contact,grip*(1-release));
+                }
+                // Bend the two fixed bamboo spars toward the requested wrist position.
+                const axis=this.axis.subVectors(palm,shoulder);
+                const span=T.MathUtils.clamp(axis.length(),.10,upperLength+lowerLength-.002);
+                axis.normalize();palm.copy(shoulder).addScaledVector(axis,span);
+                const along=(upperLength**2-lowerLength**2+span**2)/(2*span);
+                const bend=this.bend.set(side*.48,-.19,-1);
+                bend.addScaledVector(axis,-bend.dot(axis)).normalize();
+                const elbow=this.elbow.copy(shoulder).addScaledVector(axis,along).addScaledVector(bend,Math.sqrt(upperLength**2-along**2));
                 for(const [mesh,a,b] of [[upper,shoulder,elbow],[lower,elbow,palm]]){
-                    const d=b.clone().sub(a);mesh.position.copy(a).lerp(b,.5);mesh.scale.y=d.length()+.024;
+                    const d=this.segment.subVectors(b,a);mesh.position.copy(a).lerp(b,.5);mesh.scale.y=d.length()+.024;
                     mesh.quaternion.setFromUnitVectors(this.up,d.normalize());
                 }
                 hand.position.copy(palm);
+                const planted=climb?grip*(1-release):0;
+                hand.rotation.set(1.31*(1-planted),-root.rotation.y*planted,side*.08*(1-planted),'YXZ');
+                fingers.rotation.x=.15+.42*planted;
             }
         }
         setHemTorn(torn){
@@ -149,6 +180,7 @@
         begin(){
             if(this.phase==='film' || this.phase==='chase' || this.house.story.state.memory)return;
             const h=this.house;this.returnPose=h.controls.snapshot();this.time=0;this.phase='film';
+            this.doorwayCall=null;
             this.setHemTorn(h.story.state.wellEscaped);
             if(!h.story.state.wellRopeFreed){
                 h.story.state.wellRopeFreed=true;h.story.save(this.returnPose);
@@ -158,10 +190,11 @@
         }
         frameFilm(){
             const h=this.house,t=this.time;
-            const pull=h.reducedMotion?.matches?1:smooth(t,3.55,7.75);
+            const pull=h.reducedMotion?.matches?1:smooth(t,4.82,7.65);
             h.camera.position.set(-2.42+.91*pull,1.25+.43*pull,-20.63+1.44*pull);
-            const rise=T.MathUtils.clamp(this.root.position.y+1.51,.90,1.89);
-            h.camera.lookAt(-3,rise-.23*pull,-21.52+.67*pull);
+            const face=smooth(t,2.58,4.08);
+            const rise=T.MathUtils.clamp(this.root.position.y+1.57,.90,2.26);
+            h.camera.lookAt(-3-.18*(1-face),T.MathUtils.lerp(.91,rise,face)-.14*pull,-21.45+.60*pull);
         }
         release(){
             if(this.phase!=='film')return;
@@ -200,8 +233,33 @@
             if(index<0)this.trail.push(p.clone());
             else this.trail.length=index+1;
         }
+        canCallFromDoorway(){
+            if(this.house.inspectionKind!=='wellSeat' || this.doorwayCall)return false;
+            return this.phase==='retreat' || (this.phase==='lowering' && this.time>4.85);
+        }
+        callFromDoorway(){
+            if(!this.canCallFromDoorway())return false;
+            this.doorwayCall={elapsed:0,finished:false};
+            return true;
+        }
         retreat(dt){
             const root=this.root;
+            const call=this.doorwayCall;
+            // She gives no answer until she has reached the well, in view of the kitchen.
+            if(call && !call.finished && this.phase==='lowering' && this.time<=6.50){
+                if(call.elapsed===0){
+                    call.originalYaw=this.head.rotation.y;call.originalTilt=this.head.rotation.x;
+                    const towardDoor=Math.atan2(6.40-root.position.x,-20.30-root.position.z)-root.rotation.y;
+                    call.turn=T.MathUtils.clamp(T.MathUtils.euclideanModulo(towardDoor+Math.PI,2*Math.PI)-Math.PI,-1.18,1.18);
+                }
+                const previous=call.elapsed;call.elapsed+=dt;
+                const glance=smooth(call.elapsed,.14,.63)*(1-smooth(call.elapsed,1.45,1.95));
+                this.head.rotation.y=T.MathUtils.lerp(call.originalYaw,call.turn,glance);
+                this.head.rotation.x=call.originalTilt-.095*glance;
+                if(previous<.66 && call.elapsed>=.66)this.house.onWatchEvent?.('glance',0);
+                if(call.elapsed>=1.95)call.finished=true;
+                return;
+            }
             if(this.phase==='lowering'){
                 this.time-=dt*1.62;
                 this.pose(Math.max(0,this.time),true);
@@ -241,8 +299,8 @@
             if(this.phase==='film'){
                 if(h.isReading?.())return;
                 const previous=this.time;this.time+=dt;
-                if(previous<2.76 && this.time>=2.76)h.onWatchEvent?.('crease',0);
-                if(previous<7.65 && this.time>=7.65)h.onWatchEvent?.('land',0);
+                for(const beat of [1.74,2.47])if(previous<beat && this.time>=beat)h.onWatchEvent?.('crease',0);
+                if(previous<7.96 && this.time>=7.96)h.onWatchEvent?.('land',0);
                 this.pose(this.time,true);this.frameFilm();
                 if(this.time>=8.6)this.release();
                 return;
@@ -277,6 +335,9 @@
                 const turn=T.MathUtils.euclideanModulo(Math.atan2(dx,dz)-this.root.rotation.y+Math.PI,2*Math.PI)-Math.PI;
                 this.root.rotation.y+=turn*(1-Math.exp(-dt*8));
             }
+            const bearing=Math.atan2(p.x-pos.x,p.z-pos.z);
+            const glance=T.MathUtils.euclideanModulo(bearing-this.root.rotation.y+Math.PI,2*Math.PI)-Math.PI;
+            this.head.rotation.y=T.MathUtils.clamp(glance,-.50,.50)*smooth(this.time,.60,1.05);
             if(d<=stride+.012){this.markCorner();this.route.shift();}
             pos.y=.009*Math.sin(this.time*6)**2;
             if((this.step-=dt)<=0){

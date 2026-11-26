@@ -242,6 +242,14 @@ house.createArchitecture(); house.createProps(); await house.loadModels();
     camera.position.set(-2.9,1.6,-20.65);well.update(.05);
     assert.equal(well.root.visible,false);
     well.begin();
+    for(const t of [2.5,3.6,4.72,5.1]){
+        well.pose(t,true);
+        for(const arm of well.arms){
+            const wrist=arm.hand.getWorldPosition(new THREE.Vector3());
+            assert.ok(wrist.distanceTo(new THREE.Vector3(-3+arm.side*.25,.897,-21.41))<.001,'the paper hand stays on the same stone as the body rises');
+            assert.ok(Math.abs(arm.upper.scale.y-.389)<1e-6 && Math.abs(arm.lower.scale.y-.374)<1e-6);
+        }
+    }
     for(let i=0;i<173;i++)well.update(.05);
     assert.equal(well.phase,'chase');
     assert.ok(Math.abs(camera.position.z+20.65)<.01,'film returns to the actual well interaction position');
@@ -258,9 +266,15 @@ house.createArchitecture(); house.createProps(); await house.loadModels();
     const returnStart=well.root.position.clone();
     rig.isPaused=()=>true;well.update(1.4);assert.deepEqual(well.root.position,returnStart);
     rig.inspectionKind='wellSeat';
+    assert.ok(well.callFromDoorway());assert.equal(well.callFromDoorway(),false);
     for(let i=0;i<220 && well.phase==='retreat';i++)well.update(.05);
     assert.equal(well.phase,'lowering');assert.ok(Math.abs(well.root.position.x+3)<.02);
     assert.deepEqual(camera.position.toArray(),[6.4,1.6,-21.3]);
+    while(well.time>6.50)well.update(.05);
+    const feetAtWell=well.root.position.clone(),lookStart=well.head.rotation.y;
+    for(let i=0;i<16;i++)well.update(.05);
+    assert.ok(Math.abs(well.head.rotation.y-lookStart)>.35 && cues.includes('glance'));
+    assert.deepEqual(well.root.position,feetAtWell);
     for(let i=0;i<130;i++)well.update(.05);
     assert.ok(well.phase==='quiet' && !well.root.visible && cues.includes('submerged'));
     assert.ok(well.hemTorn && well.coat.geometry.drawRange.count<well.coat.geometry.index.count);
